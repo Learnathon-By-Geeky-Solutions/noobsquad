@@ -17,7 +17,9 @@
 
 ## Project Description
 
-Add your project description here.
+- UConnect is a social platform designed exclusively for university students, fostering academic collaboration, social engagement, and community building. The platform enables users to connect with peers based on university affiliations, academic interests, and personal preferences.
+
+Through intuitive design and personalized features, UConnect supports students in accessing academic resources, networking, and participating in community activities. With a unified feed, collaborative channels, and an AI assistant, it ensures a holistic university experience.
 
 ## Getting Started
 
