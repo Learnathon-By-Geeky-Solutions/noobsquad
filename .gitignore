@@ -1,16 +1,65 @@
-# Ignore virtual environments
-venv/
-.env/
+# ===========================
+# 🌟 Common Files to Ignore 🌟
+# ===========================
 
-# Ignore compiled Python files
-__pycache__/
+# Environment variables
+.env
+.env.local
+
+# Logs and temporary files
+*.log
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+pnpm-debug.log
+debug.log
+
+# IDE-specific files
+.vscode/
+.idea/
+
+# System files (MacOS & Windows)
+.DS_Store
+Thumbs.db
+
+# Swap files
+*.swp
+*.swo
+
+# ===========================
+# 📂 Frontend (React + Vite) 🌟
+# ===========================
+
+# Node.js dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Vite build output
+dist/
+
+# TailwindCSS cache (optional)
+.tailwind/
+
+# ===========================
+# 🐍 Backend (FastAPI + Python) 🌟
+# ===========================
+
+# Python virtual environment
+.venv/
+
+# Compiled Python files
 *.pyc
 *.pyo
-*.pyd
+__pycache__/
 
-# Ignore logs and caches
-logs/
-*.log
-
-# Ignore database files (if any)
+# FastAPI & database files
+*.db
 *.sqlite3
+
+# Jupyter Notebook checkpoints (if using Jupyter)
+.ipynb_checkpoints/
+
+# Migrations (if using Alembic or Django)
+migrations/
+
