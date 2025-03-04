@@ -9,6 +9,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 import jwt
 import os
 from dotenv import load_dotenv
+from core.dependencies import get_db
 
 
 load_dotenv()  # Load environment variables
@@ -22,15 +23,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 # Router
 router = APIRouter()
-
-
-# Dependency to get DB session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 # Signup Route
 @router.post("/signup/")
@@ -61,7 +53,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
 
 @router.get("/users/me/")
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
 
     try:
 
@@ -69,7 +61,17 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 
         username = payload.get("sub")
 
-        return {"username": username}
+        if not username:
+            raise HTTPException(status_code=401, detail="Username not found in token")
+        user = db.query(models.User).filter(models.User.username == username).first()
+        
+        # If user is not found, raise an error
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Return the user's id
+        return {"id": user.id, "username": user.username}
+        
 
     except jwt.ExpiredSignatureError:
 

@@ -2,10 +2,11 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { fetchUser } from "../api/auth"; // Import user fetch function
 
 // ✅ Provide default context to avoid `undefined` issues
-const AuthContext = createContext({
+export const AuthContext = createContext({
   user: null,
   login: () => {},
   logout: () => {},
+  loading: true,
 });
 
 export const AuthProvider = ({ children }) => {
