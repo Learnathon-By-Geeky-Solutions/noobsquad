@@ -9,16 +9,13 @@ from models.user import User
 router = APIRouter()
 
 @router.post("/connect", response_model=ConnectionResponse)
-def send_connection(friend_data: ConnectionCreate, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+def send_connection(friend_data: ConnectionCreate, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)) -> ConnectionResponse:
     try:
         new_request = send_request(db, current_user["id"], friend_data.friend_id)
-        if not new_request:
-            raise HTTPException(status_code=400, detail="Request already sent or user not found.")
         return new_request
     except Exception as e:
-        print(f"Error: {e}")  # ✅ Print the error in the console
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
+        logging.error(f"Connection error: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error") from e
 @router.post("/accept/{request_id}")
 def accept_connection(request_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)) -> dict:
     # Verify the connection belongs to the current user
