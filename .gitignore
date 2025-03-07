@@ -48,7 +48,6 @@ dist/
 
 # Python virtual environment
 .venv/
-
 # Compiled Python files
 *.pyc
 *.pyo
