@@ -21,7 +21,7 @@ const Dashboard = () => {
           <img src={user.avatar || "/default-avatar.png"} alt="Profile" className="w-10 h-10 rounded-full" />
           <span className="text-lg font-medium text-gray-800">Me ▼</span>
         </div>
-        <button onClick={logout} className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300">
+        <button type="button" onClick={logout} className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300">
           Logout
         </button>
       </div>
