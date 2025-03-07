@@ -34,9 +34,8 @@ def reject_connection(request_id: int, db: Session = Depends(get_db), current_us
     return {"message": "Connection rejected!"}
 
 @router.get("/connections")
-def list_connections(db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+def list_connections(db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)) -> list[Connection]:
     return get_connections(db, current_user["id"])
-
 @router.get("/users")
 def get_users(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> list[User]:
     try:
