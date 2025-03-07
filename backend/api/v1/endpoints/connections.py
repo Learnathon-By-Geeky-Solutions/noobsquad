@@ -38,13 +38,11 @@ def list_connections(db: Session = Depends(get_db), current_user: dict = Depends
     return get_connections(db, current_user["id"])
 
 @router.get("/users")
-def get_users(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def get_users(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> list[User]:
     try:
         if not current_user:
             raise HTTPException(status_code=401, detail="Unauthorized")
-
-        users = db.query(User).filter(User.id != current_user["id"]).all()
-        return users
+        return db.query(User).filter(User.id != current_user["id"]).all()
     except Exception as e:
-        logging.error(f"Error fetching users: {str(e)}")  # Logs error
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        logging.exception("Error fetching users: %s", str(e))
+        raise HTTPException(status_code=500, detail="Internal Server Error") from e
