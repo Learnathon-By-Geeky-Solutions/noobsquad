@@ -20,12 +20,16 @@ def send_connection(friend_data: ConnectionCreate, db: Session = Depends(get_db)
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @router.post("/accept/{request_id}")
-def accept_connection(request_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+def accept_connection(request_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)) -> dict:
+    # Verify the connection belongs to the current user
+    connection_check = db.query(Connection).filter_by(id=request_id).first()
+    if not connection_check or (connection_check.user_id != current_user["id"] and connection_check.friend_id != current_user["id"]):
+        raise HTTPException(status_code=403, detail="Not authorized to accept this connection.")
+    
     connection = accept_request(db, request_id)
     if not connection:
         raise HTTPException(status_code=404, detail="No pending request found.")
     return {"message": "Connection accepted!"}
-
 @router.post("/reject/{request_id}")
 def reject_connection(request_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     connection = reject_request(db, request_id)
