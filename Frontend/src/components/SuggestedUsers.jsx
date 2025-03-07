@@ -75,7 +75,7 @@ const SuggestedUsers = () => {
 
             {/* Mutual Connections */}
             <p className="text-xs text-gray-600 text-center mt-1">
-              {user.mutualConnections || Math.floor(Math.random() * 50)} mutual connections
+              0 mutual connections
             </p>
 
             {/* Connect Button */}

@@ -19,7 +19,7 @@ def send_connection(friend_data: ConnectionCreate, db: Session = Depends(get_db)
 @router.post("/accept/{request_id}")
 def accept_connection(request_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)) -> dict:
     # Verify the connection belongs to the current user
-    connection_check = db.query(Connection).filter_by(id=request_id).first()
+    connection_check = db.query(User).filter_by(id=request_id).first()
     if not connection_check or (connection_check.user_id != current_user["id"] and connection_check.friend_id != current_user["id"]):
         raise HTTPException(status_code=403, detail="Not authorized to accept this connection.")
     
@@ -35,10 +35,10 @@ def reject_connection(request_id: int, db: Session = Depends(get_db), current_us
     return {"message": "Connection rejected!"}
 
 @router.get("/connections")
-def list_connections(db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)) -> list[Connection]:
+def list_connections(db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     return get_connections(db, current_user["id"])
 @router.get("/users")
-def get_users(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)) -> list[User]:
+def get_users(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         if not current_user:
             raise HTTPException(status_code=401, detail="Unauthorized")
