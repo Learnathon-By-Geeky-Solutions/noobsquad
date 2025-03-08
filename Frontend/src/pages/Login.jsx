@@ -1,5 +1,4 @@
 import { useState } from "react";
-//import { useNavigate } from "react-router-dom";
 import { login } from "../api/auth"; 
 import { useAuth } from "../context/AuthContext";
 import "../assets/login.css"; 
@@ -11,7 +10,6 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
 
   const { login: authLogin } = useAuth(); 
-  //const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -25,13 +23,12 @@ const Login = () => {
     try {
       const data = await login(formData);
 
-      if (!data || !data.access_token) {
+      if (!data?.access_token) {
         throw new Error("Login failed: No access_token received");
       }
 
       await authLogin(data.access_token); // ✅ Use AuthContext login function
 
-      //navigate("/dashboard");
     } catch (error) {
       setError("Invalid username or password");
       console.error("Login error:", error.message);

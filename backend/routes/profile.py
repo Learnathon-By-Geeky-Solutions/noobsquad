@@ -7,6 +7,8 @@ from models.user import User  # ✅ Correct model import
 from schemas.user import UserResponse  # ✅ Correct schema import
 from api.v1.endpoints.auth import get_current_user  # Authentication dependency
 import os
+import uuid
+from pathlib import Path
 
 router = APIRouter()
 
@@ -25,7 +27,7 @@ def get_db():
     finally:
         db.close()
 
-UPLOAD_DIR = "uploads/profile_pictures"
+UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)  # Ensure upload directory exists
 
 
@@ -58,27 +60,34 @@ def complete_profile_step1(
 @router.post("/upload_picture")
 def upload_profile_picture(
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user),
+    current_user: models.User = Depends(get_current_user), # ✅ Default to None
     db: Session = Depends(get_db)
+    
 ):
+
     current_user = db.query(models.User).filter(models.User.id == current_user.id).first()
     if not current_user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    file_location = f"{UPLOAD_DIR}/{current_user.id}_{file.filename}"
-    
+    # ✅ Generate a secure, unique filename
+    file_extension = Path(file.filename).suffix  # Get file extension safely
+    secure_filename = f"{current_user.id}_{uuid.uuid4().hex}{file_extension}"  # Unique name
+
+    # ✅ Use a secure path
+    file_location = os.path.join(UPLOAD_DIR, secure_filename)
+
+    # ✅ Save the file securely
     with open(file_location, "wb") as buffer:
         buffer.write(file.file.read())
 
     # ✅ Update profile picture path
     current_user.profile_picture = file_location
 
-
     db.commit()
     db.refresh(current_user)
 
     return {
-        "filename": file.filename,
+        "filename": secure_filename,
         "path": file_location,
         "profile_completed": current_user.profile_completed  # ✅ Return updated status
     }

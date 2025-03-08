@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { FaArrowRight, FaArrowLeft } from "react-icons/fa";
 import "../assets/profileCompletion.css";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -149,7 +148,20 @@ const ProfileCompletion = () => {
           <h3 className={`interest-title ${errors.interests ? "error-text" : ""}`}>Select Fields of Interest</h3>
           <div className="interest-box">
             {availableInterests.map((interest) => (
-              <span key={interest} className={`chip ${formData.interests.includes(interest) ? "selected" : ""} ${errors.interests ? "error" : ""}`} onClick={() => toggleInterest(interest)}>{interest}</span>
+              <span 
+              key={interest}
+              role="button"
+              tabIndex="0"
+              className={`chip ${formData.interests.includes(interest) ? "selected" : ""} ${errors.interests ? "error" : ""}`} 
+              onClick={() => toggleInterest(interest)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  toggleInterest(interest);
+                }
+              }}
+            >
+              {interest}
+            </span>
             ))}
           </div>
           <button onClick={handleNext} className="btn-primary">Next</button>

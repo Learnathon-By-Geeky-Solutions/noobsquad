@@ -45,7 +45,7 @@ class UserResponse(BaseModel):
     profile_completed: bool 
 
     class Config:
-        from_attributes = True  # ✅ Correct for Pydantic v2
+        from_orm = True  # ✅ Correct for Pydantic v2
 
     @staticmethod
     def from_orm(user):  # ✅ Safe conversion for merged table

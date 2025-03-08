@@ -77,16 +77,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
             raise HTTPException(status_code=404, detail="User not found")
         
         return user
-        
-        """ return {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "profile_completed": user.profile_completed,
-            "university": user.university_name,
-            "department": user.department,
-            "fields_of_interest": user.fields_of_interest.split(",") if user.fields_of_interest else []
-        } """
     
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")

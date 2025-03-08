@@ -1,6 +1,6 @@
 from passlib.context import CryptContext
 import jwt
-import datetime
+from datetime import datetime, timedelta, timezone
 import os
 from dotenv import load_dotenv
 
@@ -22,6 +22,6 @@ def verify_password(plain_password, hashed_password):
 # Create JWT Token
 def create_access_token(data: dict):
     to_encode = data.copy()
-    expire = datetime.datetime.utcnow() + datetime.timedelta(hours=12)
+    expire = datetime.now(timezone.utc) + timedelta(hours=12)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)

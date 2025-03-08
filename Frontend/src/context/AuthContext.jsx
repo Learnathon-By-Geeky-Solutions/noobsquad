@@ -1,7 +1,6 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchUser } from "../api/auth"; 
-
+import { fetchUser } from "../api/auth";
 
 const AuthContext = createContext({
   user: null,
@@ -42,46 +41,35 @@ export const AuthProvider = ({ children }) => {
     loadUser();
   }, []);
 
-  const login = async (token) => {
+  const login = useCallback(async (token) => {
     localStorage.setItem("token", token);
     try {
       const response = await fetchUser(token);
-      console.log("fetchUser Response:", response); // Debugging API response
-
-      // Check if response contains data
       const userData = response.data || response; 
-      console.log("Extracted User Data:", userData);
 
       setUser(userData);
       setProfileCompleted(userData.profile_completed);
-      if (userData.profile_completed){
-        navigate("/dashboard")
-        console.log("navigating dashboard")
-      }
-      else{
-        navigate("/complete-profile")
-        console.log("navigating complete-profile")
-      }
-      //navigate(userData.profile_completed ? "/dashboard" : "/complete-profile");
+
+      navigate(userData.profile_completed ? "/dashboard" : "/complete-profile");
     } catch (error) {
       console.error("Failed to fetch user after login:", error);
     }
-};
+  }, [navigate]);
 
-
-  const logout = () => {
+  const logout = useCallback(() => {
     console.log("Logging out...");
     localStorage.removeItem("token");
     setUser(null);
     setProfileCompleted(false);
     navigate("/login");
-  };
+  }, [navigate]);
 
-  return (
-    <AuthContext.Provider value={{ user, profileCompleted, login, logout, loading }}>
-      {children}
-    </AuthContext.Provider>
+  const contextValue = useMemo(
+    () => ({ user, profileCompleted, login, logout, loading }),
+    [user, profileCompleted, login, logout, loading]
   );
+
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
