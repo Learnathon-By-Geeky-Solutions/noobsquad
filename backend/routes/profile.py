@@ -36,13 +36,17 @@ def complete_profile_step1(
     university_name: str = Form(...),
     department: str = Form(...),
     fields_of_interest: List[str] = Form(...),  # ✅ Corrected list input
-    current_user: models.User = Depends(get_current_user),
+    current_user: User = None,
     db: Session = Depends(get_db)
 ):
-    current_user = db.query(models.User).filter(models.User.id == current_user.id).first()
+    if current_user is None:
+        current_user = get_current_user()
+
+    current_user = db.query(User).filter(User.id == current_user.id).first()
 
     if not current_user:
         raise HTTPException(status_code=404, detail="User not found")   
+    
     # ✅ Update the existing user profile directly
     current_user.university_name = university_name
     current_user.department = department
@@ -55,7 +59,6 @@ def complete_profile_step1(
     db.refresh(current_user)  # ✅ Refresh to get updated values
 
     return UserResponse.from_orm(current_user)  # ✅ Return the correct schema
-
 
 @router.post("/upload_picture")
 def upload_profile_picture(
