@@ -9,6 +9,7 @@ from api.v1.endpoints.auth import get_current_user  # Authentication dependency
 import os
 import uuid
 from pathlib import Path
+import secrets
 
 router = APIRouter()
 
@@ -40,7 +41,7 @@ def complete_profile_step1(
     db: Session = Depends(get_db)
 ):
     if current_user is None:
-        current_user = get_current_user()
+        current_user = get_current_user(db)  # ✅ Pass db if required in get_current_user
 
     current_user = db.query(User).filter(User.id == current_user.id).first()
 
@@ -63,21 +64,35 @@ def complete_profile_step1(
 @router.post("/upload_picture")
 def upload_profile_picture(
     file: UploadFile = File(...),
-    current_user: models.User = Depends(get_current_user), # ✅ Default to None
+    current_user: User = None,  # ✅ Default to None
     db: Session = Depends(get_db)
-    
 ):
+    if current_user is None:
+        current_user = get_current_user(db)  # ✅ Fetch current_user inside function
 
-    current_user = db.query(models.User).filter(models.User.id == current_user.id).first()
+    current_user = db.query(User).filter(User.id == current_user.id).first()
     if not current_user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # ✅ Generate a secure, unique filename
-    file_extension = Path(file.filename).suffix  # Get file extension safely
-    secure_filename = f"{current_user.id}_{uuid.uuid4().hex}{file_extension}"  # Unique name
+    # ✅ Define allowed file extensions
+    ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
 
-    # ✅ Use a secure path
+    # ✅ Securely extract the file extension
+    file_extension = Path(file.filename).suffix.lower()
+
+    if file_extension not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: jpg, jpeg, png, gif, webp.")
+
+    # ✅ Generate a secure filename (avoid using user input)
+    secure_filename = f"{current_user.id}_{secrets.token_hex(8)}{file_extension}"  # Secure name with token
+
+    # ✅ Construct a secure absolute path
     file_location = os.path.join(UPLOAD_DIR, secure_filename)
+    file_location = os.path.abspath(file_location)  # Get absolute path
+
+    # ✅ Ensure the file stays within the designated directory
+    if not file_location.startswith(os.path.abspath(UPLOAD_DIR)):
+        raise HTTPException(status_code=400, detail="Invalid file path detected.")
 
     # ✅ Save the file securely
     with open(file_location, "wb") as buffer:
