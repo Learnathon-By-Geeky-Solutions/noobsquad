@@ -1,0 +1,125 @@
+/* Profile Completion Container */
+.profile-container {
+    @apply flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6;
+}
+
+/* Profile Completion Card */
+.profile-step {
+    @apply bg-white p-8 rounded-xl shadow-lg w-full max-w-lg border border-gray-300;
+}
+
+/* Main Title (Above Card) */
+.main-title {
+    @apply text-4xl font-bold text-gray-900 mb-6 text-center;
+}
+
+/* Step Title */
+.step-title {
+    @apply text-2xl font-semibold text-gray-800 mb-6 text-center;
+}
+
+/* Form Input Fields */
+.input-box {
+    @apply w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 mb-2;
+}
+
+/* Add Space Between Rows */
+.form-group {
+    @apply w-full mb-6;
+}
+
+/* Error State for Input Fields */
+.input-box.error {
+    @apply border-red-500 focus:ring-red-500;
+}
+
+.chip.error {
+    @apply border-red-500 bg-red-100;
+}
+
+.error-text {
+    @apply text-red-500 font-semibold text-sm mt-1;
+}
+
+/* Interest Selection Title */
+.interest-title {
+    @apply text-lg font-semibold text-gray-700 mt-6 mb-2 text-center;
+}
+
+/* Interest Box - Multiple chips per row */
+.interest-box {
+    @apply flex flex-wrap gap-3 justify-center mt-2 mb-2;
+}
+
+/* Interest Chips */
+.chip {
+    @apply px-6 py-3 rounded-full text-sm font-medium border border-gray-400 text-gray-700 shadow-sm cursor-pointer transition-all duration-300 hover:scale-105 hover:bg-blue-100;
+}
+
+.chip.selected {
+    @apply bg-blue-600 text-white font-bold border-blue-600;
+}
+
+/* Upload Section */
+.upload-container {
+    @apply flex flex-col items-center mt-6 text-center;
+}
+
+/* Drag & Drop Upload Box */
+.upload-box {
+    @apply flex items-center justify-center w-48 h-48 border-2 border-dashed border-gray-400 rounded-full cursor-pointer bg-gray-50 hover:border-blue-600 transition-all duration-300 mx-auto;
+}
+
+/* Profile Image Preview */
+.profile-preview {
+    @apply w-44 h-44 rounded-full object-cover;
+}
+
+/* Upload Box Text */
+.upload-text {
+    @apply text-gray-500 text-lg font-semibold;
+}
+
+/* Button Group - All buttons in a single row */
+.button-group {
+    @apply flex justify-between gap-4 mt-6 w-full;
+}
+
+/* Primary Button */
+.btn-primary {
+    @apply w-full bg-blue-600 text-white font-bold py-3 rounded-lg transition-all duration-300 hover:bg-blue-700 hover:shadow-md;
+}
+
+/* Secondary Button */
+.btn-secondary {
+    @apply w-1/5 bg-gray-500 text-white font-semibold py-3 rounded-lg transition-all duration-300 hover:bg-gray-600 hover:shadow-md;
+}
+
+.btn-skip {
+    @apply w-1/5 bg-gray-500 text-white font-semibold py-3 rounded-lg transition-all duration-300 hover:bg-gray-600 hover:shadow-md;
+}
+
+.btn-finish {
+    @apply w-1/5 bg-blue-600 text-white font-semibold py-3 rounded-lg transition-all duration-300 hover:bg-blue-700 hover:shadow-md;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+    .profile-step {
+        @apply w-full px-6;
+    }
+    .button-group {
+        @apply flex-col space-y-2;
+    }
+    .btn-secondary {
+        @apply w-full
+    }
+    .btn-skip {
+        @apply w-full
+    }
+    
+    .btn-finish {
+        @apply w-full
+    }
+
+}

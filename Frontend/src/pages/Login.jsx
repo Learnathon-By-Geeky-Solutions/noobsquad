@@ -1,16 +1,17 @@
 import { useState } from "react";
-import { login } from "../api/auth";
+//import { useNavigate } from "react-router-dom";
+import { login } from "../api/auth"; 
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
-import "../assets/login.css"; // ✅ Import the CSS file
+import "../assets/login.css"; 
 import Navbar from "../components/Navbar";
 
 const Login = () => {
   const [formData, setFormData] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const { login: authLogin } = useAuth();
-  const navigate = useNavigate();
+  const { login: authLogin } = useAuth(); 
+  //const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -18,12 +19,24 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError("");
+
     try {
-      const response = await login(formData);
-      authLogin(response.access_token); // ✅ Store token and set user state
-      navigate("/dashboard");
-    } catch (err) {
-      setError("Login failed. Please check your credentials.");
+      const data = await login(formData);
+
+      if (!data || !data.access_token) {
+        throw new Error("Login failed: No access_token received");
+      }
+
+      await authLogin(data.access_token); // ✅ Use AuthContext login function
+
+      //navigate("/dashboard");
+    } catch (error) {
+      setError("Invalid username or password");
+      console.error("Login error:", error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -55,8 +68,8 @@ const Login = () => {
             required
             className="login-input"
           />
-          <button type="submit" className="login-button">
-            Login
+          <button type="submit" className="login-button" disabled={loading}>
+            {loading ? "Logging in..." : "Login"}
           </button>
         </form>
 

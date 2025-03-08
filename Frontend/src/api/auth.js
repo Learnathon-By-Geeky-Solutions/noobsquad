@@ -1,55 +1,45 @@
-import axios from "axios";
+import api from "./axios"; // ✅ Import the centralized Axios instance
 
-const API_URL = "http://127.0.0.1:8000/auth"; // Backend URL
+const API_URL = "/auth"; // No need for full URL, `axios.js` already has baseURL
 
-// ✅ Signup: Ensuring correct request format
 export const signup = async (userData) => {
-  try {
-    const response = await axios.post(`${API_URL}/signup/`, {
-      username: userData.username,
-      email: userData.email,
-      password: userData.password,  // ✅ Matches FastAPI schema
-    }, {
-      headers: { "Content-Type": "application/json" }, // ✅ Ensuring JSON format
-    });
-
-    return response.data;
-  } catch (error) {
-    console.error("Signup Error:", error.response?.data || error.message);
-    throw error;
-  }
+  return api.post(`${API_URL}/signup/`, userData);
 };
 
-// ✅ Login Function: Stores token after login
 export const login = async (credentials) => {
   try {
     const formData = new URLSearchParams();
     formData.append("username", credentials.username);
     formData.append("password", credentials.password);
 
-    const response = await axios.post(`${API_URL}/token`, formData, {
+    const response = await api.post(`${API_URL}/token`, formData, {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
     });
 
-    // ✅ Save the token in localStorage
-    localStorage.setItem("token", response.data.access_token);
+    if (!response.data?.access_token) {
+      throw new Error("No access_token received from backend");
+    }
 
-    return response.data;
+    localStorage.setItem("token", response.data.access_token);
+    return response.data; // ✅ Explicitly return the response data
   } catch (error) {
-    console.error("Login Error:", error.response?.data || error.message);
+    console.error("Login error:", error.response?.data || error.message);
     throw error;
   }
 };
 
-// ✅ Fetch User: Automatically includes token in headers
 export const fetchUser = async () => {
-  const token = localStorage.getItem("token"); // Retrieve stored token
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("No token found");
 
-  if (!token) {
-    throw new Error("No authentication token found.");
+    const response = await api.get(`${API_URL}/users/me/`, {
+      headers: { Authorization: `Bearer ${token}` }, // ✅ Ensure token is included
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching user:", error.response?.data || error.message);
+    throw error;
   }
-
-  return axios.get(`${API_URL}/users/me/`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
 };
