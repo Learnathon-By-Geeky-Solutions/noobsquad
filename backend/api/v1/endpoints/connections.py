@@ -6,6 +6,7 @@ from core.connection_crud import send_request, accept_request, reject_request, g
 from schemas.connection import ConnectionCreate, ConnectionResponse
 from api.v1.endpoints.auth import get_current_user  # Ensure authentication middleware is implemented
 from models.user import User
+from models.connection import Connection
 router = APIRouter()
 
 @router.post("/connect", response_model=ConnectionResponse)
@@ -16,17 +17,22 @@ def send_connection(friend_data: ConnectionCreate, db: Session = Depends(get_db)
     except Exception as e:
         logging.error(f"Connection error: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error") from e
+    
 @router.post("/accept/{request_id}")
 def accept_connection(request_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)) -> dict:
-    # Verify the connection belongs to the current user
-    connection_check = db.query(User).filter_by(id=request_id).first()
+    from models.connection import Connection  # Ensure you import the correct model
+    
+    connection_check = db.query(Connection).filter_by(id=request_id).first()
+    
     if not connection_check or (connection_check.user_id != current_user["id"] and connection_check.friend_id != current_user["id"]):
         raise HTTPException(status_code=403, detail="Not authorized to accept this connection.")
     
     connection = accept_request(db, request_id)
     if not connection:
         raise HTTPException(status_code=404, detail="No pending request found.")
+    
     return {"message": "Connection accepted!"}
+
 @router.post("/reject/{request_id}")
 def reject_connection(request_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     connection = reject_request(db, request_id)
