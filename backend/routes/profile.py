@@ -37,11 +37,10 @@ def complete_profile_step1(
     university_name: str = Form(...),
     department: str = Form(...),
     fields_of_interest: List[str] = Form(...),  # ✅ Corrected list input
-    current_user: User = None,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    if current_user is None:
-        current_user = get_current_user(db)  # ✅ Pass db if required in get_current_user
+      # ✅ Pass db if required in get_current_user
 
     current_user = db.query(User).filter(User.id == current_user.id).first()
 
@@ -64,11 +63,10 @@ def complete_profile_step1(
 @router.post("/upload_picture")
 def upload_profile_picture(
     file: UploadFile = File(...),
-    current_user: User = None,  # ✅ Default to None
+    current_user: User = Depends(get_current_user),  # ✅ Default to None
     db: Session = Depends(get_db)
 ):
-    if current_user is None:
-        current_user = get_current_user(db)  # ✅ Fetch current_user inside function
+ # ✅ Fetch current_user inside function
 
     current_user = db.query(User).filter(User.id == current_user.id).first()
     if not current_user:
