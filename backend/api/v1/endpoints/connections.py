@@ -8,14 +8,19 @@ from api.v1.endpoints.auth import get_current_user  # Ensure authentication midd
 from models.user import User
 router = APIRouter()
 
-@router.post("/connect", response_model=ConnectionResponse)
-def send_connection(friend_data: ConnectionCreate, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)) -> ConnectionResponse:
+@router.post("/connect/")
+def send_connection(
+    friend_data: ConnectionCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # ✅ Fix: Use `User` model, not `dict`
+):
     try:
-        new_request = send_request(db, current_user["id"], friend_data.friend_id)
+        new_request = send_request(db, current_user.id, friend_data.friend_id)  # ✅ Fix: Use `current_user.id`
         return new_request
     except Exception as e:
         logging.error(f"Connection error: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error") from e
+
 @router.post("/accept/{request_id}")
 def accept_connection(request_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)) -> dict:
     # Verify the connection belongs to the current user
