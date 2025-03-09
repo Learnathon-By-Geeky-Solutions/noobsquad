@@ -13,7 +13,6 @@ yarn-debug.log
 yarn-error.log
 pnpm-debug.log
 debug.log
-.cph/
 
 # IDE-specific files
 .vscode/
@@ -48,6 +47,7 @@ dist/
 
 # Python virtual environment
 .venv/
+
 # Compiled Python files
 *.pyc
 *.pyo

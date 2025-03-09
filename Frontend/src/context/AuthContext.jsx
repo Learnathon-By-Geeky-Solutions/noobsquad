@@ -1,28 +1,38 @@
-import { createContext, useContext, useState, useEffect } from "react";
-import { fetchUser } from "../api/auth"; // Import user fetch function
+import { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { fetchUser } from "../api/auth";
 
-// ✅ Provide default context to avoid `undefined` issues
-export const AuthContext = createContext({
+const AuthContext = createContext({
   user: null,
-  login: () => {},
+  profileCompleted: false,
+  login: async () => {},
   logout: () => {},
   loading: true,
 });
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // ✅ Add loading state
+  const [profileCompleted, setProfileCompleted] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadUser = async () => {
-      try {
-        const token = localStorage.getItem("token"); // ✅ Ensure token exists
-        if (!token) throw new Error("No token found");
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.warn("No token found");
+        setLoading(false);
+        return;
+      }
 
-        const response = await fetchUser(token);
-        setUser(response.data);
+      try {
+        console.log("Fetching user with token:", token);
+        const userData = await fetchUser(token);
+        setUser(userData);
+        setProfileCompleted(userData.profile_completed);
       } catch (error) {
         console.error("Failed to fetch user:", error);
+        logout();
       } finally {
         setLoading(false);
       }
@@ -31,26 +41,35 @@ export const AuthProvider = ({ children }) => {
     loadUser();
   }, []);
 
-  const login = async (token) => {
+  const login = useCallback(async (token) => {
     localStorage.setItem("token", token);
     try {
-      const response = await fetchUser(token); // ✅ Ensure login updates user state
-      setUser(response.data);
+      const response = await fetchUser(token);
+      const userData = response.data || response; 
+
+      setUser(userData);
+      setProfileCompleted(userData.profile_completed);
+
+      navigate(userData.profile_completed ? "/dashboard" : "/complete-profile");
     } catch (error) {
       console.error("Failed to fetch user after login:", error);
     }
-  };
+  }, [navigate]);
 
-  const logout = () => {
+  const logout = useCallback(() => {
+    console.log("Logging out...");
     localStorage.removeItem("token");
     setUser(null);
-  };
+    setProfileCompleted(false);
+    navigate("/login");
+  }, [navigate]);
 
-  return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
-      {children}
-    </AuthContext.Provider>
+  const contextValue = useMemo(
+    () => ({ user, profileCompleted, login, logout, loading }),
+    [user, profileCompleted, login, logout, loading]
   );
+
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

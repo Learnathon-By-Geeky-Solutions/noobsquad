@@ -35,14 +35,24 @@ def reject_connection(request_id: int, db: Session = Depends(get_db), current_us
     return {"message": "Connection rejected!"}
 
 @router.get("/connections")
-def list_connections(db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
-    return get_connections(db, current_user["id"])
+def list_connections(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Fetch user connections."""
+    try:
+        return get_connections(db, current_user.id)  # ✅ Use `current_user.id`
+    except Exception as e:
+        logging.error(f"Error fetching connections: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
 @router.get("/users")
-def get_users(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def get_users(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Fetch all users excluding the current user."""
     try:
         if not current_user:
             raise HTTPException(status_code=401, detail="Unauthorized")
-        return db.query(User).filter(User.id != current_user["id"]).all()
+
+        users = db.query(User).filter(User.id != current_user.id).all()  # ✅ Use `current_user.id`
+        return users
     except Exception as e:
-        logging.exception("Error fetching users: %s", str(e))
-        raise HTTPException(status_code=500, detail="Internal Server Error") from e
+        logging.error(f"Error fetching users: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
