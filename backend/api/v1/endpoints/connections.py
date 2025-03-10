@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from core.dependencies import get_db
 from core.connection_crud import send_request, accept_request, reject_request, get_connections
@@ -7,6 +7,8 @@ from schemas.connection import ConnectionCreate, ConnectionResponse
 from api.v1.endpoints.auth import get_current_user  # Ensure authentication middleware is implemented
 from models.user import User
 from models.connection import Connection
+from typing import Optional
+
 router = APIRouter()
 
 @router.post("/connect/")
@@ -35,6 +37,7 @@ def accept_connection(request_id: int, db: Session = Depends(get_db), current_us
         raise HTTPException(status_code=404, detail="No pending request found.")
     
     return {"message": "Connection accepted!"}
+
 @router.post("/reject/{request_id}")
 def reject_connection(request_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     connection = reject_request(db, request_id)
@@ -51,7 +54,6 @@ def list_connections(db: Session = Depends(get_db), current_user: User = Depends
         logging.error(f"Error fetching connections: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
-
 @router.get("/users")
 def get_users(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Fetch all users excluding the current user."""
@@ -59,12 +61,12 @@ def get_users(db: Session = Depends(get_db), current_user: User = Depends(get_cu
         if not current_user:
             raise HTTPException(status_code=401, detail="Unauthorized")
 
-        users = db.query(User).filter(User.id != current_user.id).all()  # ✅ Use `current_user.id`
+        users = db.query(User).filter(User.id != current_user.id).all()  # ✅ Use current_user.id
         return users
     except Exception as e:
         logging.error(f"Error fetching users: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
-    
+   
 @router.get("/pending-requests")
 def get_pending_requests(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Fetch all pending connection requests where the current user is the recipient."""
@@ -79,3 +81,21 @@ def get_pending_requests(db: Session = Depends(get_db), current_user: User = Dep
     except Exception as e:
         logging.error(f"Error fetching pending requests: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
+    
+@router.get("/user/{user_id}")
+def get_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Fetch a specific user by user_id."""
+    try:
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        user = db.query(User).filter(User.id == user_id).first()
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        return user
+    except Exception as e:
+        logging.error(f"Error fetching user {user_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")    
+

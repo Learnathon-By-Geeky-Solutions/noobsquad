@@ -32,34 +32,38 @@ const SuggestedUsers = () => {
     }
   };
 
-  // ✅ Fetch Incoming Connection Requests
   const fetchIncomingRequests = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://127.0.0.1:8000/connections/pending-requests", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
+      const response = await axios.get(
+        "http://127.0.0.1:8000/connections/pending-requests",
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+  
       // Fetch user details for each request
       const usersData = await Promise.all(
         response.data.map(async (req) => {
           try {
-            const userResponse = await axios.get(`http://127.0.0.1:8000/connections/users/${req.user_id}`, {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            return { ...req, userDetails: userResponse.data };
+            const userResponse = await axios.get(
+              `http://127.0.0.1:8000/connections/user/${req.user_id}`, // Ensure this is the correct endpoint
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            return { ...req, userDetails: userResponse.data }; // Attach user details
           } catch (error) {
             console.error("Error fetching user details:", error);
-            return req; // Return request without user details
+            return { ...req, userDetails: { username: `User ${req.user_id}` } }; // Fallback to generic name
           }
         })
       );
-
+  
       setIncomingRequests(usersData);
     } catch (error) {
       console.error("Error fetching incoming requests:", error);
     }
   };
+  
+
+
 
   // ✅ Function to send a connection request
   const sendConnectionRequest = async (userId) => {
