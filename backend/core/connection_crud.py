@@ -47,3 +47,10 @@ def get_connections(db: Session, user_id: int):
         (Connection.user_id == user_id) | (Connection.friend_id == user_id),
         Connection.status == ConnectionStatus.ACCEPTED
     ).all()
+
+def get_pending_requests(db: Session, user_id: int):
+    """Fetch all pending connection requests where the user is the recipient."""
+    return db.query(Connection).filter(
+        Connection.friend_id == user_id,
+        Connection.status == ConnectionStatus.PENDING
+    ).all()
