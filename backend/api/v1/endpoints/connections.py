@@ -6,6 +6,7 @@ from core.connection_crud import send_request, accept_request, reject_request, g
 from schemas.connection import ConnectionCreate, ConnectionResponse
 from api.v1.endpoints.auth import get_current_user  # Ensure authentication middleware is implemented
 from models.user import User
+from models.connection import Connection
 router = APIRouter()
 
 @router.post("/connect/")
@@ -22,15 +23,17 @@ def send_connection(
         raise HTTPException(status_code=500, detail="Internal Server Error") from e
 
 @router.post("/accept/{request_id}")
-def accept_connection(request_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)) -> dict:
+def accept_connection(request_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
     # Verify the connection belongs to the current user
-    connection_check = db.query(User).filter_by(id=request_id).first()
-    if not connection_check or (connection_check.user_id != current_user["id"] and connection_check.friend_id != current_user["id"]):
+    connection_check = db.query(Connection).filter_by(id=request_id).first()  # ✅ Corrected to query Connection table
+
+    if not connection_check or (connection_check.user_id != current_user.id and connection_check.friend_id != current_user.id):
         raise HTTPException(status_code=403, detail="Not authorized to accept this connection.")
     
     connection = accept_request(db, request_id)
     if not connection:
         raise HTTPException(status_code=404, detail="No pending request found.")
+    
     return {"message": "Connection accepted!"}
 @router.post("/reject/{request_id}")
 def reject_connection(request_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
@@ -60,4 +63,19 @@ def get_users(db: Session = Depends(get_db), current_user: User = Depends(get_cu
         return users
     except Exception as e:
         logging.error(f"Error fetching users: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+    
+@router.get("/pending-requests")
+def get_pending_requests(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Fetch all pending connection requests where the current user is the recipient."""
+    try:
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        from core.connection_crud import get_pending_requests
+        pending_requests = get_pending_requests(db, current_user.id)
+        
+        return pending_requests
+    except Exception as e:
+        logging.error(f"Error fetching pending requests: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
