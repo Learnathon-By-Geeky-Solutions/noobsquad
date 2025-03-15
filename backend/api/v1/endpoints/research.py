@@ -11,6 +11,7 @@ from models.research_collaboration import ResearchCollaboration
 from models.collaboration_request import CollaborationRequest
 from fastapi import Query
 
+
 router = APIRouter()
 
 # Directory for storing research papers
@@ -97,7 +98,8 @@ def search_papers(
                 "research_field": paper.research_field,
                 "file_path": paper.file_path,
                 "uploader_id": paper.uploader_id,
-                "download_url": f"/papers/download/{paper.id}/"
+                "download_url": f"/papers/download/{paper.id}/",
+                "request_id": f"/request-collaboration/{paper.id}/"
             }
             for paper in papers
         ]
@@ -218,3 +220,60 @@ def get_collaboration_requests(db: Session = Depends(get_db), current_user: User
     except Exception as e:
         logging.error(f"Error fetching collaboration requests: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
+
+@router.get("/my_post_research_papers/")
+def get_user_papers(
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Fetch research papers associated with the logged-in user.
+    """
+    try:
+        papers = db.query(ResearchCollaboration).filter(
+            ResearchCollaboration.creator_id == current_user.id  # ✅ Filter by user ID
+        ).all()
+
+        return [
+            {
+                "id": paper.id,
+                "title": paper.title,
+                "research_field": paper.research_field,
+                "details": paper.details,
+                "creator_id": paper.creator_id,
+            }
+            for paper in papers
+        ]
+
+    except Exception as e:
+        logging.error(f"Error fetching user papers: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+    
+@router.get("/post_research_papers_others/")
+def get_user_papers(
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Fetch research papers not associated with the logged-in user.
+    """
+    try:
+        papers = db.query(ResearchCollaboration).filter(
+            ResearchCollaboration.creator_id != current_user.id  # ✅ Filter by user ID
+        ).all()
+
+        return [
+            {
+                "id": paper.id,
+                "title": paper.title,
+                "research_field": paper.research_field,
+                "details": paper.details,
+                "creator_id": paper.creator_id,
+            }
+            for paper in papers
+        ]
+
+    except Exception as e:
+        logging.error(f"Error fetching user papers: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+    

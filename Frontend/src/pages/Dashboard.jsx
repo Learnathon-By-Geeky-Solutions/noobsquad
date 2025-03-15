@@ -33,7 +33,7 @@ const Dashboard = () => {
         <button 
           onClick={() => navigate("/dashboard/suggested-users")} 
           className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition duration-300">
-          👥 View Suggested Users
+          👥 Pairs
         </button>
         <button 
           onClick={() => navigate("/dashboard/research")} 
