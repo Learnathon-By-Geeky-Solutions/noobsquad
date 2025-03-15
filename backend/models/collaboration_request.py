@@ -14,3 +14,4 @@ class CollaborationRequest(Base):
     research = relationship("ResearchCollaboration", back_populates="collaboration_requests")
     requester = relationship("User", back_populates="sent_requests")
 
+
