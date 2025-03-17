@@ -17,3 +17,12 @@ class User(Base):
     department = Column(String, nullable=True)
     fields_of_interest = Column(String, nullable=True)  # Comma-separated values
     profile_completed = Column(Boolean, default=False)  # To check completion
+
+    
+
+    posts = relationship("Post", back_populates="user", cascade="all, delete-orphan")
+    events = relationship("Event", back_populates="user", cascade="all, delete-orphan")  # ✅ Fixed
+    comments = relationship("Comment", back_populates="user", cascade="all, delete-orphan")  # ✅ Added
+    likes = relationship("Like", back_populates="user", cascade="all, delete-orphan")  # ✅ Added
+    shares = relationship("Share", back_populates="user", cascade="all, delete-orphan")  # ✅ Added
+    event_attendance = relationship("EventAttendee", back_populates="user", cascade="all, delete-orphan")
