@@ -118,7 +118,7 @@ def share_post(share_data: ShareCreate, db: Session = Depends(get_db), current_u
     
     share_token = str(uuid.uuid4())
 
-    share_link = f"http://UHub.com/share/{share_token}"
+    share_link = f"https://UHub.com/share/{share_token}"
 
     new_share = Share(
         user_id=current_user.id,
