@@ -14,7 +14,7 @@ from sqlalchemy import and_
 from models.research_collaboration import research_collaborators
 from werkzeug.utils import secure_filename
 import uuid
-
+from pathlib import Path
 
 router = APIRouter()
 
@@ -36,38 +36,41 @@ async def upload_paper(
     Securely upload a research paper with metadata.
     """
     try:
-        # ✅ Ensure UPLOAD_DIR exists
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-
         # ✅ Generate a secure unique filename
-        file_ext = os.path.splitext(file.filename)[1]  # Extract extension
+        file_ext = Path(file.filename).suffix  # Extract file extension safely
         safe_filename = f"{uuid.uuid4().hex}{file_ext}"  # Unique file name
-        sanitized_filename = secure_filename(safe_filename)  # Ensure it's safe
-        
-        file_location = os.path.join(UPLOAD_DIR, sanitized_filename)
+        sanitized_filename = secure_filename(safe_filename)  # ✅ Sanitize filename
 
-        # ✅ Write the file securely
-        with open(file_location, "wb") as f:
-            f.write(await file.read())  # ✅ Use `await` for async file read
+        # ✅ Construct safe path & validate against path traversal
+        file_path = UPLOAD_DIR / sanitized_filename
+        if not file_path.resolve().parent == UPLOAD_DIR.resolve():
+            raise HTTPException(status_code=400, detail="Invalid file path")
+
+        # ✅ Write file securely
+        with file_path.open("wb") as f:
+            f.write(await file.read())
 
         # ✅ Save paper metadata to PostgreSQL
         new_paper = ResearchPaper(
             title=title,
             author=author,
             research_field=research_field,
-            file_path=file_location,
-            uploader_id=current_user.id  # ✅ Link paper to uploader
+            file_path=str(file_path),  # Store path as string
+            uploader_id=current_user.id
         )
         db.add(new_paper)
         db.commit()
         db.refresh(new_paper)
 
-        return {"message": "Paper uploaded successfully", "paper_id": new_paper.id, "file_path": file_location}
+        return {
+            "message": "Paper uploaded successfully",
+            "paper_id": new_paper.id,
+            "file_path": str(file_path),
+        }
 
     except Exception as e:
         logging.error(f"Error uploading paper: {str(e)}")
-        raise HTTPException(status_code=500, detail=give_error)
-
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @router.get("/papers/")
 def get_papers(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
