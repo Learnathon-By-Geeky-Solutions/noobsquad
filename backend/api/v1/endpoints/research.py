@@ -20,8 +20,8 @@ router = APIRouter()
 
 give_error = "Internal Server Error"
 # Directory for storing research papers
-UPLOAD_DIR = "Research_uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+UPLOAD_DIR = Path("uploads/research_papers")  # ✅ Ensure UPLOAD_DIR is a Path object
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)  # ✅ Create directory if it doesn't exist
 
 @router.post("/upload-paper/")
 async def upload_paper(
