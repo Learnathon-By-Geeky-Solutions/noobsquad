@@ -17,9 +17,10 @@ class User(Base):
     department = Column(String, nullable=True)
     fields_of_interest = Column(String, nullable=True)  # Comma-separated values
     profile_completed = Column(Boolean, default=False)  # To check completion
-
+    papers = relationship("ResearchPaper", back_populates="uploader")
+    research_posts = relationship("ResearchCollaboration", back_populates="creator")
+    sent_requests = relationship("CollaborationRequest", back_populates="requester")
     
-
     posts = relationship("Post", back_populates="user", cascade="all, delete-orphan")
     events = relationship("Event", back_populates="user", cascade="all, delete-orphan")  # ✅ Fixed
     comments = relationship("Comment", back_populates="user", cascade="all, delete-orphan")  # ✅ Added

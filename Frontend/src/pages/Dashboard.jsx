@@ -1,7 +1,8 @@
+import { useNavigate, Routes, Route } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
-import SuggestedUsers from "../components/SuggestedUsers";  
+import SuggestedUsers from "../components/SuggestedUsers";
 import "../assets/Dashboard.css";
+import Research from "../components/Research";
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
@@ -26,10 +27,26 @@ const Dashboard = () => {
         </button>
       </div>
 
-      {/* Suggested Users Section */}
-      <div className="p-6">
-        <SuggestedUsers />
+      {/* Main Dashboard Content */}
+      <div className="flex flex-col items-center justify-center flex-grow">
+        <h1 className="text-2xl font-bold mb-6">Welcome to Your Dashboard</h1>
+        <button 
+          onClick={() => navigate("/dashboard/suggested-users")} 
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition duration-300">
+          👥 Pairs
+        </button>
+        <button 
+          onClick={() => navigate("/dashboard/research")} 
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition duration-300">
+          📚 Research
+        </button>
       </div>
+
+      {/* Nested Routing for Suggested Users */}
+      <Routes>
+        <Route path="suggested-users" element={<SuggestedUsers />} />
+        <Route path="research/*" element={<Research />} />
+      </Routes>
     </div>
   );
 };
