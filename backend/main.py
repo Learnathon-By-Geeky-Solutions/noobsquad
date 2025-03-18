@@ -4,6 +4,7 @@ from database.session import engine, Base
 from api.v1.endpoints import auth, connections, research
 from routes import profile
 
+
 app = FastAPI()
 
 # ✅ Add CORS middleware

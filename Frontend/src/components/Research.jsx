@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import api from "../api"; // ✅ Import the API instance
+import RecentPapers from "../api/RecentPapers";
 
 const Research = () => {
   return (
@@ -10,7 +11,7 @@ const Research = () => {
             <Link to="/dashboard/research/search">🔎 Search Papers</Link>
             <Link to="/dashboard/research/upload">📤 Upload Paper</Link>
             <Link to="/dashboard/research/post-research">📑 Post Research</Link>
-            <Link to="/dashboard/research/request-collab">🤝 Request Collaboration</Link>
+            <Link to="/dashboard/research/recent-works">📑 Recent Works</Link>
             <Link to="/dashboard/research/collab-requests">📜 Collaboration Requests</Link>
             <Link to="/dashboard/research/my_post_research_papers">📜 Currently working</Link>
 
@@ -22,7 +23,7 @@ const Research = () => {
           <Route path="search" element={<SearchPapers />} />
           <Route path="upload" element={<UploadPaper />} />
           <Route path="post-research" element={<PostResearch />} />
-          <Route path="request-collab" element={<RequestCollaboration />} />
+          <Route path="recent-works" element={<RecentPapers />} />
           <Route path="collab-requests" element={<CollaborationRequests />} />
           <Route path="my_post_research_papers" element={<FetchUserPapers />} />
         </Routes>
@@ -287,8 +288,8 @@ const RequestCollaboration = () => {
   // ✅ Collaboration Request Card Component
   const RequestCard = ({ req }) => (
     <li className="p-4 border rounded mb-2">
-      <strong>Research ID:</strong> {req.research_id} <br />
-      <strong>Requester ID:</strong> {req.requester_id} <br />
+      <strong>{req.requester_username}</strong> sent you a collaboration request <br />
+      
       <strong>Message:</strong> {req.message}
     </li>
   );

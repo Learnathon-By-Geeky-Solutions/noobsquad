@@ -10,6 +10,8 @@ from models.user import User
 from models.research_collaboration import ResearchCollaboration
 from models.collaboration_request import CollaborationRequest
 from fastapi import Query
+from sqlalchemy import and_
+from models.research_collaboration import research_collaborators
 
 
 router = APIRouter()
@@ -199,27 +201,49 @@ def request_collaboration(
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @router.get("/collaboration-requests/")
-def get_collaboration_requests(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def get_collaboration_requests(
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
     """
-    Fetch all collaboration requests for the logged-in user.
+    Fetch all pending collaboration requests for the logged-in user, including:
+    - Requester's username
+    - Research title
+    - Request message
+    - Request status
     """
     try:
-        requests = db.query(CollaborationRequest).join(ResearchCollaboration).filter(
-            ResearchCollaboration.creator_id == current_user.id
-        ).all()
+        requests = (
+            db.query(
+                CollaborationRequest.id,
+                ResearchCollaboration.title.label("research_title"),
+                CollaborationRequest.requester_id,
+                CollaborationRequest.message,
+                CollaborationRequest.status,  # ✅ Include request status
+                User.username.label("requester_username")
+            )
+            .join(ResearchCollaboration, ResearchCollaboration.id == CollaborationRequest.research_id)
+            .join(User, User.id == CollaborationRequest.requester_id)
+            .filter(ResearchCollaboration.creator_id == current_user.id)
+            .filter(CollaborationRequest.status == "pending")  # ✅ Only fetch pending requests
+            .all()
+        )
 
         return [
             {
                 "id": request.id,
-                "research_id": request.research_id,
+                "research_title": request.research_title,
                 "requester_id": request.requester_id,
-                "message": request.message
+                "requester_username": request.requester_username,
+                "message": request.message,
+                "status": request.status.value  # ✅ Convert Enum to string if using SQLAlchemy Enum
             }
             for request in requests
         ]
     except Exception as e:
         logging.error(f"Error fetching collaboration requests: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
+
 
 @router.get("/my_post_research_papers/")
 def get_user_papers(
@@ -250,30 +274,87 @@ def get_user_papers(
         raise HTTPException(status_code=500, detail="Internal Server Error")
     
 @router.get("/post_research_papers_others/")
-def get_user_papers(
+def get_other_research_papers(
     db: Session = Depends(get_db), 
     current_user: User = Depends(get_current_user)
 ):
     """
-    Fetch research papers not associated with the logged-in user.
+    Fetch research papers not associated with the logged-in user and check if a collaboration request has already been sent.
     """
     try:
         papers = db.query(ResearchCollaboration).filter(
-            ResearchCollaboration.creator_id != current_user.id  # ✅ Filter by user ID
+            ResearchCollaboration.creator_id != current_user.id  # Exclude user's own papers
         ).all()
 
-        return [
-            {
+        result = []
+        for paper in papers:
+            # Check if a collaboration request has already been made by the user
+            existing_request = db.query(CollaborationRequest).filter(
+                CollaborationRequest.research_id == paper.id,
+                CollaborationRequest.requester_id == current_user.id
+            ).first()
+
+            result.append({
                 "id": paper.id,
                 "title": paper.title,
                 "research_field": paper.research_field,
                 "details": paper.details,
                 "creator_id": paper.creator_id,
-            }
-            for paper in papers
-        ]
+                "can_request_collaboration": existing_request is None  # Only allow request if it doesn't exist
+            })
+
+        return result
 
     except Exception as e:
-        logging.error(f"Error fetching user papers: {str(e)}")
+        logging.error(f"Error fetching other research papers: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
-    
+
+@router.post("/accept-collaboration/{request_id}/")
+def accept_collaboration(
+    request_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Accept a collaboration request and add the requester as a collaborator.
+    """
+    try:
+        # Find the collaboration request
+        collaboration_request = db.query(CollaborationRequest).filter(CollaborationRequest.id == request_id).first()
+        if not collaboration_request:
+            raise HTTPException(status_code=404, detail="Collaboration request not found")
+
+        # Find the research work associated with the request
+        research = db.query(ResearchCollaboration).filter(ResearchCollaboration.id == collaboration_request.research_id).first()
+        if not research:
+            raise HTTPException(status_code=404, detail="Research work not found")
+
+        # Ensure only the research owner can accept the request
+        if research.creator_id != current_user.id:
+            raise HTTPException(status_code=403, detail="You are not authorized to accept this request.")
+
+        # Check if the user is already a collaborator
+        existing_collaborator = db.query(research_collaborators).filter(
+            and_(
+                research_collaborators.c.research_id == research.id,
+                research_collaborators.c.user_id == collaboration_request.requester_id
+            )
+        ).first()
+
+        if existing_collaborator:
+            raise HTTPException(status_code=400, detail="User is already a collaborator.")
+
+        # Update the request status
+        collaboration_request.status = "accepted"
+        db.add(collaboration_request)
+
+        # Add collaborator to the research
+        research.collaborators.append(collaboration_request.requester)
+        db.add(research)
+
+        db.commit()
+        return {"message": "Collaboration request accepted successfully"}
+
+    except Exception as e:
+        logging.error(f"Error accepting collaboration request: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
