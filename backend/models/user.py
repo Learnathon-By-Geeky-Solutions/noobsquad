@@ -20,3 +20,10 @@ class User(Base):
     papers = relationship("ResearchPaper", back_populates="uploader")
     research_posts = relationship("ResearchCollaboration", back_populates="creator")
     sent_requests = relationship("CollaborationRequest", back_populates="requester")
+    
+    posts = relationship("Post", back_populates="user", cascade="all, delete-orphan")
+    events = relationship("Event", back_populates="user", cascade="all, delete-orphan")  # ✅ Fixed
+    comments = relationship("Comment", back_populates="user", cascade="all, delete-orphan")  # ✅ Added
+    likes = relationship("Like", back_populates="user", cascade="all, delete-orphan")  # ✅ Added
+    shares = relationship("Share", back_populates="user", cascade="all, delete-orphan")  # ✅ Added
+    event_attendance = relationship("EventAttendee", back_populates="user", cascade="all, delete-orphan")
