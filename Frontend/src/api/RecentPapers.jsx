@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import PropTypes from "prop-types"; // ✅ Import PropTypes
 import { useNavigate } from "react-router-dom";
 import api from "../api";
 
@@ -56,9 +57,7 @@ const PaperCard = ({ paper }) => {
       formData.append("message", "I would love to collaborate on this research.");
 
       const response = await api.post(`/research/request-collaboration/${researchId}/`, formData, {
-        headers: { 
-          "Content-Type": "application/x-www-form-urlencoded"
-        },
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
       });
 
       if (response.status === 200) {
@@ -93,11 +92,28 @@ const PaperCard = ({ paper }) => {
   );
 };
 
+// ✅ Add PropTypes Validation for `PaperCard`
+PaperCard.propTypes = {
+  paper: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    title: PropTypes.string.isRequired,
+    research_field: PropTypes.string.isRequired,
+    details: PropTypes.string.isRequired,
+    can_request_collaboration: PropTypes.bool.isRequired, 
+  }).isRequired,
+};
+
+// ✅ Add PropTypes Validation for `FormContainer`
 const FormContainer = ({ title, children }) => (
   <div className="bg-gray-100 p-6 rounded-lg shadow-lg">
     <h2 className="text-2xl font-bold text-gray-800 mb-4">{title}</h2>
     {children}
   </div>
 );
+
+FormContainer.propTypes = {
+  title: PropTypes.string.isRequired,
+  children: PropTypes.node.isRequired,
+};
 
 export default RecentPapers;
