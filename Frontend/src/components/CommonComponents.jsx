@@ -52,7 +52,7 @@ TextArea.propTypes = {
 // ✅ Reusable Submit Button
 export const SubmitButton = ({ text, onClick, disabled }) => (
   <button
-    type="button"
+    type="submit"
     onClick={onClick}
     className={`w-full text-white font-bold py-2 px-4 rounded ${
       disabled ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600"

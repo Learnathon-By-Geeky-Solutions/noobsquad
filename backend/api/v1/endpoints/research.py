@@ -12,10 +12,13 @@ from models.collaboration_request import CollaborationRequest
 from fastapi import Query
 from sqlalchemy import and_
 from models.research_collaboration import research_collaborators
+from werkzeug.utils import secure_filename
+import uuid
 
 
 router = APIRouter()
 
+give_error = "Internal Server Error"
 # Directory for storing research papers
 UPLOAD_DIR = "Research_uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -30,15 +33,24 @@ async def upload_paper(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Upload a research paper with metadata.
+    Securely upload a research paper with metadata.
     """
     try:
-        # Save file
-        file_location = os.path.join(UPLOAD_DIR, file.filename)
-        with open(file_location, "wb") as f:
-            f.write(file.file.read())
+        # ✅ Ensure UPLOAD_DIR exists
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-        # Save paper metadata to PostgreSQL
+        # ✅ Generate a secure unique filename
+        file_ext = os.path.splitext(file.filename)[1]  # Extract extension
+        safe_filename = f"{uuid.uuid4().hex}{file_ext}"  # Unique file name
+        sanitized_filename = secure_filename(safe_filename)  # Ensure it's safe
+        
+        file_location = os.path.join(UPLOAD_DIR, sanitized_filename)
+
+        # ✅ Write the file securely
+        with open(file_location, "wb") as f:
+            f.write(await file.read())  # ✅ Use `await` for async file read
+
+        # ✅ Save paper metadata to PostgreSQL
         new_paper = ResearchPaper(
             title=title,
             author=author,
@@ -50,11 +62,12 @@ async def upload_paper(
         db.commit()
         db.refresh(new_paper)
 
-        return {"message": "Paper uploaded successfully", "paper_id": new_paper.id}
+        return {"message": "Paper uploaded successfully", "paper_id": new_paper.id, "file_path": file_location}
 
     except Exception as e:
         logging.error(f"Error uploading paper: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail=give_error)
+
 
 @router.get("/papers/")
 def get_papers(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -75,7 +88,7 @@ def get_papers(db: Session = Depends(get_db), current_user: User = Depends(get_c
         ]
     except Exception as e:
         logging.error(f"Error fetching papers: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail=give_error)
 
 @router.get("/papers/search/")
 def search_papers(
@@ -108,7 +121,7 @@ def search_papers(
 
     except Exception as e:
         logging.error(f"Error searching papers with keyword '{keyword}': {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail=give_error)
 
 
 @router.get("/papers/download/{paper_id}/")
@@ -135,7 +148,7 @@ def download_paper(
 
     except Exception as e:
         logging.error(f"Error downloading paper {paper_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail= give_error)
 
 
 @router.post("/post-research/")
@@ -164,7 +177,7 @@ def post_research(
 
     except Exception as e:
         logging.error(f"Error posting research: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail= give_error)
 
 @router.post("/request-collaboration/{research_id}/")
 def request_collaboration(
@@ -198,7 +211,7 @@ def request_collaboration(
 
     except Exception as e:
         logging.error(f"Error sending collaboration request: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail= give_error)
 
 @router.get("/collaboration-requests/")
 def get_collaboration_requests(
@@ -242,7 +255,7 @@ def get_collaboration_requests(
         ]
     except Exception as e:
         logging.error(f"Error fetching collaboration requests: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail= give_error)
 
 
 @router.get("/my_post_research_papers/")
@@ -271,7 +284,7 @@ def get_user_papers(
 
     except Exception as e:
         logging.error(f"Error fetching user papers: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail= give_error)
     
 @router.get("/post_research_papers_others/")
 def get_other_research_papers(
@@ -307,7 +320,7 @@ def get_other_research_papers(
 
     except Exception as e:
         logging.error(f"Error fetching other research papers: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail= give_error)
 
 @router.post("/accept-collaboration/{request_id}/")
 def accept_collaboration(
@@ -357,4 +370,4 @@ def accept_collaboration(
 
     except Exception as e:
         logging.error(f"Error accepting collaboration request: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail= give_error)

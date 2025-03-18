@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
-import { FormContainer, RequestCard} from "../components/CommonComponents";
+import { FormContainer, RequestCard } from "../components/CommonComponents";
 
 // ✅ Collaboration Requests Component
 const CollaborationRequests = () => {
@@ -34,22 +34,23 @@ const CollaborationRequests = () => {
     fetchRequests();
   }, [navigate]);
 
-  return (
-    <FormContainer title="📜 Collaboration Requests">
-      {loading ? (
-        <p className="text-center text-gray-500">Loading requests...</p>
-      ) : errorMessage ? (
-        <p className="text-center text-gray-500">{errorMessage}</p>
-      ) : (
-        <ul className="space-y-4">
-          {requests.map((req) => (
-            <RequestCard key={req.id} req={req} />
-          ))}
-        </ul>
-      )}
-    </FormContainer>
-  );
-};
+  // ✅ Extract Conditional Logic Before Return
+  let content;
+  if (loading) {
+    content = <p className="text-center text-gray-500">Loading requests...</p>;
+  } else if (errorMessage) {
+    content = <p className="text-center text-gray-500">{errorMessage}</p>;
+  } else {
+    content = (
+      <ul className="space-y-4">
+        {requests.map((req) => (
+          <RequestCard key={req.id} req={req} />
+        ))}
+      </ul>
+    );
+  }
 
+  return <FormContainer title="📜 Collaboration Requests">{content}</FormContainer>;
+};
 
 export default CollaborationRequests;

@@ -1,6 +1,4 @@
-import React, { useState, useEffect } from "react";
-import { Routes, Route, Link, useNavigate } from "react-router-dom";
-import api from "../api"; // ✅ Import the API instance
+import { Routes, Route, Link } from "react-router-dom";
 import RecentPapers from "../api/RecentPapers";
 import UploadPaper from "../api/UploadPaper";
 import SearchPapers from "../api/SearchPapers";
