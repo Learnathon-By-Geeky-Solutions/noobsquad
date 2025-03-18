@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
+import { FormContainer, TextInput, SubmitButton } from "../components/CommonComponents";
 
 const UploadPaper = () => {
   const [title, setTitle] = useState("");
@@ -73,52 +73,6 @@ const UploadPaper = () => {
   );
 };
 
-// ✅ Reusable Form Components
-const FormContainer = ({ title, children }) => (
-  <div className="bg-white shadow-md rounded-lg p-6">
-    <h2 className="text-xl font-semibold mb-4">{title}</h2>
-    {children}
-  </div>
-);
 
-const TextInput = ({ placeholder, value, onChange }) => (
-  <input
-    type="text"
-    placeholder={placeholder}
-    value={value}
-    onChange={(e) => onChange(e.target.value)}
-    required
-    className="w-full border p-2 rounded"
-  />
-);
-
-const SubmitButton = ({ text, disabled }) => (
-  <button
-    type="submit"
-    className={`w-full text-white font-bold py-2 px-4 rounded ${
-      disabled ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600"
-    }`}
-    disabled={disabled}
-  >
-    {text}
-  </button>
-);
-
-// ✅ PropTypes Validation
-FormContainer.propTypes = {
-  title: PropTypes.string.isRequired,
-  children: PropTypes.node.isRequired,
-};
-
-TextInput.propTypes = {
-  placeholder: PropTypes.string.isRequired,
-  value: PropTypes.string.isRequired,
-  onChange: PropTypes.func.isRequired,
-};
-
-SubmitButton.propTypes = {
-  text: PropTypes.string.isRequired,
-  disabled: PropTypes.bool,
-};
 
 export default UploadPaper;

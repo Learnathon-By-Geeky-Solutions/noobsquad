@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
+import { FormContainer, PaperCard } from "../components/CommonComponents";
+
 
 const FetchUserPapers = () => {
   const [papers, setPapers] = useState([]);
@@ -49,36 +50,5 @@ const FetchUserPapers = () => {
   );
 };
 
-// ✅ Paper Card Component
-const PaperCard = ({ paper }) => (
-  <li className="p-4 border rounded shadow-md bg-white">
-    <h3 className="text-lg font-semibold text-gray-900">{paper.title}</h3>
-    <p className="text-gray-700"><strong>Field:</strong> {paper.research_field}</p>
-    <p className="text-gray-600">{paper.details}</p>
-  </li>
-);
-
-// ✅ Reusable Components
-const FormContainer = ({ title, children }) => (
-  <div className="bg-white shadow-md rounded-lg p-6">
-    <h2 className="text-xl font-semibold mb-4">{title}</h2>
-    {children}
-  </div>
-);
-
-// ✅ PropTypes Validation
-FormContainer.propTypes = {
-  title: PropTypes.string.isRequired,
-  children: PropTypes.node.isRequired,
-};
-
-PaperCard.propTypes = {
-  paper: PropTypes.shape({
-    id: PropTypes.number.isRequired,
-    title: PropTypes.string.isRequired,
-    research_field: PropTypes.string.isRequired,
-    details: PropTypes.string.isRequired,
-  }).isRequired,
-};
 
 export default FetchUserPapers;

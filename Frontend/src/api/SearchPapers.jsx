@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import PropTypes from "prop-types";
 import api from "../api";
+import { FormContainer, TextInput, SubmitButton, PaperCard} from "../components/CommonComponents";
+
 
 const SearchPapers = () => {
   const [keyword, setKeyword] = useState("");
@@ -50,70 +51,5 @@ const SearchPapers = () => {
   );
 };
 
-// ✅ Reusable Components
-const FormContainer = ({ title, children }) => (
-  <div className="bg-white shadow-md rounded-lg p-6">
-    <h2 className="text-xl font-semibold mb-4">{title}</h2>
-    {children}
-  </div>
-);
-
-const TextInput = ({ placeholder, value, onChange }) => (
-  <input
-    type="text"
-    placeholder={placeholder}
-    value={value}
-    onChange={(e) => onChange(e.target.value)}
-    required
-    className="w-full border p-2 rounded"
-  />
-);
-
-const SubmitButton = ({ text, onClick, disabled }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={`w-full text-white font-bold py-2 px-4 rounded ${
-      disabled ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600"
-    }`}
-    disabled={disabled}
-  >
-    {text}
-  </button>
-);
-
-const PaperCard = ({ paper }) => (
-  <li className="p-4 border rounded shadow-md">
-    <strong className="text-gray-900">{paper.title}</strong>
-    <p className="text-gray-700">{paper.details}</p>
-    <p className="text-gray-600">Author: {paper.author}</p>
-  </li>
-);
-
-// ✅ PropTypes Validation
-FormContainer.propTypes = {
-  title: PropTypes.string.isRequired,
-  children: PropTypes.node.isRequired,
-};
-
-TextInput.propTypes = {
-  placeholder: PropTypes.string.isRequired,
-  value: PropTypes.string.isRequired,
-  onChange: PropTypes.func.isRequired,
-};
-
-SubmitButton.propTypes = {
-  text: PropTypes.string.isRequired,
-  onClick: PropTypes.func.isRequired,
-  disabled: PropTypes.bool,
-};
-
-PaperCard.propTypes = {
-  paper: PropTypes.shape({
-    title: PropTypes.string.isRequired,
-    details: PropTypes.string.isRequired,
-    author: PropTypes.string.isRequired,
-  }).isRequired,
-};
 
 export default SearchPapers;

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
+import { FormContainer, RequestCard} from "../components/CommonComponents";
 
+// ✅ Collaboration Requests Component
 const CollaborationRequests = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,8 +16,9 @@ const CollaborationRequests = () => {
         const response = await api.get("/research/collaboration-requests/");
         if (response.data.length === 0) {
           setErrorMessage("No pending requests.");
+        } else {
+          setRequests(response.data);
         }
-        setRequests(response.data);
       } catch (error) {
         if (error.response?.status === 401) {
           alert("Unauthorized! Please log in.");
@@ -49,36 +51,5 @@ const CollaborationRequests = () => {
   );
 };
 
-// ✅ Collaboration Request Card Component
-const RequestCard = ({ req }) => (
-  <li className="p-4 border rounded shadow-md bg-white">
-    <strong className="text-gray-900">{req.requester_username}</strong> sent you a collaboration request
-    <p className="text-gray-700">
-      <strong>Message:</strong> {req.message}
-    </p>
-  </li>
-);
-
-// ✅ Reusable Components
-const FormContainer = ({ title, children }) => (
-  <div className="bg-white shadow-md rounded-lg p-6">
-    <h2 className="text-xl font-semibold mb-4">{title}</h2>
-    {children}
-  </div>
-);
-
-// ✅ PropTypes Validation
-FormContainer.propTypes = {
-  title: PropTypes.string.isRequired,
-  children: PropTypes.node.isRequired,
-};
-
-RequestCard.propTypes = {
-  req: PropTypes.shape({
-    id: PropTypes.number.isRequired,
-    requester_username: PropTypes.string.isRequired,
-    message: PropTypes.string.isRequired,
-  }).isRequired,
-};
 
 export default CollaborationRequests;

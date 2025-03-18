@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import PropTypes from "prop-types"; // ✅ Import PropTypes
 import { useNavigate } from "react-router-dom";
 import api from "../api";
+import { FormContainer } from "../components/CommonComponents"; // ✅ Import missing components
+import PropTypes from "prop-types"; // ✅ Import PropTypes
 
 const RecentPapers = () => {
   const [papers, setPapers] = useState([]);
@@ -17,6 +18,7 @@ const RecentPapers = () => {
           alert("Unauthorized! Please log in.");
           navigate("/login");
         } else {
+          console.error("Error fetching recent papers:", error);
           alert("Error fetching recent papers.");
         }
       }
@@ -40,8 +42,11 @@ const RecentPapers = () => {
   );
 };
 
+// ✅ Paper Card Component
 const PaperCard = ({ paper }) => {
-  const [collabRequested, setCollabRequested] = useState(!paper.can_request_collaboration);
+  const [collabRequested, setCollabRequested] = useState(
+    paper.can_request_collaboration !== undefined ? !paper.can_request_collaboration : false
+  );
 
   const requestCollaboration = async (researchId) => {
     console.log("Requesting collaboration for Research ID:", researchId);
@@ -64,10 +69,11 @@ const PaperCard = ({ paper }) => {
         alert("Collaboration request sent successfully!");
         setCollabRequested(true);
       } else {
-        alert("Error: " + response.data.detail);
+        alert("Error: " + (response.data?.detail || "Unknown error"));
       }
     } catch (error) {
       console.error("Error requesting collaboration:", error);
+      alert("Error requesting collaboration.");
     }
   };
 
@@ -75,11 +81,13 @@ const PaperCard = ({ paper }) => {
     <li className="bg-white shadow-md rounded-lg p-6 flex justify-between items-center border border-gray-200">
       <div>
         <h3 className="text-lg font-semibold text-gray-900">{paper.title}</h3>
-        <p className="text-gray-700"><strong>Field:</strong> {paper.research_field}</p>
+        <p className="text-gray-700">
+          <strong>Field:</strong> {paper.research_field}
+        </p>
         <p className="text-gray-600">{paper.details}</p>
       </div>
       {!collabRequested ? (
-        <button 
+        <button
           onClick={() => requestCollaboration(Number(paper.id))}
           className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-300"
         >
@@ -92,28 +100,15 @@ const PaperCard = ({ paper }) => {
   );
 };
 
-// ✅ Add PropTypes Validation for `PaperCard`
+// ✅ Add PropTypes for Validation
 PaperCard.propTypes = {
   paper: PropTypes.shape({
     id: PropTypes.number.isRequired,
     title: PropTypes.string.isRequired,
     research_field: PropTypes.string.isRequired,
     details: PropTypes.string.isRequired,
-    can_request_collaboration: PropTypes.bool.isRequired, 
+    can_request_collaboration: PropTypes.bool, // Optional
   }).isRequired,
-};
-
-// ✅ Add PropTypes Validation for `FormContainer`
-const FormContainer = ({ title, children }) => (
-  <div className="bg-gray-100 p-6 rounded-lg shadow-lg">
-    <h2 className="text-2xl font-bold text-gray-800 mb-4">{title}</h2>
-    {children}
-  </div>
-);
-
-FormContainer.propTypes = {
-  title: PropTypes.string.isRequired,
-  children: PropTypes.node.isRequired,
 };
 
 export default RecentPapers;
