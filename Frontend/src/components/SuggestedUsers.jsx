@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import ConnectedUsers from "../api/ConnectedUsers"; 
 
 const SuggestedUsers = () => {
   const [users, setUsers] = useState([]);
@@ -114,12 +115,32 @@ const SuggestedUsers = () => {
     }
   };
 
+  // ✅ Function to fetch all connected users (friends)
+const fetchConnectedUsers = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axios.get(
+      "http://127.0.0.1:8000/connections/connections/",
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    return response.data; // Returns list of connected users
+  } catch (error) {
+    console.error("Error fetching connected users:", error);
+    return [];
+  }
+};
+
+
   return (
     <div className="max-w-6xl mx-auto p-4">
       {/* Suggested Users */}
       <h2 className="text-xl font-semibold mb-4">People You May Know</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
-        {users.map((user) => (
+        {users.length === 0 ? (
+        <p>No more people to connect with. Check back later! 🥺 </p>
+        ) : 
+        users.map((user) => (
           <div key={user.id} className="bg-white shadow-md rounded-lg p-4 relative">
             {/* Close Button (X) */}
             <button className="absolute top-2 right-2 bg-gray-200 rounded-full p-1 hover:bg-gray-300">
@@ -151,6 +172,9 @@ const SuggestedUsers = () => {
         ))}
       </div>
 
+       {/* Connected Users Section */}
+      <ConnectedUsers /> 
+      
       {/* Connection Requests */}
       <h2 className="text-xl font-semibold mt-8">Connection Requests</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
