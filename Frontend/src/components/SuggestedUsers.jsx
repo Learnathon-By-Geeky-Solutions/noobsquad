@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import ConnectedUsers from "../api/ConnectedUsers"; 
 
 const SuggestedUsers = () => {
   const [users, setUsers] = useState([]);
@@ -114,6 +115,23 @@ const SuggestedUsers = () => {
     }
   };
 
+  // ✅ Function to fetch all connected users (friends)
+const fetchConnectedUsers = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axios.get(
+      "http://127.0.0.1:8000/connections/connections/",
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    return response.data; // Returns list of connected users
+  } catch (error) {
+    console.error("Error fetching connected users:", error);
+    return [];
+  }
+};
+
+
   return (
     <div className="max-w-6xl mx-auto p-4">
       {/* Suggested Users */}
@@ -154,6 +172,9 @@ const SuggestedUsers = () => {
         ))}
       </div>
 
+       {/* Connected Users Section */}
+      <ConnectedUsers /> 
+      
       {/* Connection Requests */}
       <h2 className="text-xl font-semibold mt-8">Connection Requests</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">

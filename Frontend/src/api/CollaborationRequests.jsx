@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import api from "../api";
 import { FormContainer, RequestCard } from "../components/CommonComponents";
 
-// ✅ Collaboration Requests Component
 const CollaborationRequests = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,7 +33,15 @@ const CollaborationRequests = () => {
     fetchRequests();
   }, [navigate]);
 
-  // ✅ Extract Conditional Logic Before Return
+  const handleAccept = async (id) => {
+    try {
+      await api.post(`/research/accept-collaboration/${id}/`);
+      setRequests((prevRequests) => prevRequests.filter((req) => req.id !== id));
+    } catch (error) {
+      alert("Failed to accept request. Please try again.");
+    }
+  };
+
   let content;
   if (loading) {
     content = <p className="text-center text-gray-500">Loading requests...</p>;
@@ -44,7 +51,15 @@ const CollaborationRequests = () => {
     content = (
       <ul className="space-y-4">
         {requests.map((req) => (
-          <RequestCard key={req.id} req={req} />
+          <div key={req.id} className="flex justify-between items-center p-4 border rounded-lg">
+            <RequestCard req={req} />
+            <button
+              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+              onClick={() => handleAccept(req.id)}
+            >
+              Accept
+            </button>
+          </div>
         ))}
       </ul>
     );
