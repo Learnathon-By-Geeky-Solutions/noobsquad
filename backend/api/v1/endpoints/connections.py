@@ -56,13 +56,16 @@ def list_connections(db: Session = Depends(get_db), current_user: User = Depends
 
 @router.get("/users")
 def get_users(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Fetch all users excluding the current user."""
+    """Fetch all users excluding the current user and the users who are not friends and not sent the connection request."""
     try:
         if not current_user:
             raise HTTPException(status_code=401, detail="Unauthorized")
 
-        users = db.query(User).filter(User.id != current_user.id).all()  # ✅ Use current_user.id
-        return users
+        sent_requests = db.query(Connection.friend_id).filter(Connection.user_id == current_user.id)
+
+        # Get users who are NOT in the sent_requests list
+        users_not_requested = db.query(User).filter(User.id.notin_(sent_requests), User.id != current_user.id).all() # ✅ Use current_user.id
+        return users_not_requested
     except Exception as e:
         logging.error(f"Error fetching users: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
