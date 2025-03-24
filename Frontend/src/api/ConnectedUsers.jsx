@@ -31,7 +31,6 @@ const fetchConnectedUsers = async () => {
     const userIds = new Set();
     response.data.forEach((conn) => {
       if (conn.user_id && conn.friend_id) {
-        userIds.add(conn.user_id);
         userIds.add(conn.friend_id);
       }
     });
