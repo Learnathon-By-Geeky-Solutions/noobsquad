@@ -58,4 +58,3 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int):
     except WebSocketDisconnect:
         clients.pop(user_id, None)
         print(f"🔌 User {user_id} disconnected")
-
