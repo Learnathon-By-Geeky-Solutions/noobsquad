@@ -28,6 +28,6 @@ class User(Base):
     likes = relationship("Like", back_populates="user", cascade="all, delete-orphan")  # ✅ Added
     shares = relationship("Share", back_populates="user", cascade="all, delete-orphan")  # ✅ Added
     event_attendance = relationship("EventAttendee", back_populates="user", cascade="all, delete-orphan")
-
-    sent_messages = relationship("Message", foreign_keys="Message.sender_id", back_populates="sender")
-    chat_memberships = relationship("ChatUser", back_populates="user")
+    # These should be strings to avoid circular imports
+    messages_sent = relationship("Message", back_populates="sender", foreign_keys="Message.sender_id", cascade="all, delete-orphan")
+    messages_received = relationship("Message", back_populates="receiver", foreign_keys="Message.receiver_id", cascade="all, delete-orphan")
