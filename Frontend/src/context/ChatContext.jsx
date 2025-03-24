@@ -7,12 +7,12 @@ export const ChatProvider = ({ children }) => {
 
   const openChat = (user) => {
     setChatWindows((prev) =>
-      prev.find((w) => w.id === user.id) ? prev : [...prev, user]
+      prev.some((chat) => chat.id === user.id) ? prev : [...prev, user]
     );
   };
 
   const closeChat = (userId) => {
-    setChatWindows((prev) => prev.filter((w) => w.id !== userId));
+    setChatWindows((prev) => prev.filter((chat) => chat.id !== userId));
   };
 
   return (

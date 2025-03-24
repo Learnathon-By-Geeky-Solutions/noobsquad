@@ -5,13 +5,14 @@ import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import CompleteProfile from "./pages/ProfileCompletion";
 import { AuthProvider } from "./context/AuthContext";
-import { ChatProvider } from "./context/ChatContext"; // ✅ Import ChatProvider
+import { ChatProvider } from "./context/ChatContext";
+import ChatWindows from "./components/ChatWindows"; // ✅ Import
 
 function App() {
   return (
     <Router>
       <AuthProvider>
-        <ChatProvider> {/* ✅ Wrap inside ChatProvider */}
+        <ChatProvider>
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
@@ -20,6 +21,9 @@ function App() {
             <Route path="/dashboard/*" element={<Dashboard />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
+
+          {/* ✅ Render all open chat popups globally */}
+          <ChatWindows />
         </ChatProvider>
       </AuthProvider>
     </Router>

@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import axios from "axios";
+import { ChatContext } from "../context/ChatContext";
 
+// Fetch single user details
 const fetchUserDetails = async (userId) => {
   try {
     const token = localStorage.getItem("token");
@@ -14,10 +16,13 @@ const fetchUserDetails = async (userId) => {
     return { id: userId, username: `User ${userId}`, avatar: "/default-avatar.png" };
   }
 };
-
+const currentUserId = parseInt(localStorage.getItem("user_id"));
+// Fetch all connected friends except the current user
 const fetchConnectedUsers = async () => {
   try {
     const token = localStorage.getItem("token");
+    const currentUserId = parseInt(localStorage.getItem("user_id"));
+
     const response = await axios.get(
       "http://127.0.0.1:8000/connections/connections/",
       { headers: { Authorization: `Bearer ${token}` } }
@@ -26,18 +31,18 @@ const fetchConnectedUsers = async () => {
     if (!Array.isArray(response.data)) {
       throw new Error("Unexpected API response format");
     }
-
-    // Extract unique user IDs
-    const userIds = new Set();
+  
+    // Extract only the other person in the connection
+    const friendIds = new Set();
     response.data.forEach((conn) => {
-      if (conn.user_id && conn.friend_id) {
-        userIds.add(conn.user_id);
-        userIds.add(conn.friend_id);
+      if (conn.user_id === currentUserId) {
+        friendIds.add(conn.friend_id);
+      } else if (conn.friend_id === currentUserId) {
+        friendIds.add(conn.user_id);
       }
     });
 
-    // Fetch user details for each unique user
-    const users = await Promise.all([...userIds].map(fetchUserDetails));
+    const users = await Promise.all([...friendIds].map(fetchUserDetails));
     return users;
   } catch (error) {
     console.error("Error fetching connected users:", error.message);
@@ -49,6 +54,8 @@ const ConnectedUsers = () => {
   const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const { openChat } = useContext(ChatContext);
 
   useEffect(() => {
     fetchConnectedUsers()
@@ -69,13 +76,26 @@ const ConnectedUsers = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
           {friends.map((friend) => (
-            <div key={friend.id} className="bg-white shadow-md rounded-lg p-4 hover:shadow-lg transition-shadow">
+            <div
+              key={friend.id}
+              className="bg-white shadow-md rounded-lg p-4 hover:shadow-lg transition-shadow"
+            >
               <img
                 src={friend.avatar || "/default-avatar.png"}
                 alt={friend.username}
                 className="w-20 h-20 rounded-full mx-auto border-2 border-gray-300"
               />
-              <h3 className="text-lg font-bold text-center mt-2 text-gray-800">{friend.username}</h3>
+              <h3 className="text-lg font-bold text-center mt-2 text-gray-800">
+                {friend.username}
+              </h3>
+
+              {/* Message Button */}
+              <button
+                onClick={() => openChat(friend)}
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 mt-3 rounded-lg"
+              >
+                💬 Message
+              </button>
             </div>
           ))}
         </div>
