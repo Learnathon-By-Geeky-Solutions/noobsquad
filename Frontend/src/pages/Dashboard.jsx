@@ -40,6 +40,11 @@ const Dashboard = () => {
           className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition duration-300">
           📚 Research
         </button>
+        <button 
+          onClick={() => navigate("/dashboard/chat")} 
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition duration-300">
+          🗨️ Message
+        </button>
       </div>
 
       {/* Nested Routing for Suggested Users */}
