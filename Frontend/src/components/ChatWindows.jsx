@@ -52,6 +52,7 @@ const ChatWindows = () => {
           user={user}
           socket={socket}
           onClose={() => closeChat(user.id)}
+          refreshConversations={user.refreshConversations}
         />
       ))}
     </>

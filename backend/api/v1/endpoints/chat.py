@@ -1,4 +1,5 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
+from sqlalchemy import desc, func, or_
 from sqlalchemy.orm import Session
 from models.chat import Message
 from core.dependencies import get_db
@@ -72,15 +73,81 @@ class MessageOut(BaseModel):
     class Config:
         orm_mode = True
 
-
+class ConversationOut(BaseModel):
+    user_id: int
+    username: str
+    avatar: str | None = None
+    last_message: str
+    timestamp: datetime
+    is_sender: bool
+    unread_count: int
+    class Config:
+        orm_mode = True
+        
 @router.get("/chat/history/{friend_id}", response_model=List[MessageOut])
 def get_chat_history(friend_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     user_id = current_user.id
 
-    # ✅ Query all messages where user is sender or receiver with friend_id
+    # ✅ Step 1: Get all messages between current user and friend
     messages = db.query(Message).filter(
         ((Message.sender_id == user_id) & (Message.receiver_id == friend_id)) |
         ((Message.sender_id == friend_id) & (Message.receiver_id == user_id))
     ).order_by(Message.timestamp.asc()).all()
 
+    # ✅ Step 2: Mark friend's messages to current user as read
+    db.query(Message).filter(
+        Message.sender_id == friend_id,
+        Message.receiver_id == user_id,
+        Message.is_read == False
+    ).update({Message.is_read: True})
+
+    db.commit()  # 💾 Save changes
+
     return messages
+
+
+@router.get("/chat/conversations", response_model=List[ConversationOut])
+def get_conversations(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    user_id = current_user.id
+
+    # Step 1: Get all messages involving this user (latest per conversation)
+    subquery = db.query(
+        func.max(Message.id).label("latest_id")
+    ).filter(
+        or_(
+            Message.sender_id == user_id,
+            Message.receiver_id == user_id
+        )
+    ).group_by(
+        func.least(Message.sender_id, Message.receiver_id),
+        func.greatest(Message.sender_id, Message.receiver_id)
+    ).subquery()
+
+    latest_messages = db.query(Message).join(
+        subquery, Message.id == subquery.c.latest_id
+    ).order_by(desc(Message.timestamp)).all()
+
+    results = []
+    for msg in latest_messages:
+        # Get the other user
+        friend = msg.receiver if msg.sender_id == user_id else msg.sender
+        other_user_id = friend.id
+
+        # ✅ Calculate unread messages from that friend
+        unread_count = db.query(func.count(Message.id)).filter(
+            Message.sender_id == other_user_id,
+            Message.receiver_id == user_id,
+            Message.is_read == False
+        ).scalar()
+
+        results.append({
+            "user_id": friend.id,
+            "username": friend.username,
+            "avatar": getattr(friend, "avatar", None),
+            "last_message": msg.content,
+            "timestamp": msg.timestamp,
+            "is_sender": msg.sender_id == user_id,
+            "unread_count": unread_count,  # ✅ include it
+        })
+
+    return results

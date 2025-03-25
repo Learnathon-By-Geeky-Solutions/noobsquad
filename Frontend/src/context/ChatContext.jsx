@@ -5,10 +5,13 @@ export const ChatContext = createContext(null);
 export const ChatProvider = ({ children }) => {
   const [chatWindows, setChatWindows] = useState([]);
 
-  const openChat = (user) => {
-    setChatWindows((prev) =>
-      prev.some((chat) => chat.id === user.id) ? prev : [...prev, user]
-    );
+  const openChat = (user, refreshConversations) => {
+    setChatWindows((prev) => {
+      const alreadyOpen = prev.find((chat) => chat.id === user.id);
+      if (alreadyOpen) return prev;
+
+      return [...prev, { ...user, refreshConversations }];
+    });
   };
 
   const closeChat = (userId) => {

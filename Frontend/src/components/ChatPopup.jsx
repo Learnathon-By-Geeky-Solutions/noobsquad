@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState} from "react";
 import axios from "axios";
 
-const ChatPopup = ({ user, socket, onClose }) => {
+const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef(null);
@@ -10,19 +10,24 @@ const ChatPopup = ({ user, socket, onClose }) => {
    // ✅ Fetch chat history on mount
    useEffect(() => {
     const token = localStorage.getItem("token");
-
+  
     axios.get(`http://localhost:8000/chat/chat/history/${user.id}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     })
-    .then(res => {
-      setMessages(res.data); // Load past messages
-    })
-    .catch(err => {
-      console.error("Failed to fetch chat history", err);
-    });
+      .then(res => {
+        setMessages(res.data);
+        // ✅ Optionally notify parent/sidebar to refresh unread count
+        if (typeof refreshConversations === "function") {
+          refreshConversations(); // 👈 call to clear unread badge
+        }
+      })
+      .catch(err => {
+        console.error("Failed to fetch chat history", err);
+      });
   }, [user.id]);
+  
 
   // Auto-scroll to bottom
   useEffect(() => {
