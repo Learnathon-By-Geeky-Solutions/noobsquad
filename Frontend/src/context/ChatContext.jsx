@@ -1,4 +1,5 @@
-import React, { createContext, useState } from "react";
+import React, { createContext, useState, useMemo } from "react";
+import PropTypes from "prop-types";
 
 export const ChatContext = createContext(null);
 
@@ -18,9 +19,21 @@ export const ChatProvider = ({ children }) => {
     setChatWindows((prev) => prev.filter((chat) => chat.id !== userId));
   };
 
+  // ✅ Memoize context value to avoid re-renders in consumers
+  const contextValue = useMemo(() => ({
+    chatWindows,
+    openChat,
+    closeChat,
+  }), [chatWindows]);
+
   return (
-    <ChatContext.Provider value={{ chatWindows, openChat, closeChat }}>
+    <ChatContext.Provider value={contextValue}>
       {children}
     </ChatContext.Provider>
   );
+};
+
+// ✅ Prop validation
+ChatProvider.propTypes = {
+  children: PropTypes.node.isRequired,
 };

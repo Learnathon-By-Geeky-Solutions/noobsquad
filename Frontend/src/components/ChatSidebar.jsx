@@ -6,7 +6,6 @@ const ChatSidebar = () => {
   const [conversations, setConversations] = useState([]);
   const { openChat } = useContext(ChatContext);
 
-  // Fetch latest conversation list (used on mount + refresh)
   const fetchConversations = async () => {
     const token = localStorage.getItem("token");
 
@@ -25,7 +24,6 @@ const ChatSidebar = () => {
     fetchConversations();
   }, []);
 
-  // Format ISO timestamp to short time (e.g. 4:36 PM)
   const formatTime = (isoTime) => {
     const date = new Date(isoTime);
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -48,8 +46,15 @@ const ChatSidebar = () => {
           return (
             <div
               key={c.user_id}
-              onClick={() => openChat(normalizedUser, fetchConversations)} // Pass refresh method
-              className="flex items-center gap-3 p-3 hover:bg-gray-100 cursor-pointer border-b"
+              role="button"
+              tabIndex={0}
+              onClick={() => openChat(normalizedUser, fetchConversations)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  openChat(normalizedUser, fetchConversations);
+                }
+              }}
+              className="flex items-center gap-3 p-3 hover:bg-gray-100 cursor-pointer border-b focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <img
                 src={c.avatar || "/default-avatar.png"}

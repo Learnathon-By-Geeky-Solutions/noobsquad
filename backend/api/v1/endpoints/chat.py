@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from models.chat import Message
 from core.dependencies import get_db
 import json
-from datetime import datetime
+from datetime import datetime,timezone
 from pydantic import BaseModel
 from typing import List
 from api.v1.endpoints.auth import get_current_user
@@ -35,7 +35,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
                     sender_id=user_id,
                     receiver_id=receiver_id,
                     content=content,
-                    timestamp=datetime.utcnow()  # Add if your model includes timestamp
+                    timestamp=datetime.now(timezone.utc)  # Add if your model includes timestamp
                 )
                 db.add(db_message)
                 db.commit()
