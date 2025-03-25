@@ -17,6 +17,7 @@ class User(Base):
     department = Column(String, nullable=True)
     fields_of_interest = Column(String, nullable=True)  # Comma-separated values
     profile_completed = Column(Boolean, default=False)  # To check completion
+
     papers = relationship("ResearchPaper", back_populates="uploader")
     research_posts = relationship("ResearchCollaboration", back_populates="creator")
     sent_requests = relationship("CollaborationRequest", back_populates="requester")
@@ -27,3 +28,6 @@ class User(Base):
     likes = relationship("Like", back_populates="user", cascade="all, delete-orphan")  # ✅ Added
     shares = relationship("Share", back_populates="user", cascade="all, delete-orphan")  # ✅ Added
     event_attendance = relationship("EventAttendee", back_populates="user", cascade="all, delete-orphan")
+    # These should be strings to avoid circular imports
+    messages_sent = relationship("Message", back_populates="sender", foreign_keys="Message.sender_id", cascade="all, delete-orphan")
+    messages_received = relationship("Message", back_populates="receiver", foreign_keys="Message.receiver_id", cascade="all, delete-orphan")

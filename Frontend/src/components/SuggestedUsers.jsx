@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext} from "react";
 import axios from "axios";
 import ConnectedUsers from "../api/ConnectedUsers"; 
+import { ChatContext } from "../context/ChatContext";
 
 const SuggestedUsers = () => {
   const [users, setUsers] = useState([]);

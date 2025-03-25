@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database.session import engine, Base
-from api.v1.endpoints import auth, connections, research
+from api.v1.endpoints import auth, connections, research, chat
 from routes import profile
 from routes import post
 from routes import postReaction
@@ -28,3 +28,5 @@ app.include_router(post.router,prefix="/posts", tags=["Posts"])
 app.include_router(postReaction.router, prefix="/interactions", tags=["Post Interactions"])
 app.include_router(connections.router, prefix="/connections", tags=["Connections"])
 app.include_router(research.router, prefix="/research", tags=["Research"])
+app.include_router(chat.router, prefix="/chat", tags=["Chat"])
+

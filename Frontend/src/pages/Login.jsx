@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { login } from "../api/auth"; 
+import { login, fetchUser } from "../api/auth"; 
 import { useAuth } from "../context/AuthContext";
 import "../assets/login.css"; 
 import Navbar from "../components/Navbar";
+
 
 const Login = () => {
   const [formData, setFormData] = useState({ username: "", password: "" });
@@ -15,27 +16,40 @@ const Login = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
 
-    try {
-      const data = await login(formData);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  setError("");
 
-      if (!data?.access_token) {
-        throw new Error("Login failed: No access_token received");
-      }
+  try {
+    const data = await login(formData); // get access_token
 
-      await authLogin(data.access_token); // ✅ Use AuthContext login function
-
-    } catch (error) {
-      setError("Invalid username or password");
-      console.error("Login error:", error.message);
-    } finally {
-      setLoading(false);
+    if (!data?.access_token) {
+      throw new Error("Login failed: No token received");
     }
-  };
+
+    // ✅ Store token
+    localStorage.setItem("token", data.access_token);
+
+    // ✅ Fetch user info with the token
+    const user = await fetchUser();
+
+    // ✅ Store user_id for WebSocket and user data usage
+    localStorage.setItem("user_id", user.id);
+    localStorage.setItem("username", user.username);
+
+    // ✅ Use context login if needed
+    await authLogin(data.access_token);
+
+  } catch (error) {
+    setError("Invalid username or password");
+    console.error("Login error:", error.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="login-container">
