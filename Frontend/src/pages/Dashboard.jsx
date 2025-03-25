@@ -4,7 +4,7 @@ import SuggestedUsers from "../components/SuggestedUsers";
 import Research from "../components/Research";
 import ChatSidebar from "../components/ChatSidebar"; // ✅ import sidebar
 import ChatPopup from "../components/ChatPopup";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import "../assets/Dashboard.css";
 
 const Dashboard = () => {

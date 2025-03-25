@@ -1,7 +1,6 @@
-import React, { useEffect, useState, useContext} from "react";
+import React, { useEffect, useState} from "react";
 import axios from "axios";
 import ConnectedUsers from "../api/ConnectedUsers"; 
-import { ChatContext } from "../context/ChatContext";
 
 const SuggestedUsers = () => {
   const [users, setUsers] = useState([]);
@@ -115,23 +114,6 @@ const SuggestedUsers = () => {
       console.error("Error rejecting request:", error);
     }
   };
-
-  // ✅ Function to fetch all connected users (friends)
-const fetchConnectedUsers = async () => {
-  try {
-    const token = localStorage.getItem("token");
-    const response = await axios.get(
-      "http://127.0.0.1:8000/connections/connections/",
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    return response.data; // Returns list of connected users
-  } catch (error) {
-    console.error("Error fetching connected users:", error);
-    return [];
-  }
-};
-
 
   return (
     <div className="max-w-6xl mx-auto p-4">

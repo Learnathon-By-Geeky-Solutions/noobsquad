@@ -11,6 +11,7 @@ from typing import Optional
 
 router = APIRouter()
 
+internal_error = "Internal Server Error"
 @router.post("/connect/")
 def send_connection(
     friend_data: ConnectionCreate,
@@ -22,7 +23,7 @@ def send_connection(
         return new_request
     except Exception as e:
         logging.error(f"Connection error: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error") from e
+        raise HTTPException(status_code=500, detail=internal_error) from e
 
 @router.post("/accept/{request_id}")
 def accept_connection(request_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
@@ -52,7 +53,7 @@ def list_connections(db: Session = Depends(get_db), current_user: User = Depends
         return get_connections(db, current_user.id)  # ✅ Use `current_user.id`
     except Exception as e:
         logging.error(f"Error fetching connections: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail=internal_error)
 
 @router.get("/users")
 def get_users(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -90,7 +91,7 @@ def get_users(db: Session = Depends(get_db), current_user: User = Depends(get_cu
 
     except Exception as e:
         logging.error(f"Error fetching users: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail=internal_error)
    
 @router.get("/pending-requests")
 def get_pending_requests(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -105,7 +106,7 @@ def get_pending_requests(db: Session = Depends(get_db), current_user: User = Dep
         return pending_requests
     except Exception as e:
         logging.error(f"Error fetching pending requests: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail=internal_error)
     
 @router.get("/user/{user_id}")
 def get_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -122,5 +123,5 @@ def get_user(user_id: int, db: Session = Depends(get_db), current_user: User = D
         return user
     except Exception as e:
         logging.error(f"Error fetching user {user_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")    
+        raise HTTPException(status_code=500, detail=internal_error)    
 

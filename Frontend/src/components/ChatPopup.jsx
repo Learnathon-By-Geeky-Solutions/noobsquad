@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState} from "react";
+import { useEffect, useRef, useState } from "react";
+import PropTypes from "prop-types";
 import axios from "axios";
 
 const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
@@ -7,29 +8,28 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
   const messagesEndRef = useRef(null);
   const currentUserId = parseInt(localStorage.getItem("user_id"));
 
-   // ✅ Fetch chat history on mount
-   useEffect(() => {
+  // ✅ Fetch chat history on mount
+  useEffect(() => {
     const token = localStorage.getItem("token");
-  
-    axios.get(`http://localhost:8000/chat/chat/history/${user.id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then(res => {
+
+    axios
+      .get(`http://localhost:8000/chat/chat/history/${user.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      .then((res) => {
         setMessages(res.data);
-        // ✅ Optionally notify parent/sidebar to refresh unread count
         if (typeof refreshConversations === "function") {
-          refreshConversations(); // 👈 call to clear unread badge
+          refreshConversations();
         }
       })
-      .catch(err => {
+      .catch((err) => {
         console.error("Failed to fetch chat history", err);
       });
   }, [user.id]);
-  
 
-  // Auto-scroll to bottom
+  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -42,7 +42,6 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
       try {
         const msg = JSON.parse(event.data);
 
-        // Only show messages for this user pair (current ↔ selected)
         const isRelevant =
           (msg.sender_id === currentUserId && msg.receiver_id === user.id) ||
           (msg.sender_id === user.id && msg.receiver_id === currentUserId);
@@ -68,8 +67,12 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
       content: input.trim(),
     };
 
-    socket.send(JSON.stringify(msg));
-    setInput(""); // Only reset input — do NOT push to messages here
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify(msg));
+      setInput("");
+    } else {
+      console.warn("WebSocket is not connected");
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -84,7 +87,9 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
       {/* Header */}
       <div className="bg-blue-600 text-white px-4 py-2 rounded-t-lg flex justify-between items-center">
         <span className="font-semibold">{user.username}</span>
-        <button onClick={onClose} className="text-white hover:text-gray-300 text-xl">×</button>
+        <button onClick={onClose} className="text-white hover:text-gray-300 text-xl">
+          ×
+        </button>
       </div>
 
       {/* Messages */}
@@ -122,6 +127,18 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
       </div>
     </div>
   );
+};
+
+// ✅ Prop Validation
+ChatPopup.propTypes = {
+  user: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    username: PropTypes.string.isRequired,
+    avatar: PropTypes.string,
+  }).isRequired,
+  socket: PropTypes.instanceOf(WebSocket),
+  onClose: PropTypes.func.isRequired,
+  refreshConversations: PropTypes.func,
 };
 
 export default ChatPopup;

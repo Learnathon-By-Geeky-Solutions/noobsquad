@@ -43,7 +43,7 @@ async def upload_paper(
 
         # ✅ Construct safe path & validate against path traversal
         file_path = UPLOAD_DIR / sanitized_filename
-        if not file_path.resolve().parent == UPLOAD_DIR.resolve():
+        if file_path.resolve().parent != UPLOAD_DIR.resolve():
             raise HTTPException(status_code=400, detail="Invalid file path")
 
         # ✅ Write file securely
