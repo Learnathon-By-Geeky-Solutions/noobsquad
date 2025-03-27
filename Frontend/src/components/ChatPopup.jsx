@@ -8,27 +8,34 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
   const messagesEndRef = useRef(null);
   const currentUserId = parseInt(localStorage.getItem("user_id"));
 
-  // ✅ Fetch chat history on mount
   useEffect(() => {
+    if (!user?.id) return;
+  
     const token = localStorage.getItem("token");
-
-    axios
-      .get(`http://localhost:8000/chat/chat/history/${user.id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-      .then((res) => {
+  
+    const fetchMessages = async () => {
+      try {
+        const res = await axios.get(`http://localhost:8000/chat/chat/history/${user.id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         setMessages(res.data);
         if (typeof refreshConversations === "function") {
           refreshConversations();
         }
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error("Failed to fetch chat history", err);
-      });
-  }, [user.id]);
-
+      }
+    };
+  
+    fetchMessages(); // immediate fetch on mount
+  
+    const interval = setInterval(fetchMessages, 1000); // auto-refresh every 5s
+  
+    return () => clearInterval(interval); // cleanup when component unmounts or user.id changes
+  }, [user?.id]);
+  
   // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

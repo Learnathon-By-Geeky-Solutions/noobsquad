@@ -6,6 +6,7 @@ const ChatSidebar = () => {
   const [conversations, setConversations] = useState([]);
   const { openChat } = useContext(ChatContext);
 
+  // ✅ Fetch conversations from backend
   const fetchConversations = async () => {
     const token = localStorage.getItem("token");
 
@@ -20,10 +21,16 @@ const ChatSidebar = () => {
     }
   };
 
+  // ✅ Auto-refresh every 5 seconds
   useEffect(() => {
-    fetchConversations();
+    fetchConversations(); // initial fetch
+
+    const interval = setInterval(fetchConversations, 1000); // fetch every 5s
+
+    return () => clearInterval(interval); // cleanup on unmount
   }, []);
 
+  // ✅ Format time string from ISO
   const formatTime = (isoTime) => {
     const date = new Date(isoTime);
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });

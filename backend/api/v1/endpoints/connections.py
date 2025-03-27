@@ -7,7 +7,7 @@ from schemas.connection import ConnectionCreate, ConnectionResponse
 from api.v1.endpoints.auth import get_current_user  # Ensure authentication middleware is implemented
 from models.user import User
 from models.connection import Connection
-from typing import Optional
+from sqlalchemy import select, or_, case
 
 router = APIRouter()
 
@@ -57,41 +57,56 @@ def list_connections(db: Session = Depends(get_db), current_user: User = Depends
 
 @router.get("/users")
 def get_users(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Fetch users who are NOT friends with the current user, 
-    who have NOT sent a friend request, and who have NOT received one from the user."""
-    
     try:
         if not current_user:
             raise HTTPException(status_code=401, detail="Unauthorized")
 
-        # Fetch users who are already friends
-        friends = db.query(Connection.friend_id).filter(Connection.user_id == current_user.id)
+        # ✅ Get all friends of the current user (regardless of who initiated)
+        friends_subq = select(
+            case(
+                (Connection.user_id == current_user.id, Connection.friend_id),
+                else_=Connection.user_id
+            )
+        ).where(
+            or_(
+                Connection.user_id == current_user.id,
+                Connection.friend_id == current_user.id
+            ),
+            Connection.status == "accepted"
+        )
 
-        # Fetch users who have been sent a request by the current user
-        sent_requests = db.query(Connection.friend_id).filter(
-            Connection.user_id == current_user.id, 
+        # ✅ Users you've sent requests to (pending)
+        sent_subq = select(Connection.friend_id).where(
+            Connection.user_id == current_user.id,
             Connection.status == "pending"
         )
 
-        # Fetch users who have sent a request to the current user
-        received_requests = db.query(Connection.user_id).filter(
-            Connection.friend_id == current_user.id, 
+        # ✅ Users who sent requests to you (pending)
+        received_subq = select(Connection.user_id).where(
+            Connection.friend_id == current_user.id,
             Connection.status == "pending"
         )
 
-        # Get users who are not in any of the above lists
+        # ✅ Now filter out all of those
         users = db.query(User).filter(
-            User.id.notin_(friends),
-            User.id.notin_(sent_requests),
-            User.id.notin_(received_requests),
-            User.id != current_user.id  # Exclude self
+            User.id.notin_(friends_subq),
+            User.id.notin_(sent_subq),
+            User.id.notin_(received_subq),
+            User.id != current_user.id
         ).all()
 
         return users
 
     except Exception as e:
+        import logging
         logging.error(f"Error fetching users: {str(e)}")
-        raise HTTPException(status_code=500, detail=internal_error)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+
+
+
+
    
 @router.get("/pending-requests")
 def get_pending_requests(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
