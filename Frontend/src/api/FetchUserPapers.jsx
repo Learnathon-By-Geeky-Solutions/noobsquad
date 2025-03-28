@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
-import { FormContainer, PaperCard } from "../components/CommonComponents";
+import { Loader2, FileText } from "lucide-react";
 
 const FetchUserPapers = () => {
   const [papers, setPapers] = useState([]);
@@ -23,7 +23,7 @@ const FetchUserPapers = () => {
           alert("Unauthorized! Please log in.");
           navigate("/login");
         } else {
-          setErrorMessage("Error fetching research papers.");
+          setErrorMessage("Error fetching your research papers.");
         }
       } finally {
         setLoading(false);
@@ -33,23 +33,38 @@ const FetchUserPapers = () => {
     fetchUserPapers();
   }, [navigate]);
 
-  // ✅ Extract Conditional Rendering Logic
-  let content;
-  if (loading) {
-    content = <p className="text-center text-gray-500">Loading research papers...</p>;
-  } else if (errorMessage) {
-    content = <p className="text-center text-gray-500">{errorMessage}</p>;
-  } else {
-    content = (
-      <ul className="space-y-4">
-        {papers.map((paper) => (
-          <PaperCard key={paper.id} paper={paper} />
-        ))}
-      </ul>
-    );
-  }
+  return (
+    <div className="p-6 bg-white rounded-lg shadow-md max-w-4xl mx-auto">
+      <h2 className="text-2xl font-bold text-blue-700 flex items-center gap-2 mb-6">
+        <FileText className="w-6 h-6" />
+        My current works (Ongoing)
+      </h2>
 
-  return <FormContainer title="📑 My Research Papers">{content}</FormContainer>;
+      {loading ? (
+        <div className="flex justify-center mt-6">
+          <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+        </div>
+      ) : errorMessage ? (
+        <p className="text-center text-gray-500">{errorMessage}</p>
+      ) : (
+        <ul className="space-y-4">
+          {papers.map((paper) => (
+            <li
+              key={paper.id}
+              className="p-4 border border-gray-200 bg-gray-50 rounded-lg shadow-sm hover:bg-gray-100 transition"
+            >
+              <h3 className="text-lg font-semibold text-gray-800">{paper.title}</h3>
+              <p className="text-sm text-gray-600">
+                <strong>Field:</strong> {paper.research_field}
+              </p>
+              <p className="text-sm text-gray-500 mt-1"><strong>Details:</strong> {paper.details}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 };
 
 export default FetchUserPapers;

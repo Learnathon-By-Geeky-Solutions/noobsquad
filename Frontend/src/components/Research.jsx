@@ -1,27 +1,49 @@
-import { Routes, Route, Link } from "react-router-dom";
-import RecentPapers from "../api/RecentPapers";
-import UploadPaper from "../api/UploadPaper";
+import { Routes, Route, NavLink } from "react-router-dom";
 import SearchPapers from "../api/SearchPapers";
+import UploadPaper from "../api/UploadPaper";
 import PostResearch from "../api/PostResearch";
+import RecentPapers from "../api/RecentPapers";
 import CollaborationRequests from "../api/CollaborationRequests";
 import FetchUserPapers from "../api/FetchUserPapers";
 
+// ✅ Lucide Icons
+import {
+  Search,
+  Upload,
+  FilePlus,
+  BookOpen,
+  Handshake,
+  FlaskConical,
+  Loader2
+} from "lucide-react";
+
 const Research = () => {
   return (
-    <div>
-       {/* ✅ Use Absolute Paths to Avoid Nested Navigation Issues */}
-        <nav className="p-4 bg-gray-200 flex justify-around">
-            <Link to="/dashboard/research/search">🔎 Search Papers</Link>
-            <Link to="/dashboard/research/upload">📤 Upload Paper</Link>
-            <Link to="/dashboard/research/post-research">📑 Post Research</Link>
-            <Link to="/dashboard/research/recent-works">📑 Recent Works</Link>
-            <Link to="/dashboard/research/collab-requests">📜 Collaboration Requests</Link>
-            <Link to="/dashboard/research/my_post_research_papers">📜 Currently working</Link>
+    <div className="bg-gray-50 min-h-screen">
+      {/* Page Title */}
+      <div className="pt-6 pb-2 text-center">
+        <h1 className="text-2xl font-bold text-gray-800">Research</h1>
+      </div>
 
-        </nav>
+      {/* Tab Menu */}
+      <div className="bg-white shadow-sm rounded-xl mx-auto max-w-6xl px-4 py-4 mb-6">
+        <ul className="flex flex-wrap justify-center gap-4">
+          <NavTab to="/dashboard/research/search" label="Search Papers" icon={Search} />
+          <NavTab to="/dashboard/research/upload" label="Upload Paper" icon={Upload} />
+          <NavTab to="/dashboard/research/post-research" label="Post Current Work" icon={FilePlus} />
+          <NavTab to="/dashboard/research/recent-works" label="Current Works" icon={BookOpen} />
+          <NavTab to="/dashboard/research/collab-requests" label="Collab Requests" icon={Handshake} badge={3} />
+          <NavTab
+            to="/dashboard/research/my_post_research_papers"
+            label="Currently Working"
+            icon={FlaskConical}
+            loading={false} // change to true to show spinner
+          />
+        </ul>
+      </div>
 
-      {/* Research Nested Routes */}
-      <div className="max-w-6xl mx-auto p-6">
+      {/* Content Section */}
+      <div className="max-w-6xl mx-auto p-6 bg-white shadow rounded-lg">
         <Routes>
           <Route path="search" element={<SearchPapers />} />
           <Route path="upload" element={<UploadPaper />} />
@@ -34,5 +56,35 @@ const Research = () => {
     </div>
   );
 };
+
+// ✅ NavTab Component
+const NavTab = ({ to, label, icon: Icon, loading = false, badge = null }) => (
+  <li>
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `relative inline-flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition ${
+          isActive
+            ? "bg-blue-600 text-white shadow"
+            : "bg-gray-100 text-gray-700 hover:bg-blue-100 hover:text-blue-600"
+        }`
+      }
+    >
+      {loading ? (
+        <Loader2 className="w-4 h-4 animate-spin" />
+      ) : (
+        <Icon className="w-4 h-4" />
+      )}
+
+      {label}
+
+      {badge !== null && (
+        <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-semibold">
+          {badge}
+        </span>
+      )}
+    </NavLink>
+  </li>
+);
 
 export default Research;

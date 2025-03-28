@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
-import { FormContainer } from "../components/CommonComponents"; // ✅ Import missing components
-import PropTypes from "prop-types"; // ✅ Import PropTypes
+import PropTypes from "prop-types";
+import { Loader2, FileText, Handshake, CheckCircle2 } from "lucide-react";
 
 const RecentPapers = () => {
   const [papers, setPapers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -21,6 +22,8 @@ const RecentPapers = () => {
           console.error("Error fetching recent papers:", error);
           alert("Error fetching recent papers.");
         }
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -28,8 +31,17 @@ const RecentPapers = () => {
   }, [navigate]);
 
   return (
-    <FormContainer title="📄 Recent Research Papers">
-      {papers.length > 0 ? (
+    <div className="p-6 bg-white rounded-lg shadow-md max-w-5xl mx-auto">
+      <h2 className="text-2xl font-bold text-blue-700 flex items-center gap-2 mb-6">
+        <FileText className="w-6 h-6" />
+        Recent Research Papers
+      </h2>
+
+      {loading ? (
+        <div className="flex justify-center mt-6">
+          <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+        </div>
+      ) : papers.length > 0 ? (
         <ul className="space-y-4">
           {papers.map((paper) => (
             <PaperCard key={paper.id} paper={paper} />
@@ -38,24 +50,23 @@ const RecentPapers = () => {
       ) : (
         <p className="text-center text-gray-500">No recent papers available.</p>
       )}
-    </FormContainer>
+    </div>
   );
 };
 
-// ✅ Paper Card Component
 const PaperCard = ({ paper }) => {
   const [collabRequested, setCollabRequested] = useState(
     paper.can_request_collaboration !== undefined ? !paper.can_request_collaboration : false
   );
+  const [sending, setSending] = useState(false);
 
   const requestCollaboration = async (researchId) => {
-    console.log("Requesting collaboration for Research ID:", researchId);
-
     if (!researchId || typeof researchId !== "number") {
-      console.error("Invalid researchId:", researchId);
-      alert("Error: Invalid research paper ID.");
+      alert("Invalid research paper ID.");
       return;
     }
+
+    setSending(true);
 
     try {
       const formData = new URLSearchParams();
@@ -66,48 +77,62 @@ const PaperCard = ({ paper }) => {
       });
 
       if (response.status === 200) {
-        alert("Collaboration request sent successfully!");
         setCollabRequested(true);
+        alert("Collaboration request sent successfully!");
       } else {
         alert("Error: " + (response.data?.detail || "Unknown error"));
       }
     } catch (error) {
       console.error("Error requesting collaboration:", error);
       alert("Error requesting collaboration.");
+    } finally {
+      setSending(false);
     }
   };
 
   return (
-    <li className="bg-white shadow-md rounded-lg p-6 flex justify-between items-center border border-gray-200">
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900">{paper.title}</h3>
-        <p className="text-gray-700">
-          <strong>Field:</strong> {paper.research_field}
-        </p>
-        <p className="text-gray-600">{paper.details}</p>
-      </div>
+    <li className="bg-gray-50 border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow transition">
+      <h3 className="text-lg font-semibold text-gray-800 mb-1"><strong>{paper.title}</strong></h3>
+      <p className="text-sm text-gray-600 mb-1">
+        <strong>Field:</strong> {paper.research_field}
+      </p>
+      <p className="text-sm text-gray-500 mb-4"><strong>Work details:</strong> {paper.details}</p>
+
       {!collabRequested ? (
         <button
           onClick={() => requestCollaboration(Number(paper.id))}
-          className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-300"
+          disabled={sending}
+          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition disabled:opacity-50"
         >
-          Request Collaboration
+          {sending ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Sending...
+            </>
+          ) : (
+            <>
+              <Handshake className="w-4 h-4" />
+              Request Collaboration
+            </>
+          )}
         </button>
       ) : (
-        <p className="text-green-600 font-semibold">Request Sent ✅</p>
+        <p className="flex items-center gap-1 text-green-600 font-medium">
+          <CheckCircle2 className="w-5 h-5" />
+          Request Sent
+        </p>
       )}
     </li>
   );
 };
 
-// ✅ Add PropTypes for Validation
 PaperCard.propTypes = {
   paper: PropTypes.shape({
     id: PropTypes.number.isRequired,
     title: PropTypes.string.isRequired,
     research_field: PropTypes.string.isRequired,
     details: PropTypes.string.isRequired,
-    can_request_collaboration: PropTypes.bool, // Optional
+    can_request_collaboration: PropTypes.bool,
   }).isRequired,
 };
 

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
-import { FormContainer, TextInput, SubmitButton } from "../components/CommonComponents";
+import { FileText, UploadCloud, AlertTriangle, Loader2 } from "lucide-react";
 
 const UploadPaper = () => {
   const [title, setTitle] = useState("");
@@ -9,18 +9,23 @@ const UploadPaper = () => {
   const [researchField, setResearchField] = useState("");
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
   const navigate = useNavigate();
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
+    setError("");
 
     if (!selectedFile) return;
 
-    console.log("Selected file:", selectedFile.name);
+    if (selectedFile.type !== "application/pdf") {
+      setError("Only PDF files are allowed.");
+      return;
+    }
 
-    // ✅ Ensure the file is not too large (Max: 5MB)
     if (selectedFile.size > 5 * 1024 * 1024) {
-      alert("File size exceeds 5MB. Please select a smaller file.");
+      setError("File size exceeds 5MB. Please select a smaller file.");
       return;
     }
 
@@ -28,14 +33,15 @@ const UploadPaper = () => {
   };
 
   const uploadPaper = async (e) => {
-    e.preventDefault(); // ✅ Prevent default form submission
+    e.preventDefault();
 
     if (!title || !author || !researchField || !file) {
-      alert("Please fill all fields and select a file.");
+      setError("Please fill all fields and upload a valid PDF.");
       return;
     }
 
     setLoading(true);
+    setError("");
 
     const formData = new FormData();
     formData.append("title", title);
@@ -48,45 +54,85 @@ const UploadPaper = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      alert("Paper uploaded successfully!");
+      alert("✅ Paper uploaded successfully!");
 
-      // ✅ Reset form fields
+      // Reset fields
       setTitle("");
       setAuthor("");
       setResearchField("");
       setFile(null);
 
-      // ✅ Redirect to "My Research Papers"
       navigate("/dashboard/research/my_post_research_papers");
-
-      console.log("Uploaded File Path:", response.data.file_path); // ✅ Debugging
     } catch (error) {
-      console.error("Upload Error:", error.response?.data || error.message);
-      alert("Upload failed: " + JSON.stringify(error.response?.data || error.message));
+      const errMsg = error.response?.data?.detail || "Upload failed. Please try again.";
+      setError(errMsg);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <FormContainer title="Upload Research Paper">
+    <div className="p-6 bg-white rounded-lg shadow-md max-w-3xl mx-auto">
+      <h2 className="text-2xl font-bold flex items-center gap-2 text-blue-700 mb-6">
+        <UploadCloud className="w-6 h-6" />
+        Upload Research Paper
+      </h2>
+
       <form onSubmit={uploadPaper} className="space-y-4">
-        <TextInput placeholder="Title" value={title} onChange={setTitle} />
-        <TextInput placeholder="Author" value={author} onChange={setAuthor} />
-        <TextInput placeholder="Research Field" value={researchField} onChange={setResearchField} />
-        
-        {/* ✅ File Upload */}
         <input
-          type="file"
-          onChange={handleFileChange}
-          required
-          className="w-full border p-2 rounded mb-4"
+          type="text"
+          placeholder="Title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <input
+          type="text"
+          placeholder="Author"
+          value={author}
+          onChange={(e) => setAuthor(e.target.value)}
+          className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <input
+          type="text"
+          placeholder="Research Field"
+          value={researchField}
+          onChange={(e) => setResearchField(e.target.value)}
+          className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
 
-        {/* ✅ Fixed Submit Button */}
-        <SubmitButton text={loading ? "Uploading..." : "Upload"} disabled={loading} />
+        {/* PDF Upload */}
+        <div className="w-full">
+          <label className="block mb-1 text-sm font-medium text-gray-700">
+            Upload PDF File (Max 5MB)
+          </label>
+          <input
+            type="file"
+            accept="application/pdf"
+            onChange={handleFileChange}
+            className="w-full border p-2 rounded-md file:mr-4 file:px-4 file:py-2 file:bg-blue-600 file:text-white file:rounded-md hover:file:bg-blue-700"
+          />
+        </div>
+
+        {/* Error Display */}
+        {error && (
+          <div className="flex items-center gap-2 text-red-600 text-sm mt-1">
+            <AlertTriangle className="w-4 h-4" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={loading}
+          className="flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition disabled:opacity-50"
+        >
+          {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+          {loading ? "Uploading..." : "Upload"}
+        </button>
       </form>
-    </FormContainer>
+    </div>
   );
 };
 
