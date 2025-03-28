@@ -8,7 +8,10 @@ class PostResponse(BaseModel):
     user_id: int
     post_type: str
     content: Optional[str] = None
-    created_at: datetime
+    created_at: datetime  # Allow null values temporarily
+    like_count: int  # Total likes
+    comment_count: int  # Total comments
+    user_liked: bool  # Has the current user liked it?
 
     class Config:
         from_attributes = True  # ORM compatibility

@@ -29,7 +29,7 @@ const Login = () => {
       localStorage.setItem("user_id", user.id);
       localStorage.setItem("username", user.username);
       await authLogin(data.access_token);
-    } catch (error) {
+    } catch {
       setError("Invalid username or password");
     } finally {
       setLoading(false);
