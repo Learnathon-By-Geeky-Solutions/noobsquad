@@ -8,29 +8,6 @@ import ShareBox from "./ShareBox"; // Import the ShareBox component
 
 const Post = ({ post, onUpdate, onDelete }) => {
   const { user } = useAuth();
-  if (!post || !post.user) return null;
-
-  const { post_type, content, created_at, user: postUser, media_url, document_url, event } = post;
-  
-  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone; // Detect user's local timezone
-  const postDateUTC = DateTime.fromISO(created_at, { zone: "utc" });  //Parse as UTC
-  const postDateLocal = postDateUTC.setZone(userTimezone); // Convert to user's local timezone
-
-  // ✅ Fix: Use `.toMillis()` instead of `.getTime()`
-  const timeDiffMinutes = Math.floor((Date.now() - postDateLocal.toMillis()) / 60000);
-  
-
-  let timeAgo;
-  if (timeDiffMinutes < 1) {
-    timeAgo = "Just now";
-  } else if (timeDiffMinutes < 60) {
-    timeAgo = `${timeDiffMinutes} min ago`;
-  } else if (timeDiffMinutes < 1440) {
-    timeAgo = `${Math.floor(timeDiffMinutes / 60)} hours ago`;
-  } else {
-    timeAgo = `${Math.floor(timeDiffMinutes / 1440)} days ago`;
-  }
-
   const isOwner = user?.id === postUser?.id;
   const [menuOpen, setMenuOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -58,6 +35,31 @@ const Post = ({ post, onUpdate, onDelete }) => {
   const [commenting, setCommenting] = useState(false);
   const [loadingComments, setLoadingComments] = useState(false);
   const [showShareBox, setShowShareBox] = useState(false);
+  
+  if (!post || !post.user) return null;
+
+  const { post_type, content, created_at, user: postUser, media_url, document_url, event } = post;
+  
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone; // Detect user's local timezone
+  const postDateUTC = DateTime.fromISO(created_at, { zone: "utc" });  //Parse as UTC
+  const postDateLocal = postDateUTC.setZone(userTimezone); // Convert to user's local timezone
+
+  // ✅ Fix: Use `.toMillis()` instead of `.getTime()`
+  const timeDiffMinutes = Math.floor((Date.now() - postDateLocal.toMillis()) / 60000);
+  
+
+  let timeAgo;
+  if (timeDiffMinutes < 1) {
+    timeAgo = "Just now";
+  } else if (timeDiffMinutes < 60) {
+    timeAgo = `${timeDiffMinutes} min ago`;
+  } else if (timeDiffMinutes < 1440) {
+    timeAgo = `${Math.floor(timeDiffMinutes / 60)} hours ago`;
+  } else {
+    timeAgo = `${Math.floor(timeDiffMinutes / 1440)} days ago`;
+  }
+
+  
 
   const fetchComments = async () => {
     setLoadingComments(true);
