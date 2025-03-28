@@ -1,8 +1,11 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum, Date, Text, CheckConstraint, UniqueConstraint
 from sqlalchemy.orm import relationship
 from database.session import Base
-from datetime import datetime
+from datetime import datetime, timezone
 import enum
+from sqlalchemy.sql import func
+from datetime import datetime, timezone
+print(datetime.now(timezone.utc))
 
 # Enum for different post types
 class PostTypeEnum(str, enum.Enum):
@@ -18,7 +21,8 @@ class Post(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # ✅ Ensures every post has a user
     content = Column(Text, nullable=True)  # Stores text content (if any)
     post_type = Column(Enum(PostTypeEnum), default=PostTypeEnum.TEXT)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    like_count = Column(Integer, default=0)
    
 
     # Relationships
@@ -107,6 +111,7 @@ class Comment(Base):
     parent_id = Column(Integer, ForeignKey("comments.id"), nullable=True)  # For replies
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    like_count = Column(Integer, default=0)
 
     user = relationship("User", back_populates="comments")
     post = relationship("Post", back_populates="comments")
@@ -120,6 +125,7 @@ class Share(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     post_id = Column(Integer, ForeignKey("posts.id"), nullable=False)
+    share_token = Column(String, unique=True, nullable=False)  # Add this line
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="shares")

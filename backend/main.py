@@ -3,8 +3,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from database.session import engine, Base
 from api.v1.endpoints import auth, connections
 from routes import profile, post, postReaction
+from fastapi.staticfiles import StaticFiles
+
+
 
 app = FastAPI()
+app.mount("/uploads/profile_pictures", StaticFiles(directory="uploads/profile_pictures"), name="uploads")
+app.mount("/uploads/media", StaticFiles(directory="uploads/media"), name="media")
+app.mount("/uploads/document", StaticFiles(directory="uploads/document"), name="document") 
 
 # ✅ Add CORS middleware
 app.add_middleware(
