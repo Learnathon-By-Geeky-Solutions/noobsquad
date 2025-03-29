@@ -28,7 +28,7 @@ def get_db():
     finally:
         db.close()
 
-UPLOAD_DIR = "uploads"
+UPLOAD_DIR = "uploads/profile_pictures"
 os.makedirs(UPLOAD_DIR, exist_ok=True)  # Ensure upload directory exists
 
 
@@ -41,7 +41,7 @@ def complete_profile_step1(
     db: Session = Depends(get_db)
 ):
       # ✅ Pass db if required in get_current_user
-
+   
     current_user = db.query(User).filter(User.id == current_user.id).first()
 
     if not current_user:
@@ -66,7 +66,6 @@ def upload_profile_picture(
     current_user: User = Depends(get_current_user),  # ✅ Default to None
     db: Session = Depends(get_db)
 ):
- # ✅ Fetch current_user inside function
 
     current_user = db.query(User).filter(User.id == current_user.id).first()
     if not current_user:
@@ -97,13 +96,13 @@ def upload_profile_picture(
         buffer.write(file.file.read())
 
     # ✅ Update profile picture path
-    current_user.profile_picture = file_location
+    current_user.profile_picture = secure_filename
 
     db.commit()
     db.refresh(current_user)
 
     return {
         "filename": secure_filename,
-        "path": file_location,
-        "profile_completed": current_user.profile_completed  # ✅ Return updated status
+        "profile_url": f"http://127.0.0.1:8000/uploads/profile_pictures/{secure_filename}",  # ✅ Return public URL
+        "profile_completed": current_user.profile_completed
     }

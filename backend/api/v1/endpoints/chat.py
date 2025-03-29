@@ -71,7 +71,7 @@ class MessageOut(BaseModel):
     timestamp: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class ConversationOut(BaseModel):
     user_id: int
@@ -82,7 +82,7 @@ class ConversationOut(BaseModel):
     is_sender: bool
     unread_count: int
     class Config:
-        orm_mode = True
+        from_attributes = True
         
 @router.get("/chat/history/{friend_id}", response_model=List[MessageOut])
 def get_chat_history(friend_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
