@@ -70,71 +70,79 @@ const CollaborationRequests = () => {
       </h2>
 
       {/* Loading */}
-      {loading ? (
-        <div className="flex justify-center mt-6">
-          <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-        </div>
-      ) : errorMessage ? (
-        <p className="text-center text-gray-500">{errorMessage}</p>
-      ) : (
-        <ul className="space-y-4">
-          {requests.map((req) => (
-            <li
-              key={req.id}
-              className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center p-4 border rounded-md shadow-sm bg-gray-50 hover:bg-gray-100 transition"
-            >
-              {/* Sender Info */}
-              <div className="flex items-start gap-4 w-full sm:w-3/4">
-                <img
-                  src={req.sender_avatar || "/default-avatar.png"}
-                  alt="Avatar"
-                  className="w-12 h-12 rounded-full object-cover border"
-                />
-                <div>
-                  <h3 className="font-semibold text-gray-800">
-                    {req.requester_username}
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    wants to collaborate on{" "}
-                    <span className="font-medium">{req.research_title}</span>
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">"{req.message}"</p>
-                  {req.timestamp && (
-                    <p className="text-xs text-gray-400 mt-1">
-                      Sent {dayjs(req.timestamp).format("MMM D, YYYY h:mm A")}
-                    </p>
-                  )}
-                </div>
-              </div>
+      {(() => {
+        if (loading) {
+          return (
+            <div className="flex justify-center mt-6">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+            </div>
+          );
+        }
 
-              {/* Buttons */}
-              <div className="flex gap-2 mt-4 sm:mt-0">
-                <button
-                  onClick={() => handleAccept(req.id)}
-                  className="flex items-center gap-1 bg-green-600 text-white px-3 py-1.5 rounded-md hover:bg-green-700 transition text-sm"
-                >
-                  <UserCheck className="w-4 h-4" />
-                  Accept
-                </button>
-                <button
-                  onClick={() => handleMessage(req.sender_username)}
-                  className="flex items-center gap-1 bg-gray-600 text-white px-3 py-1.5 rounded-md hover:bg-gray-700 transition text-sm"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  Message
-                </button>
-                <button
-                  onClick={() => handleDecline(req.id)}
-                  className="flex items-center gap-1 bg-red-600 text-white px-3 py-1.5 rounded-md hover:bg-red-700 transition text-sm"
-                >
-                  <XCircle className="w-4 h-4" />
-                  Decline
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+        if (errorMessage) {
+          return <p className="text-center text-gray-500">{errorMessage}</p>;
+        }
+
+        return (
+          <ul className="space-y-4">
+            {requests.map((req) => (
+              <li
+                key={req.id}
+                className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center p-4 border rounded-md shadow-sm bg-gray-50 hover:bg-gray-100 transition"
+              >
+                {/* Sender Info */}
+                <div className="flex items-start gap-4 w-full sm:w-3/4">
+                  <img
+                    src={req.sender_avatar || "/default-avatar.png"}
+                    alt="Avatar"
+                    className="w-12 h-12 rounded-full object-cover border"
+                  />
+                  <div>
+                    <h3 className="font-semibold text-gray-800">
+                      {req.requester_username}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      wants to collaborate on{" "}
+                      <span className="font-medium">{req.research_title}</span>
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">"{req.message}"</p>
+                    {req.timestamp && (
+                      <p className="text-xs text-gray-400 mt-1">
+                        Sent {dayjs(req.timestamp).format("MMM D, YYYY h:mm A")}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex gap-2 mt-4 sm:mt-0">
+                  <button
+                    onClick={() => handleAccept(req.id)}
+                    className="flex items-center gap-1 bg-green-600 text-white px-3 py-1.5 rounded-md hover:bg-green-700 transition text-sm"
+                  >
+                    <UserCheck className="w-4 h-4" />
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => handleMessage(req.sender_username)}
+                    className="flex items-center gap-1 bg-gray-600 text-white px-3 py-1.5 rounded-md hover:bg-gray-700 transition text-sm"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    Message
+                  </button>
+                  <button
+                    onClick={() => handleDecline(req.id)}
+                    className="flex items-center gap-1 bg-red-600 text-white px-3 py-1.5 rounded-md hover:bg-red-700 transition text-sm"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    Decline
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        );
+      })()}
     </div>
   );
 };
