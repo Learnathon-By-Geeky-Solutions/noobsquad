@@ -5,6 +5,9 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
+    setupFiles: './setupTests.js', // ✅ ADD THIS LINE
+    globals: true,
+    include: ['src/**/*.{test,spec}.{js,jsx}'], // ✅ ADD THIS LINE
     coverage: {
       reporter: ['text', 'lcov'],
     },
