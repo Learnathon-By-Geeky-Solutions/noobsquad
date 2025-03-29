@@ -12,6 +12,7 @@ import uuid  # Secure share token
 from typing import List
 from models.user import User
 from models.post import Post, PostMedia, PostDocument, Event, Like, Comment
+import pytz 
 
 
 router = APIRouter()
@@ -23,11 +24,40 @@ def get_db():
     finally:
         db.close()
 
+def update_like_count(like_data, db: Session, action: str):
+    if like_data.post_id:
+        post = db.query(Post).filter(Post.id == like_data.post_id).first()
+        if post:
+            post.like_count = max(0, post.like_count + (1 if action == 'add' else -1))
+    
+    if like_data.comment_id:
+        comment = db.query(Comment).filter(Comment.id == like_data.comment_id).first()
+        if comment:
+            comment.like_count = max(0, comment.like_count + (1 if action == 'add' else -1))
+    
+    db.commit()
+
+# Helper function to remove like
+def remove_like(existing_like, db: Session, like_data: LikeCreate):
+    db.delete(existing_like)
+    update_like_count(like_data, db, 'remove')
+
+# Helper function to add new like
+def add_like(like_data: LikeCreate, db: Session, current_user: User):
+    created_at = datetime.now(pytz.UTC)
+    new_like = Like(user_id=current_user.id, post_id=like_data.post_id, comment_id=like_data.comment_id, created_at=created_at)
+    db.add(new_like)
+    update_like_count(like_data, db, 'add')
+    db.commit()
+    db.refresh(new_like)
+    return new_like
+
 @router.post("/like", response_model=LikeResponse)
 def like_action(like_data: LikeCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if not like_data.post_id and not like_data.comment_id:
         raise HTTPException(status_code=400, detail="Either post_id or comment_id must be provided.")
-
+    
+    # Check if the like already exists
     existing_like = db.query(Like).filter(
         Like.user_id == current_user.id,
         Like.post_id == like_data.post_id,
@@ -35,57 +65,33 @@ def like_action(like_data: LikeCreate, db: Session = Depends(get_db), current_us
     ).first()
 
     if existing_like:
-        db.delete(existing_like)
-
-        # Decrement like count
-        if like_data.post_id:
-            post = db.query(Post).filter(Post.id == like_data.post_id).first()
-            if post:
-                post.like_count = max(0, post.like_count - 1)
-
-        if like_data.comment_id:
-            comment = db.query(Comment).filter(Comment.id == like_data.comment_id).first()
-            if comment:
-                comment.like_count = max(0, comment.like_count - 1)
-
-        db.commit()
+        remove_like(existing_like, db, like_data)
         return {
-            "id": existing_like.id,  # Fix here
+            "id": existing_like.id,
             "user_id": existing_like.user_id,
             "post_id": existing_like.post_id,
             "comment_id": existing_like.comment_id,
             "created_at": existing_like.created_at,
-            "total_likes": post.like_count if like_data.post_id else comment.like_count,
+            "total_likes": db.query(Post if like_data.post_id else Comment).filter(
+                Post.id == like_data.post_id if like_data.post_id else Comment.id == like_data.comment_id
+            ).first().like_count,
             "user_liked": False,
             "message": "Like removed"
         }
 
-    new_like = Like(user_id=current_user.id, post_id=like_data.post_id, comment_id=like_data.comment_id, created_at=datetime.utcnow())
-    db.add(new_like)
-
-    # Increment like count
-    if like_data.post_id:
-        post = db.query(Post).filter(Post.id == like_data.post_id).first()
-        if post:
-            post.like_count += 1
-
-    if like_data.comment_id:
-        comment = db.query(Comment).filter(Comment.id == like_data.comment_id).first()
-        if comment:
-            comment.like_count += 1
-
-    db.commit()
-    db.refresh(new_like)
-
+    new_like = add_like(like_data, db, current_user)
+    
     return {
         "id": new_like.id,
         "user_id": new_like.user_id,
         "post_id": new_like.post_id,
         "comment_id": new_like.comment_id,
         "created_at": new_like.created_at,
-        "total_likes": post.like_count if like_data.post_id else comment.like_count,
+        "total_likes": db.query(Post if like_data.post_id else Comment).filter(
+            Post.id == like_data.post_id if like_data.post_id else Comment.id == like_data.comment_id
+        ).first().like_count,
         "user_liked": True,
-        "message": "Like added successfully"  # Add this field
+        "message": "Like added successfully"
     }
 
 # ✅ Comment on a Post
@@ -94,12 +100,13 @@ def comment_post(comment_data: CommentCreate, db: Session = Depends(get_db), cur
     if comment_data.parent_id is not None:
         raise HTTPException(status_code=400, detail="Root comment cannot have a parent_id.")
 
+    created_at = datetime.now(pytz.UTC)
     new_comment = Comment(
         user_id=current_user.id,
         post_id=comment_data.post_id,
         content=comment_data.content,
         parent_id=None,
-        created_at=datetime.utcnow()
+        created_at = created_at
     )
     db.add(new_comment)
     db.commit()
@@ -118,13 +125,14 @@ def reply_comment(comment_data: CommentCreate, db: Session = Depends(get_db), cu
     # Enforce max depth of 2
     if parent_comment.parent_id is not None:
         raise HTTPException(status_code=400, detail="Cannot reply to a reply. Max depth reached.")
-
+    
+    created_at = datetime.now(pytz.UTC)
     new_reply = Comment(
         user_id=current_user.id,
         post_id=parent_comment.post_id,
         content=comment_data.content,
         parent_id=comment_data.parent_id,
-        created_at=datetime.utcnow()
+        created_at=created_at
     )
     db.add(new_reply)
     db.commit()
@@ -214,12 +222,12 @@ def share_post(share_data: ShareCreate, db: Session = Depends(get_db), current_u
     
     share_token = str(uuid.uuid4())
     
-
+    created_at = datetime.now(pytz.UTC)
     new_share = Share(
         user_id=current_user.id,
         post_id=share_data.post_id,
         share_token=share_token,
-        created_at=datetime.utcnow()
+        created_at=created_at
     )
     db.add(new_share)
     db.commit()

@@ -8,7 +8,41 @@ import ShareBox from "./ShareBox"; // Import the ShareBox component
 
 const Post = ({ post, onUpdate, onDelete }) => {
   const { user } = useAuth();
-  
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [updatedContent, setUpdatedContent] = useState(content);
+  const menuRef = useRef(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [updatedMedia, setUpdatedMedia] = useState(null);
+  const [updatedDocument, setUpdatedDocument] = useState(null);
+  const [UpdatedeventTitle, setUpdatedeventTitle] = useState(event?.title || "");
+  const [UpdatedeventDescription, setUpdatedeventDescription] = useState(event?.description || "");
+  const [UpdatedeventDate, setUpdatedeventDate] = useState(event?.event_date || "");
+  const [UpdatedeventTime, setUpdatedeventTime] = useState(event?.event_time || "");
+  const [Updatedlocation, setUpdatedlocation] = useState(event?.location || "");
+  const [liked, setLiked] = useState(post.user_liked);
+  const [likes, setLikes] = useState(post.total_likes);
+  const [comments, setComments] = useState([]);
+  const [sharing, setSharing] = useState(false);
+  const [shareLink, setShareLink] = useState("");
+  const [commentText, setCommentText] = useState(""); // Comment input text state
+  const [replyText, setReplyText] = useState(""); // Reply input text state
+  const [replyingTo, setReplyingTo] = useState(null); // Track which comment the user is replying to
+  const [commenting, setCommenting] = useState(false);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [showShareBox, setShowShareBox] = useState(false);
+
+  useEffect(() => {
+    fetchComments();
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   if (!post || !post.user) return null;
 
   const { post_type, content, created_at, user: postUser, media_url, document_url, event } = post;
@@ -33,32 +67,6 @@ const Post = ({ post, onUpdate, onDelete }) => {
   }
 
   const isOwner = user?.id === postUser?.id;
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [updatedContent, setUpdatedContent] = useState(content);
-  const menuRef = useRef(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [updatedMedia, setUpdatedMedia] = useState(null);
-  const [updatedDocument, setUpdatedDocument] = useState(null);
-  const [UpdatedeventTitle, setUpdatedeventTitle] = useState(event?.title || "");
-  const [UpdatedeventDescription, setUpdatedeventDescription] = useState(event?.description || "");
-  const [UpdatedeventDate, setUpdatedeventDate] = useState(event?.event_date || "");
-  const [UpdatedeventTime, setUpdatedeventTime] = useState(event?.event_time || "");
-  const [Updatedlocation, setUpdatedlocation] = useState(event?.location || "");
-  const [liked, setLiked] = useState(post.user_liked);
-  const [likes, setLikes] = useState(post.total_likes);
-  const [comments, setComments] = useState([]);
-  const [commentInput, setCommentInput] = useState("");
-  const [sharing, setSharing] = useState(false);
-  const [shareLink, setShareLink] = useState("");
-  const [replyInputs, setReplyInputs] = useState({});
-  const [posts, setPosts] = useState([]);
-  const [commentText, setCommentText] = useState(""); // Comment input text state
-  const [replyText, setReplyText] = useState(""); // Reply input text state
-  const [replyingTo, setReplyingTo] = useState(null); // Track which comment the user is replying to
-  const [commenting, setCommenting] = useState(false);
-  const [loadingComments, setLoadingComments] = useState(false);
-  const [showShareBox, setShowShareBox] = useState(false);
   
 
   const fetchComments = async () => {
@@ -72,16 +80,7 @@ const Post = ({ post, onUpdate, onDelete }) => {
     setLoadingComments(false);
   };
 
-  useEffect(() => {
-    fetchComments();
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+
 
   const handleEdit = async () => {
     try {

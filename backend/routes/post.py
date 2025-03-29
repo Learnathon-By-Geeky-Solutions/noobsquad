@@ -27,8 +27,51 @@ MEDIA_DIR = "uploads/media/"
 os.makedirs(MEDIA_DIR, exist_ok=True)  # Ensure upload directory exists
 DOCUMENT_DIR = "uploads/document/"
 os.makedirs(DOCUMENT_DIR, exist_ok=True) 
+STATUS_404_ERROR= "Post not found"
 
+from fastapi import Query, Depends
+from sqlalchemy.orm import Session
+from typing import Optional
 
+# Helper function to get the latest post after the provided `last_seen_post`
+def get_newer_posts(last_seen_post: Optional[int], db: Session):
+    if last_seen_post:
+        latest_post = db.query(Post).filter(Post.id == last_seen_post).first()
+        if latest_post:
+            return db.query(Post).filter(Post.created_at > latest_post.created_at)
+    return db.query(Post)
+
+# Helper function to get the like status of a user for a post
+def get_user_like_status(post_id: int, user_id: int, db: Session):
+    return db.query(Like).filter(Like.post_id == post_id, Like.user_id == user_id).first() is not None
+
+# Helper function to get comments for a post
+def get_comments_for_post(post_id: int, db: Session):
+    return db.query(Comment).filter(Comment.post_id == post_id).all()
+
+# Helper function to get additional data based on the post type (media, document, event)
+def get_post_additional_data(post: Post, db: Session):
+    post_data = {}
+
+    if post.post_type == "media":
+        media = db.query(PostMedia).filter(PostMedia.post_id == post.id).first()
+        post_data["media_url"] = f"http://127.0.0.1:8000/uploads/media/{media.media_url}" if media else None
+    elif post.post_type == "document":
+        document = db.query(PostDocument).filter(PostDocument.post_id == post.id).first()
+        post_data["document_url"] = f"http://127.0.0.1:8000/uploads/document/{document.document_url}" if document else None
+    elif post.post_type == "event":
+        event = db.query(Event).filter(Event.post_id == post.id).first()
+        if event:
+            post_data["event"] = {
+                "title": event.title,
+                "description": event.description,
+                "event_datetime": event.event_datetime,
+                "location": event.location
+            }
+
+    return post_data
+
+# Main function refactor
 @router.get("/")
 def get_posts(
     limit: int = Query(10, alias="limit"),  # Default to 10 posts
@@ -43,27 +86,18 @@ def get_posts(
     ✅ Include total likes, user liked status, and comments for each post.
     """
 
-    # ✅ If checking for new posts
-    if last_seen_post:
-        latest_post = db.query(Post).filter(Post.id == last_seen_post).first()
-        if latest_post:
-            query = query.filter(Post.created_at > latest_post.created_at)
-
-    # ✅ Apply pagination (default: 10 posts at a time)
-    query = db.query(Post)
-    query = query.order_by(Post.created_at.desc())
-    posts = query.offset(offset).limit(limit).all()
+    # ✅ Get the posts query with the optional filter for newer posts
+    query = get_newer_posts(last_seen_post, db)
+    
+    # ✅ Apply pagination
+    posts = query.order_by(Post.created_at.desc()).offset(offset).limit(limit).all()
 
     post_list = []
-    
+
     for post in posts:
         # ✅ Get like count & user like status
+        user_liked = get_user_like_status(post.id, current_user.id, db)
 
-        user_liked = db.query(Like).filter(Like.post_id == post.id, Like.user_id == current_user.id).first() is not None
-
-        # ✅ Get comments
-        comments = db.query(Comment).filter(Comment.post_id == post.id).all()
-        
         post_data = {
             "id": post.id,
             "post_type": post.post_type,
@@ -75,34 +109,15 @@ def get_posts(
                 "profile_picture": f"http://127.0.0.1:8000/uploads/profile_pictures/{post.user.profile_picture}"
             },
             "total_likes": post.like_count,
-            "user_liked": user_liked,
-           
+            "user_liked": user_liked
         }
 
         # ✅ Fetch additional data based on post_type
-        if post.post_type == "media":
-            media = db.query(PostMedia).filter(PostMedia.post_id == post.id).first()
-            post_data["media_url"] = f"http://127.0.0.1:8000/uploads/media/{media.media_url}" if media else None
-
-        elif post.post_type == "document":
-            document = db.query(PostDocument).filter(PostDocument.post_id == post.id).first()
-            post_data["document_url"] = f"http://127.0.0.1:8000/uploads/document/{document.document_url}" if document else None
-
-        elif post.post_type == "event":
-            event = db.query(Event).filter(Event.post_id == post.id).first()
-            if event:
-                post_data["event"] = {
-                    "title": event.title,
-                    "description": event.description,
-                    "event_datetime": event.event_datetime,
-                    "location": event.location
-                }
+        post_data.update(get_post_additional_data(post, db))
 
         post_list.append(post_data)
 
     return {"posts": post_list, "count": len(post_list)}
-
-
 
 @router.post("/create_text_post/", response_model=PostResponse)
 async def create_text_post(
@@ -241,7 +256,7 @@ async def create_event_post(
 def get_post(post_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     post = db.query(Post).filter(Post.id == post_id, Post.user_id == current_user.id).first()
     if not post:
-        raise HTTPException(status_code=404, detail="Post not found")
+        raise HTTPException(status_code=404, detail=STATUS_404_ERROR)
 
     media_entry = db.query(PostMedia).filter(PostMedia.post_id == post.id).first()
     
@@ -261,7 +276,7 @@ async def update_text_post(
 ):
     post = db.query(Post).filter(Post.id == post_id, Post.user_id == current_user.id).first()
     if not post:
-        raise HTTPException(status_code=404, detail="Post not found")
+        raise HTTPException(status_code=404, detail=STATUS_404_ERROR)
 
     if update_data.content is not None:
         post.content = update_data.content
@@ -282,7 +297,7 @@ async def update_media_post(
     # Find the post
     post = db.query(Post).filter(Post.id == post_id, Post.user_id == current_user.id).first()
     if not post:
-        raise HTTPException(status_code=404, detail="Post not found")
+        raise HTTPException(status_code=404, detail=STATUS_404_ERROR)
     
     # ✅ Only update content if it's provided
     if content is not None:
@@ -353,7 +368,7 @@ async def update_document_post(
 ):
     post = db.query(Post).filter(Post.id == post_id, Post.user_id == current_user.id).first()
     if not post:
-        raise HTTPException(status_code=404, detail="Post not found")
+        raise HTTPException(status_code=404, detail=STATUS_404_ERROR)
 
     if content is not None:
         post.content = content  
@@ -405,13 +420,39 @@ async def update_document_post(
         },
     }
 
+# Helper function to get post and associated event
+def get_post_and_event(post_id: int, user_id: int, db: Session):
+    post = db.query(Post).filter(Post.id == post_id, Post.user_id == user_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found or not authorized")
+    
+    event = db.query(Event).filter(Event.post_id == post.id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event details not found")
+    
+    return post, event
 
+# Helper function to convert event date and time to UTC
+def convert_to_utc(event_date: str, event_time: str, user_timezone: str) -> Optional[datetime]:
+    try:
+        local_datetime = datetime.strptime(f"{event_date} {event_time}", "%Y-%m-%d %H:%M")
+        local_tz = pytz.timezone(user_timezone)
+        local_dt_with_tz = local_tz.localize(local_datetime)  # Add timezone info
+        return local_dt_with_tz.astimezone(pytz.UTC)  # Convert to UTC
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid date/time format: {str(e)}")
 
-from datetime import datetime
-import pytz  # For timezone conversion
-
-from datetime import datetime
-import pytz
+# Helper function to update post and event fields
+def update_fields(fields, model_instance, db: Session) -> bool:
+    updated = False
+    for field, value in fields.items():
+        if value is not None and getattr(model_instance, field) != value:
+            setattr(model_instance, field, value)
+            updated = True
+    if updated:
+        db.commit()
+        db.refresh(model_instance)
+    return updated
 
 @router.put("/update_event_post/{post_id}")
 async def update_event_post(
@@ -419,85 +460,48 @@ async def update_event_post(
     content: Optional[str] = Form(None),
     event_title: Optional[str] = Form(None),
     event_description: Optional[str] = Form(None),
-    event_date: Optional[str] = Form(None),  # Accepts only date
-    event_time: Optional[str] = Form(None),  # Accepts only time
-    user_timezone: Optional[str] = Form(None),  # Timezone info for conversion
+    event_date: Optional[str] = Form(None),
+    event_time: Optional[str] = Form(None),
+    user_timezone: Optional[str] = Form(None),
     location: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # Find the existing event post
-    post = db.query(Post).filter(Post.id == post_id, Post.user_id == current_user.id).first()
-    if not post:
-        raise HTTPException(status_code=404, detail="Post not found")
+    # Fetch the post and associated event
+    post, event = get_post_and_event(post_id, current_user.id, db)
 
-    event = db.query(Event).filter(Event.post_id == post.id).first()
-    if not event:
-        raise HTTPException(status_code=404, detail="Event details not found")
-
-    event_datetime_utc = None  # Initialize as None
-
-    # If event date & time are provided, convert them to UTC
+    # Convert event date & time to UTC if provided
+    event_datetime_utc = None
     if event_date and event_time and user_timezone:
-        try:
-            # Combine Date & Time
-            local_datetime = datetime.strptime(f"{event_date} {event_time}", "%Y-%m-%d %H:%M")
+        event_datetime_utc = convert_to_utc(event_date, event_time, user_timezone)
 
-            # Convert to UTC
-            local_tz = pytz.timezone(user_timezone)
-            local_dt_with_tz = local_tz.localize(local_datetime)  # Add timezone info
-            event_datetime_utc = local_dt_with_tz.astimezone(pytz.UTC)  # Convert to UTC
-
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Invalid date/time format: {str(e)}")
-
-    # Define which fields belong to which model
-    post_fields = {
-        "content": content,
-    }
-
+    # Prepare fields to update for post and event
+    post_fields = {"content": content}
     event_fields = {
         "title": event_title,
         "description": event_description,
-        "event_datetime": event_datetime_utc if event_datetime_utc else event.event_datetime,  # Update only if a new value is provided
+        "event_datetime": event_datetime_utc if event_datetime_utc else event.event_datetime,
         "location": location,
     }
 
-    updated = False
+    # Update post and event fields
+    updated_post = False
+    updated_post |= update_fields(post_fields, post, db)
+    updated_post |= update_fields(event_fields, event, db)
 
-    # Update Post fields
-    for field, value in post_fields.items():
-        if value is not None and getattr(post, field) != value:
-            setattr(post, field, value)
-            updated = True
-
-    # Update Event fields
-    for field, value in event_fields.items():
-        if value is not None and getattr(event, field) != value:
-            setattr(event, field, value)
-            updated = True
-
-    # Commit only if changes were made
-    if updated:
-        db.commit()
-        db.refresh(event)
-        
-        updated_post = {
-        "id": post.id,
-        "content": post.content,
-        "title": event.title,
-        "description": event.description,
-        "event_datetime": event.event_datetime,
-        "location": event.location
+    # Return the response based on whether anything was updated
+    if updated_post:
+        updated_post_data = {
+            "id": post.id,
+            "content": post.content,
+            "title": event.title,
+            "description": event.description,
+            "event_datetime": event.event_datetime,
+            "location": event.location
         }
-        return {"message": "Event post updated successfully", "updated_post": updated_post}
+        return {"message": "Event post updated successfully", "updated_post": updated_post_data}
 
     return {"message": "No changes detected"}
-
-
-
-
-
 
 
 @router.delete("/delete_post/{post_id}/")
