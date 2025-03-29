@@ -19,7 +19,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-gray-100">
+    <div className="flex flex-col bg-gray-100">
 
       <Navbar />
 

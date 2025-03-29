@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import { ChatContext } from "../context/ChatContext";
+import { MessageCircle, UserCheck } from "lucide-react";
 
-// Fetch single user details
 const fetchUserDetails = async (userId) => {
   try {
     const token = localStorage.getItem("token");
@@ -17,28 +17,21 @@ const fetchUserDetails = async (userId) => {
   }
 };
 
-// Fetch all connected friends except the current user
 const fetchConnectedUsers = async () => {
   try {
     const token = localStorage.getItem("token");
     const currentUserId = parseInt(localStorage.getItem("user_id"));
-
     const response = await axios.get(
       "http://127.0.0.1:8000/connections/connections/",
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
-    if (!Array.isArray(response.data)) {
-      throw new Error("Unexpected API response format");
-    }
+    if (!Array.isArray(response.data)) throw new Error("Unexpected API response format");
 
     const friendIds = new Set();
     response.data.forEach((conn) => {
-      if (conn.user_id === currentUserId) {
-        friendIds.add(conn.friend_id);
-      } else if (conn.friend_id === currentUserId) {
-        friendIds.add(conn.user_id);
-      }
+      if (conn.user_id === currentUserId) friendIds.add(conn.friend_id);
+      else if (conn.friend_id === currentUserId) friendIds.add(conn.user_id);
     });
 
     const users = await Promise.all([...friendIds].map(fetchUserDetails));
@@ -62,51 +55,50 @@ const ConnectedUsers = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  let content;
+  const renderContent = () => {
+    if (loading) {
+      return <p className="text-gray-500">Loading your connections...</p>;
+    } else if (error) {
+      return <p className="text-red-500">{error}</p>;
+    } else if (friends.length === 0) {
+      return <p className="text-gray-500">You have no connections yet. Try pairing with someone!</p>;
+    }
 
-  if (loading) {
-    content = <p className="text-gray-600">Loading...</p>;
-  } else if (error) {
-    content = <p className="text-red-500">{error}</p>;
-  } else if (friends.length === 0) {
-    content = (
-      <p className="text-gray-600">
-        No friends connected yet. Start connecting! 😊
-      </p>
-    );
-  } else {
-    content = (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 mt-6">
         {friends.map((friend) => (
           <div
             key={friend.id}
-            className="bg-white shadow-md rounded-lg p-4 hover:shadow-lg transition-shadow"
+            className="bg-white shadow-md rounded-xl p-6 flex flex-col items-center text-center hover:shadow-lg transition"
           >
             <img
               src={friend.avatar || "/default-avatar.png"}
               alt={friend.username}
-              className="w-20 h-20 rounded-full mx-auto border-2 border-gray-300"
+              className="w-24 h-24 rounded-full object-cover border-2 border-blue-500 mb-3"
             />
-            <h3 className="text-lg font-bold text-center mt-2 text-gray-800">
-              {friend.username}
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-800">{friend.username}</h3>
 
             <button
               onClick={() => openChat(friend)}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 mt-3 rounded-lg"
+              className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium flex items-center justify-center gap-2 transition"
             >
-              💬 Message
+              <MessageCircle className="w-4 h-4" />
+              Message
             </button>
           </div>
         ))}
       </div>
     );
-  }
+  };
 
   return (
-    <div className="p-6 bg-gray-100 rounded-lg shadow-lg">
-      <h2 className="text-xl font-semibold mb-4 text-gray-800">Your Friends</h2>
-      {content}
+    <div className="max-w-6xl mx-auto px-4">
+      <h2 className="text-2xl font-bold mt-12 mb-4 flex items-center gap-2 text-blue-700">
+        <UserCheck className="w-6 h-6" />
+        Your Connections
+      </h2>
+
+      {renderContent()}
     </div>
   );
 };

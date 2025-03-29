@@ -63,3 +63,7 @@ __pycache__/
 # Migrations (if using Alembic or Django)
 migrations/
 
+# Ignore coverage files
+frontend/coverage/
+backend/.coverage
+backend/coverage.xml
