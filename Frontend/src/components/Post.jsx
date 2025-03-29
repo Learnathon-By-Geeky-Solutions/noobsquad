@@ -1,12 +1,33 @@
 import React, { useState, useRef, useEffect } from "react";
 import api from "../api/axios";
-import { FaEdit, FaTrash, FaSave, FaTimes, FaEllipsisV, FaHeart, FaRegHeart, FaComment, FaShare } from "react-icons/fa";
+import { FaSave, FaTimes, FaEllipsisV, FaHeart, FaRegHeart, FaComment, FaShare } from "react-icons/fa";
 import { DateTime } from "luxon";
 import { useAuth } from "../context/authcontext";
 import ShareBox from "./ShareBox"; // Import the ShareBox component
+import PropTypes from "prop-types";
 
 
 const Post = ({ post, onUpdate, onDelete }) => {
+
+  Post.propTypes = {
+    post: PropTypes.shape({
+      id: PropTypes.number.isRequired, // Adjust type based on your data (number or string)
+      user: PropTypes.shape({
+        // Define the structure of the user object here
+        postUser: PropTypes.string.isRequired, // Example: user should have a 'name' property
+        id: PropTypes.number.isRequired,  // Example: user should have an 'id' property
+        // Add other properties if needed
+      }).isRequired,
+      content: PropTypes.string.isRequired,
+      user_liked: PropTypes.bool,
+      total_likes: PropTypes.number,
+      created_at: PropTypes.string.isRequired, // Or PropTypes.instanceOf(Date) if using Date object
+      post_type: PropTypes.string.isRequired,
+    }).isRequired,
+    onUpdate: PropTypes.func.isRequired,
+    onDelete: PropTypes.func.isRequired,
+  };
+
   const { user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -32,6 +53,8 @@ const Post = ({ post, onUpdate, onDelete }) => {
   const [loadingComments, setLoadingComments] = useState(false);
   const [showShareBox, setShowShareBox] = useState(false);
 
+  
+
   useEffect(() => {
     fetchComments();
     const handleClickOutside = (event) => {
@@ -45,7 +68,7 @@ const Post = ({ post, onUpdate, onDelete }) => {
 
   if (!post || !post.user) return null;
 
-  const { post_type, content, created_at, user: postUser, media_url, document_url, event } = post;
+  const { post_type, content, created_at, user: postUser, event } = post || {};
   
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone; // Detect user's local timezone
   const postDateUTC = DateTime.fromISO(created_at, { zone: "utc" });  //Parse as UTC

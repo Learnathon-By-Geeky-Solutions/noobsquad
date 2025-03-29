@@ -45,17 +45,18 @@ const Feed = () => {
 
 
   const handleUpdatePost = async (response) => {
-    if (!response || !response.updated_post || !response.updated_post.id) {
+    if (!response?.updated_post?.id) {
       console.error("❌ Invalid updatedPost:", response);
       return;
     }
   
     const updatedPost = response.updated_post; // Extracting the actual post object
   
-    setPosts((prevPosts) =>
-      prevPosts.map((post) =>
-        post && post.id ? (post.id === updatedPost.id ? { ...post, ...updatedPost } : post) : post
-      )
+    setPosts((prevPosts) => 
+      prevPosts.map((post) => {
+        if (!post?.id) return post; // Return post if it's null/undefined or has no id
+        return post.id === updatedPost.id ? { ...post, ...updatedPost } : post;
+      })
     );
   
     // ✅ Re-fetch posts to get the latest data from the backend
