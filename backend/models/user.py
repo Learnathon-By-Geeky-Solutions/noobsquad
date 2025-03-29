@@ -31,3 +31,6 @@ class User(Base):
     likes = relationship("Like", back_populates="user", cascade=CASCADE_DELETE_ORPHAN)  # ✅ Added
     shares = relationship("Share", back_populates="user", cascade=CASCADE_DELETE_ORPHAN)  # ✅ Added
     event_attendance = relationship("EventAttendee", back_populates="user", cascade=CASCADE_DELETE_ORPHAN)
+
+    messages_sent = relationship("Message", back_populates="sender", foreign_keys="Message.sender_id", cascade="all, delete-orphan")
+    messages_received = relationship("Message", back_populates="receiver", foreign_keys="Message.receiver_id", cascade="all, delete-orphan")
