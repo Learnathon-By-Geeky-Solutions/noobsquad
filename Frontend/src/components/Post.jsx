@@ -8,7 +8,49 @@ import PropTypes from "prop-types";
 
 
 const Post = ({ post, onUpdate, onDelete }) => {
+  const { user } = useAuth();
+  const { post_type, content, created_at, user: postUser, event } = post ;
 
+  useEffect(() => {
+    fetchComments();
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [updatedContent, setUpdatedContent] = useState(post?.content || "");
+  const menuRef = useRef(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [updatedMedia, setUpdatedMedia] = useState(null);
+  const [updatedDocument, setUpdatedDocument] = useState(null);
+  const [UpdatedeventTitle, setUpdatedeventTitle] = useState(event?.title || "");
+  const [UpdatedeventDescription, setUpdatedeventDescription] = useState(event?.description || "");
+  const [UpdatedeventDate, setUpdatedeventDate] = useState(event?.event_date || "");
+  const [UpdatedeventTime, setUpdatedeventTime] = useState(event?.event_time || "");
+  const [Updatedlocation, setUpdatedlocation] = useState(event?.location || "");
+  const [liked, setLiked] = useState(post?.user_liked);
+  const [likes, setLikes] = useState(post?.total_likes);
+  const [comments, setComments] = useState([]);
+  const [sharing, setSharing] = useState(false);
+  const [shareLink, setShareLink] = useState("");
+  const [commentText, setCommentText] = useState(""); // Comment input text state
+  const [replyText, setReplyText] = useState(""); // Reply input text state
+  const [replyingTo, setReplyingTo] = useState(null); // Track which comment the user is replying to
+  const [commenting, setCommenting] = useState(false);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [showShareBox, setShowShareBox] = useState(false);
+
+
+  if (!post?.user) {
+    return <div>Loading...</div>; // Or a skeleton loader
+  }
+  
   Post.propTypes = {
     post: PropTypes.shape({
       id: PropTypes.number.isRequired, // Adjust type based on your data (number or string)
@@ -23,52 +65,24 @@ const Post = ({ post, onUpdate, onDelete }) => {
       total_likes: PropTypes.number,
       created_at: PropTypes.string.isRequired, // Or PropTypes.instanceOf(Date) if using Date object
       post_type: PropTypes.string.isRequired,
+      media_url: PropTypes.string,
+      document_url: PropTypes.string,
     }).isRequired,
     onUpdate: PropTypes.func.isRequired,
     onDelete: PropTypes.func.isRequired,
   };
+  
+  const isOwner = user?.id === postUser?.id;
+  
 
-  const { user } = useAuth();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [updatedContent, setUpdatedContent] = useState(content);
-  const menuRef = useRef(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [updatedMedia, setUpdatedMedia] = useState(null);
-  const [updatedDocument, setUpdatedDocument] = useState(null);
-  const [UpdatedeventTitle, setUpdatedeventTitle] = useState(event?.title || "");
-  const [UpdatedeventDescription, setUpdatedeventDescription] = useState(event?.description || "");
-  const [UpdatedeventDate, setUpdatedeventDate] = useState(event?.event_date || "");
-  const [UpdatedeventTime, setUpdatedeventTime] = useState(event?.event_time || "");
-  const [Updatedlocation, setUpdatedlocation] = useState(event?.location || "");
-  const [liked, setLiked] = useState(post.user_liked);
-  const [likes, setLikes] = useState(post.total_likes);
-  const [comments, setComments] = useState([]);
-  const [sharing, setSharing] = useState(false);
-  const [shareLink, setShareLink] = useState("");
-  const [commentText, setCommentText] = useState(""); // Comment input text state
-  const [replyText, setReplyText] = useState(""); // Reply input text state
-  const [replyingTo, setReplyingTo] = useState(null); // Track which comment the user is replying to
-  const [commenting, setCommenting] = useState(false);
-  const [loadingComments, setLoadingComments] = useState(false);
-  const [showShareBox, setShowShareBox] = useState(false);
 
   
 
-  useEffect(() => {
-    fetchComments();
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  
 
-  if (!post || !post.user) return null;
+  
 
-  const { post_type, content, created_at, user: postUser, event } = post || {};
+  
   
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone; // Detect user's local timezone
   const postDateUTC = DateTime.fromISO(created_at, { zone: "utc" });  //Parse as UTC
@@ -89,7 +103,7 @@ const Post = ({ post, onUpdate, onDelete }) => {
     timeAgo = `${Math.floor(timeDiffMinutes / 1440)} days ago`;
   }
 
-  const isOwner = user?.id === postUser?.id;
+  
   
 
   const fetchComments = async () => {
@@ -226,26 +240,7 @@ const Post = ({ post, onUpdate, onDelete }) => {
     }
   };
 
-  const handleDeleteComment = async (commentId) => {
-    try {
-      // Make an API request to delete the comment from the backend
-      const response = await fetch(`/interactions/comments/${commentId}`);
-      onDelete();
-      // Check if the deletion was successful
-      if (!response.ok) {
-        throw new Error('Failed to delete the comment');
-      }
   
-      // Update the state to remove the deleted comment
-      setComments((prevComments) => prevComments.filter(comment => comment.id !== commentId));
-      alert("Comment deleted successfully!");
-    } catch (error) {
-      console.error('Error deleting comment:', error);
-      alert('Failed to delete the comment');
-    }
-  };
-  
-
   const handleShare = async () => {
       setSharing(true);
       try {

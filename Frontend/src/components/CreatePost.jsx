@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import api from "../api/axios";
 import { FaImage, FaFileAlt, FaCalendarAlt } from "react-icons/fa";
-
+import PropTypes from "prop-types";
 // ✅ Drag & Drop Library
 import { useDropzone } from "react-dropzone";
 
@@ -18,6 +18,17 @@ const CreatePost = ({ userProfile }) => {
   const [location, setLocation] = useState("");
   const [userTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [uploadProgress, setUploadProgress] = useState(0); // ✅ Upload Progress
+
+  // Prop validation
+  CreatePost.propTypes = {
+    userProfile: PropTypes.shape({
+      id: PropTypes.number.isRequired,         // Add required userProfile properties here
+      name: PropTypes.string.isRequired,       // Example: user's name property
+      email: PropTypes.string.isRequired,      // Example: user's email property
+      profilePicture: PropTypes.string,        // Optional: user's profile picture
+      // Add other userProfile properties as needed
+    }).isRequired,
+  };
 
   // ✅ Drag & Drop for Media Files
   const { getRootProps: getMediaRootProps, getInputProps: getMediaInputProps } = useDropzone({

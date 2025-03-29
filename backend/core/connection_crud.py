@@ -43,10 +43,19 @@ def reject_request(db: Session, request_id: int):
     return None
 
 def get_connections(db: Session, user_id: int):
-    return db.query(Connection).filter(
+    connections = db.query(Connection).filter(
         (Connection.user_id == user_id) | (Connection.friend_id == user_id),
         Connection.status == ConnectionStatus.ACCEPTED
     ).all()
+
+    # Normalize by ensuring each pair appears only once
+    unique_connections = set()
+    for conn in connections:
+        user_a, user_b = sorted([conn.user_id, conn.friend_id])  # Ensure order
+        unique_connections.add((user_a, user_b))
+
+    return [{"user_id": user, "friend_id": friend} for user, friend in unique_connections]
+
 
 def get_pending_requests(db: Session, user_id: int):
     """Fetch all pending connection requests where the user is the recipient."""
