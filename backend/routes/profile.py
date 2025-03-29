@@ -41,6 +41,7 @@ def complete_profile_step1(
     db: Session = Depends(get_db)
 ):
       # ✅ Pass db if required in get_current_user
+   
 
     current_user = db.query(User).filter(User.id == current_user.id).first()
 
@@ -66,8 +67,8 @@ def upload_profile_picture(
     current_user: User = Depends(get_current_user),  # ✅ Default to None
     db: Session = Depends(get_db)
 ):
- # ✅ Fetch current_user inside function
 
+        
     current_user = db.query(User).filter(User.id == current_user.id).first()
     if not current_user:
         raise HTTPException(status_code=404, detail="User not found")
