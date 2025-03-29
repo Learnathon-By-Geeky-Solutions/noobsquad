@@ -23,6 +23,8 @@ const Post = ({ post, onUpdate, onDelete }) => {
       total_likes: PropTypes.number,
       created_at: PropTypes.string.isRequired, // Or PropTypes.instanceOf(Date) if using Date object
       post_type: PropTypes.string.isRequired,
+      media_url: PropTypes.string,
+      document_url: PropTypes.string,
     }).isRequired,
     onUpdate: PropTypes.func.isRequired,
     onDelete: PropTypes.func.isRequired,
@@ -66,7 +68,7 @@ const Post = ({ post, onUpdate, onDelete }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  if (!post || !post.user) return null;
+  if (!post?.user) return null;
 
   const { post_type, content, created_at, user: postUser, event } = post || {};
   
@@ -226,26 +228,7 @@ const Post = ({ post, onUpdate, onDelete }) => {
     }
   };
 
-  const handleDeleteComment = async (commentId) => {
-    try {
-      // Make an API request to delete the comment from the backend
-      const response = await fetch(`/interactions/comments/${commentId}`);
-      onDelete();
-      // Check if the deletion was successful
-      if (!response.ok) {
-        throw new Error('Failed to delete the comment');
-      }
   
-      // Update the state to remove the deleted comment
-      setComments((prevComments) => prevComments.filter(comment => comment.id !== commentId));
-      alert("Comment deleted successfully!");
-    } catch (error) {
-      console.error('Error deleting comment:', error);
-      alert('Failed to delete the comment');
-    }
-  };
-  
-
   const handleShare = async () => {
       setSharing(true);
       try {
