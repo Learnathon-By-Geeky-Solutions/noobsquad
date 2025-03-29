@@ -103,7 +103,7 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
       <div className="h-64 p-3 overflow-y-auto text-sm space-y-1">
         {messages.map((msg, i) => (
           <div
-            key={i}
+            key={msg.id || i}
             className={`px-2 py-1 rounded-md max-w-[80%] ${
               msg.sender_id === currentUserId
                 ? "bg-blue-100 ml-auto text-right"

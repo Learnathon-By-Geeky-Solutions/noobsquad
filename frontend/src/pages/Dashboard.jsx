@@ -5,11 +5,10 @@ import Research from "../components/Research";
 import ChatSidebar from "../components/ChatSidebar"; // ✅ import sidebar
 import ChatPopup from "../components/ChatPopup";
 import { useState } from "react";
-import "../assets/Dashboard.css";
 import Navbar from "../components/Navbar";
 
 const Dashboard = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedUser, setSelectedUser] = useState(null);
 

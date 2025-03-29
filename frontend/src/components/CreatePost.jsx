@@ -17,7 +17,7 @@ const CreatePost = ({ userProfile }) => {
   const [eventTime, setEventTime] = useState("");
   const [location, setLocation] = useState("");
   const [userTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
-  const [uploadProgress, setUploadProgress] = useState(0); // ✅ Upload Progress
+  const [setUploadProgress] = useState(0); // ✅ Upload Progress
 
   // Prop validation
   CreatePost.propTypes = {
