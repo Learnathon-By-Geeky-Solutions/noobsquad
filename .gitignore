@@ -1,5 +1,5 @@
 # ===========================
-# 🌟 Common Files to Ignore 🌟
+# 🌟 General Project Ignore 🌟
 # ===========================
 
 # Environment variables
@@ -8,62 +8,78 @@
 
 # Logs and temporary files
 *.log
-npm-debug.log
-yarn-debug.log
-yarn-error.log
-pnpm-debug.log
-debug.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+debug.log*
 
-# IDE-specific files
+# IDE & editor settings
 .vscode/
 .idea/
 
-# System files (MacOS & Windows)
+# OS files
 .DS_Store
 Thumbs.db
 
-# Swap files
+# Swap/lock/temp files
 *.swp
 *.swo
+*.lock
+*.tmp
 
 # ===========================
-# 📂 Frontend (React + Vite) 🌟
+# 📦 Frontend (React + Vite)
 # ===========================
 
-# Node.js dependencies
-node_modules/
-package-lock.json
-yarn.lock
+# Node modules
+frontend/node_modules/
 
-# Vite build output
-dist/
+# Build output
+frontend/dist/
+frontend/.vite/
+frontend/.cache/
 
-# TailwindCSS cache (optional)
-.tailwind/
+# Test and coverage artifacts
+frontend/coverage/*
+!frontend/coverage/lcov.info
+
+# Optional lock files (use only one depending on your package manager)
+frontend/package-lock.json
+frontend/yarn.lock
+frontend/pnpm-lock.yaml
 
 # ===========================
-# 🐍 Backend (FastAPI + Python) 🌟
+# 🐍 Backend (FastAPI + Python)
 # ===========================
 
-# Python virtual environment
-.venv/
-
-# Compiled Python files
-*.pyc
+# Python environments
+backend/.venv/
+backend/venv/
+backend/env/
+backend/__pycache__/
+**/__pycache__/
+*.py[cod]
 *.pyo
-__pycache__/
 
-# FastAPI & database files
+# Compiled binaries
+*.so
+*.dll
+*.dylib
+
+# SQLite or local DBs
 *.db
 *.sqlite3
 
-# Jupyter Notebook checkpoints (if using Jupyter)
+# Test and coverage
+backend/.coverage
+backend/coverage/
+!backend/coverage.xml
+
+# Pytest cache
+backend/.pytest_cache/
+
+# Jupyter
 .ipynb_checkpoints/
 
-# Migrations (if using Alembic or Django)
-migrations/
-
-# Ignore coverage files
-frontend/coverage/
-backend/.coverage
-backend/coverage.xml
+# Alembic / Django migrations
+backend/migrations/
