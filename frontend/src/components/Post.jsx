@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import api from "../api/axios";
 import { FaSave, FaTimes, FaEllipsisV, FaHeart, FaRegHeart, FaComment, FaShare } from "react-icons/fa";
 import { DateTime } from "luxon";
-import { useAuth } from "../context/authcontext";
+import { useAuth } from "../context/AuthContext";
 import ShareBox from "./ShareBox"; // Import the ShareBox component
 import PropTypes from "prop-types";
 
@@ -23,6 +23,7 @@ const Post = ({ post, onUpdate, onDelete }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const [sharing, setSharing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [updatedContent, setUpdatedContent] = useState(post?.content || "");
@@ -467,11 +468,19 @@ return (
         <span className="ml-1">Comment</span>
       </button>
 
-      <button onClick={handleShare} className="flex items-center text-gray-700">
+      <button
+        onClick={handleShare}
+        className={`flex items-center ${sharing ? "text-gray-400 cursor-not-allowed" : "text-gray-700"}`}
+        disabled={sharing}
+      >
         <FaShare />
-        <span className="ml-1">Share</span>
+        <span className="ml-1">{sharing ? "Sharing..." : "Share"}</span>
       </button>
-      {showShareBox && <ShareBox shareLink={shareLink} onClose={() => setShowShareBox(false)} />}
+
+      {showShareBox && (
+        <ShareBox shareLink={shareLink} onClose={() => setShowShareBox(false)} />
+      )}
+
 
     </div>
 
