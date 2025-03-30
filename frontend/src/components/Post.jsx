@@ -9,11 +9,12 @@ import PropTypes from "prop-types";
 
 const Post = ({ post, onUpdate, onDelete }) => {
   const { user } = useAuth();
-  const { post_type, content, created_at, user: postUser, event } = post ;
+  const { post_type, created_at, user: postUser, event } = post ;
 
   useEffect(() => {
     fetchComments();
     const handleClickOutside = (event) => {
+      // eslint-disable-next-line react/prop-types
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setMenuOpen(false);
       }
@@ -37,7 +38,6 @@ const Post = ({ post, onUpdate, onDelete }) => {
   const [liked, setLiked] = useState(post?.user_liked);
   const [likes, setLikes] = useState(post?.total_likes);
   const [comments, setComments] = useState([]);
-  const [sharing, setSharing] = useState(false);
   const [shareLink, setShareLink] = useState("");
   const [commentText, setCommentText] = useState(""); // Comment input text state
   const [replyText, setReplyText] = useState(""); // Reply input text state
@@ -56,8 +56,9 @@ const Post = ({ post, onUpdate, onDelete }) => {
       id: PropTypes.number.isRequired, // Adjust type based on your data (number or string)
       user: PropTypes.shape({
         // Define the structure of the user object here
-        postUser: PropTypes.string.isRequired, // Example: user should have a 'name' property
+        username: PropTypes.string.isRequired, // Add username validation
         id: PropTypes.number.isRequired,  // Example: user should have an 'id' property
+        profile_picture: PropTypes.string, // Add profile_picture validation
         // Add other properties if needed
       }).isRequired,
       content: PropTypes.string.isRequired,
@@ -67,23 +68,20 @@ const Post = ({ post, onUpdate, onDelete }) => {
       post_type: PropTypes.string.isRequired,
       media_url: PropTypes.string,
       document_url: PropTypes.string,
+      event: PropTypes.shape({
+        title: PropTypes.string,
+        description: PropTypes.string,
+        event_date: PropTypes.string,
+        event_time: PropTypes.string,
+        location: PropTypes.string,
+        event_datetime: PropTypes.string, // Add event_datetime validation
+      }),
     }).isRequired,
     onUpdate: PropTypes.func.isRequired,
     onDelete: PropTypes.func.isRequired,
   };
   
   const isOwner = user?.id === postUser?.id;
-  
-
-
-  
-
-  
-
-  
-
-  
-  
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone; // Detect user's local timezone
   const postDateUTC = DateTime.fromISO(created_at, { zone: "utc" });  //Parse as UTC
   const postDateLocal = postDateUTC.setZone(userTimezone); // Convert to user's local timezone
