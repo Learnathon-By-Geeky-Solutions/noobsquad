@@ -10,6 +10,7 @@ import os
 import uuid
 from pathlib import Path
 import secrets
+from core.dependencies import get_db
 
 router = APIRouter()
 
@@ -20,14 +21,6 @@ RELEVANT_FIELDS = [
     "Physics", "Mathematics", "Economics", "Biotechnology"
 ]
 
-# ✅ Database Dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 UPLOAD_DIR = "uploads/profile_pictures"
 os.makedirs(UPLOAD_DIR, exist_ok=True)  # Ensure upload directory exists
 
@@ -36,73 +29,63 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)  # Ensure upload directory exists
 def complete_profile_step1(
     university_name: str = Form(...),
     department: str = Form(...),
-    fields_of_interest: List[str] = Form(...),  # ✅ Corrected list input
+    fields_of_interest: List[str] = Form(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-      # ✅ Pass db if required in get_current_user
-   
-    current_user = db.query(User).filter(User.id == current_user.id).first()
+    db_user = db.query(User).filter(User.id == current_user.id).first()
 
-    if not current_user:
+    if not db_user:
         raise HTTPException(status_code=404, detail="User not found")   
     
-    # ✅ Update the existing user profile directly
-    current_user.university_name = university_name
-    current_user.department = department
-    current_user.fields_of_interest = ",".join(fields_of_interest)  # ✅ Convert list to CSV string
+    db_user.university_name = university_name
+    db_user.department = department
+    db_user.fields_of_interest = ",".join(fields_of_interest)
 
-    if current_user.university_name and current_user.department and current_user.fields_of_interest:
-        current_user.profile_completed = True  
+    if db_user.university_name and db_user.department and db_user.fields_of_interest:
+        db_user.profile_completed = True  
 
     db.commit()
-    db.refresh(current_user)  # ✅ Refresh to get updated values
+    db.refresh(db_user)
 
-    return UserResponse.from_orm(current_user)  # ✅ Return the correct schema
+    return UserResponse.from_orm(db_user)
+
 
 @router.post("/upload_picture")
 def upload_profile_picture(
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user),  # ✅ Default to None
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    db_user = db.query(User).filter(User.id == current_user.id).first()
 
-    current_user = db.query(User).filter(User.id == current_user.id).first()
-    if not current_user:
+    if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # ✅ Define allowed file extensions
     ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
-
-    # ✅ Securely extract the file extension
     file_extension = Path(file.filename).suffix.lower()
 
     if file_extension not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: jpg, jpeg, png, gif, webp.")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file type. Allowed: jpg, jpeg, png, gif, webp."
+        )
 
-    # ✅ Generate a secure filename (avoid using user input)
-    secure_filename = f"{current_user.id}_{secrets.token_hex(8)}{file_extension}"  # Secure name with token
+    secure_filename = f"{db_user.id}_{secrets.token_hex(8)}{file_extension}"
+    file_location = os.path.abspath(os.path.join(UPLOAD_DIR, secure_filename))
 
-    # ✅ Construct a secure absolute path
-    file_location = os.path.join(UPLOAD_DIR, secure_filename)
-    file_location = os.path.abspath(file_location)  # Get absolute path
-
-    # ✅ Ensure the file stays within the designated directory
     if not file_location.startswith(os.path.abspath(UPLOAD_DIR)):
         raise HTTPException(status_code=400, detail="Invalid file path detected.")
 
-    # ✅ Save the file securely
     with open(file_location, "wb") as buffer:
         buffer.write(file.file.read())
 
-    # ✅ Update profile picture path
-    current_user.profile_picture = secure_filename
-
+    db_user.profile_picture = secure_filename
     db.commit()
-    db.refresh(current_user)
+    db.refresh(db_user)
 
     return {
         "filename": secure_filename,
-        "profile_url": f"http://127.0.0.1:8000/uploads/profile_pictures/{secure_filename}",  # ✅ Return public URL
-        "profile_completed": current_user.profile_completed
+        "profile_url": f"http://127.0.0.1:8000/uploads/profile_pictures/{secure_filename}",
+        "profile_completed": db_user.profile_completed
     }
