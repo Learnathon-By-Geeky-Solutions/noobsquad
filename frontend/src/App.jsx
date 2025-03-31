@@ -3,7 +3,6 @@ import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
-import Home from "./pages/Newsfeed"
 import CompleteProfile from "./pages/ProfileCompletion";
 import { AuthProvider } from "./context/AuthContext";
 import { ChatProvider } from "./context/ChatContext";
@@ -23,7 +22,6 @@ function App() {
             <Route path="/dashboard/*" element={<Dashboard />} />
             <Route path="*" element={<Navigate to="/" />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/posts" element={<Home />} />
             <Route path="/share/:shareToken" element={<SharedPost />} />
 
           </Routes>

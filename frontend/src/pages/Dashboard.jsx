@@ -6,6 +6,9 @@ import ChatSidebar from "../components/ChatSidebar"; // ✅ import sidebar
 import ChatPopup from "../components/ChatPopup";
 import { useState } from "react";
 import Navbar from "../components/Navbar";
+import Home from "./Newsfeed";
+import UserProfile from "../components/AboutMe/AboutMe";
+
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -43,6 +46,8 @@ const Dashboard = () => {
       <Routes>
         <Route path="suggested-users" element={<SuggestedUsers />} />
         <Route path="research/*" element={<Research />} />
+        <Route path="posts" element={<Home />} />
+        <Route path="AboutMe" element={<UserProfile />} />
       </Routes>
     </div>
   );

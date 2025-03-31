@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }) => {
         setUser(userData);
         setProfileCompleted(userData.profile_completed);
 
-        navigate(userData.profile_completed ? "/dashboard" : "/complete-profile");
+        navigate(userData.profile_completed ? "/dashboard/posts" : "/complete-profile");
       } catch (error) {
         console.error("Failed to fetch user after login:", error);
       }

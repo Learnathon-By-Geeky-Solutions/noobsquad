@@ -32,7 +32,7 @@ const Navbar = () => {
       <div className="flex items-center gap-6">
         {user ? (
           <>
-            <Link to="/dashboard" className="flex items-center gap-1 text-gray-700 hover:text-blue-600 transition">
+            <Link to="/dashboard/posts" className="flex items-center gap-1 text-gray-700 hover:text-blue-600 transition">
               <Home className="w-5 h-5" />
               Home
             </Link>
@@ -49,10 +49,10 @@ const Navbar = () => {
               <Search className="w-5 h-5" />
               Search
             </Link>
-            <div className="flex items-center gap-1 text-gray-700 font-medium cursor-pointer">
+            <Link to="/dashboard/AboutMe" className="flex items-center gap-1 text-gray-700 font-medium cursor-pointer">
               <UserCircle className="w-5 h-5" />
-              Me ▼
-            </div>
+              Me
+            </Link>
             <button
               onClick={handleLogout}
               className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md font-semibold"

@@ -13,6 +13,7 @@ const ChatSidebar = () => {
       const res = await axios.get("http://localhost:8000/chat/chat/conversations", {
         headers: { Authorization: `Bearer ${token}` },
       });
+      console.log("Fetched conversations:", res.data);
       setConversations(res.data);
     } catch (err) {
       console.error("Error fetching conversations:", err);
@@ -46,6 +47,13 @@ const ChatSidebar = () => {
             avatar: c.avatar,
           };
 
+          const profileImage = c.avatar
+            ? `http://127.0.0.1:8000/uploads/profile_pictures/${c.avatar}`
+            : "/default-avatar.png";
+
+          console.log("Rendering user:", normalizedUser);
+          console.log("Profile image URL:", profileImage);
+
           return (
             <button
               key={c.user_id}
@@ -54,7 +62,12 @@ const ChatSidebar = () => {
               className="w-full text-left flex items-center gap-3 p-3 hover:bg-gray-100 cursor-pointer border-b focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <img
-                src={c.avatar || "/default-avatar.png"}
+                src={profileImage}
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "/default-avatar.png";
+                  console.warn("Failed to load profile image, fallback applied.");
+                }}
                 alt={`${c.username}'s avatar`}
                 className="w-12 h-12 rounded-full object-cover"
               />
