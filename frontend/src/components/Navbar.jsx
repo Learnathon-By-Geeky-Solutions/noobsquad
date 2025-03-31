@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { useChat } from "../context/ChatContext"; // ✅ Chat context
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -19,28 +20,34 @@ const Navbar = () => {
   const location = useLocation();
   const [totalUnread, setTotalUnread] = useState(0);
 
+  const { resetChats } = useChat(); // ✅ clear all popups on logout
+
   const handleLogout = () => {
-    logout();
-    navigate("/login");
+    logout();             // clear auth
+    resetChats();         // close chat popups
+    navigate("/login");   // redirect
   };
 
   useEffect(() => {
     const fetchUnread = async () => {
       const token = localStorage.getItem("token");
       if (!token) return;
+
       try {
         const res = await axios.get("http://localhost:8000/chat/chat/conversations", {
           headers: { Authorization: `Bearer ${token}` },
         });
+
         const total = res.data.reduce((sum, convo) => sum + convo.unread_count, 0);
         setTotalUnread(total);
       } catch (err) {
         console.error("Error fetching unread messages:", err);
       }
     };
+
     fetchUnread();
 
-    const interval = setInterval(fetchUnread, 3000); // 🔁 refresh every 3 seconds
+    const interval = setInterval(fetchUnread, 3000); // refresh every 3 seconds
     return () => clearInterval(interval);
   }, [location]);
 
@@ -48,7 +55,7 @@ const Navbar = () => {
     <nav className="flex justify-between items-center px-6 py-4 shadow-md bg-white">
       {/* Logo */}
       <Link to={user ? "/dashboard" : "/"} className="flex items-center gap-2">
-        <img src="/logo.png" alt="UHub Logo" className="h-10 curson-pointer" />
+        <img src="/logo.png" alt="UHub Logo" className="h-10 cursor-pointer" />
       </Link>
 
       {/* Right-side navbar */}

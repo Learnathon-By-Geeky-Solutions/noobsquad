@@ -1,4 +1,4 @@
-import React, { createContext, useState, useMemo } from "react";
+import React, { createContext, useState, useMemo, useContext } from "react";
 import PropTypes from "prop-types";
 
 export const ChatContext = createContext(null);
@@ -10,7 +10,6 @@ export const ChatProvider = ({ children }) => {
     setChatWindows((prev) => {
       const alreadyOpen = prev.find((chat) => chat.id === user.id);
       if (alreadyOpen) return prev;
-
       return [...prev, { ...user, refreshConversations }];
     });
   };
@@ -19,11 +18,15 @@ export const ChatProvider = ({ children }) => {
     setChatWindows((prev) => prev.filter((chat) => chat.id !== userId));
   };
 
-  // ✅ Memoize context value to avoid re-renders in consumers
+  const resetChats = () => {
+    setChatWindows([]); // ✅ close all popups (useful on logout)
+  };
+
   const contextValue = useMemo(() => ({
     chatWindows,
     openChat,
     closeChat,
+    resetChats,
   }), [chatWindows]);
 
   return (
@@ -37,3 +40,6 @@ export const ChatProvider = ({ children }) => {
 ChatProvider.propTypes = {
   children: PropTypes.node.isRequired,
 };
+
+// ✅ Helper hook for easier consumption
+export const useChat = () => useContext(ChatContext);
