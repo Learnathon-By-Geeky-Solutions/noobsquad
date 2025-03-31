@@ -1,0 +1,54 @@
+name: SonarCloud CI
+
+on:
+  push:
+    branches: [main]   # Runs on push to the main branch
+  pull_request:
+    types: [opened, synchronize, reopened]   # Runs on PR events
+
+jobs:
+  build-and-analyze:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the code
+      - uses: actions/checkout@v3
+
+      # --- Backend (Python + FastAPI) ---
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12.4  
+
+      - name: Install backend dependencies
+        run: |
+          pip install -r backend/requirements.txt
+          pip install coverage pytest
+
+      - name: Run backend tests with coverage
+        run: |
+          cd backend
+          coverage run -m pytest
+          coverage xml -o coverage.xml
+          cd ..
+
+      # --- Frontend (React + Vite) ---
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.15.4'  
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm install
+          npx vitest run --coverage
+          cd ..
+
+      # --- SonarCloud Analysis ---
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v2
+        with:
+          projectBaseDir: .  # Runs SonarCloud analysis from the root of the repo
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}  # Ensure you have SONAR_TOKEN in GitHub Secrets
