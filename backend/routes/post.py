@@ -10,7 +10,7 @@ from models.user import User
 from models.post import Post, PostMedia, PostDocument, Event, Like, Comment
 from schemas.post import PostResponse, MediaPostResponse, DocumentPostResponse, EventResponse, TextPostUpdate
 from database.session import SessionLocal
-import pytz 
+from zoneinfo import ZoneInfo
 from sqlalchemy.orm import Session, joinedload
 import shutil
 
@@ -224,9 +224,11 @@ async def create_event_post(
         local_datetime = datetime.strptime(f"{event_date} {event_time}", "%Y-%m-%d %H:%M")
 
         # ✅ Convert to UTC
-        local_tz = pytz.timezone(user_timezone)
-        local_dt_with_tz = local_tz.localize(local_datetime)  # Add timezone info
-        event_datetime_utc = local_dt_with_tz.astimezone(pytz.UTC)  # Convert to UTC
+        # With zoneinfo
+        local_tz = ZoneInfo(user_timezone)
+        local_dt_with_tz = local_datetime.replace(tzinfo=local_tz)
+        event_datetime_utc = local_dt_with_tz.astimezone(ZoneInfo("UTC"))
+
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid date/time format: {str(e)}")
@@ -436,9 +438,9 @@ def get_post_and_event(post_id: int, user_id: int, db: Session):
 def convert_to_utc(event_date: str, event_time: str, user_timezone: str) -> Optional[datetime]:
     try:
         local_datetime = datetime.strptime(f"{event_date} {event_time}", "%Y-%m-%d %H:%M")
-        local_tz = pytz.timezone(user_timezone)
-        local_dt_with_tz = local_tz.localize(local_datetime)  # Add timezone info
-        return local_dt_with_tz.astimezone(pytz.UTC)  # Convert to UTC
+        local_tz = ZoneInfo(user_timezone)  # Correct way to use ZoneInfo
+        local_dt_with_tz = local_datetime.replace(tzinfo=local_tz)  # Add timezone info
+        return local_dt_with_tz.astimezone(ZoneInfo("UTC"))  # Convert to UTC
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid date/time format: {str(e)}")
 
