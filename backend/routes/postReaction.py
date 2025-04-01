@@ -12,8 +12,7 @@ import uuid  # Secure share token
 from typing import List
 from models.user import User
 from models.post import Post, PostMedia, PostDocument, Event, Like, Comment
-import pytz 
-
+from zoneinfo import ZoneInfo
 
 router = APIRouter()
 
@@ -44,7 +43,7 @@ def remove_like(existing_like, db: Session, like_data: LikeCreate):
 
 # Helper function to add new like
 def add_like(like_data: LikeCreate, db: Session, current_user: User):
-    created_at = datetime.now(pytz.UTC)
+    created_at = datetime.now(ZoneInfo("UTC"))
     new_like = Like(user_id=current_user.id, post_id=like_data.post_id, comment_id=like_data.comment_id, created_at=created_at)
     db.add(new_like)
     update_like_count(like_data, db, 'add')
@@ -100,7 +99,7 @@ def comment_post(comment_data: CommentCreate, db: Session = Depends(get_db), cur
     if comment_data.parent_id is not None:
         raise HTTPException(status_code=400, detail="Root comment cannot have a parent_id.")
 
-    created_at = datetime.now(pytz.UTC)
+    created_at = datetime.now(ZoneInfo("UTC"))
     new_comment = Comment(
         user_id=current_user.id,
         post_id=comment_data.post_id,
@@ -126,7 +125,7 @@ def reply_comment(comment_data: CommentCreate, db: Session = Depends(get_db), cu
     if parent_comment.parent_id is not None:
         raise HTTPException(status_code=400, detail="Cannot reply to a reply. Max depth reached.")
     
-    created_at = datetime.now(pytz.UTC)
+    created_at = datetime.now(ZoneInfo("UTC"))
     new_reply = Comment(
         user_id=current_user.id,
         post_id=parent_comment.post_id,
@@ -222,7 +221,7 @@ def share_post(share_data: ShareCreate, db: Session = Depends(get_db), current_u
     
     share_token = str(uuid.uuid4())
     
-    created_at = datetime.now(pytz.UTC)
+    created_at = datetime.now(ZoneInfo("UTC"))
     new_share = Share(
         user_id=current_user.id,
         post_id=share_data.post_id,
