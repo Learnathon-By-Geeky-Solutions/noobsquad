@@ -73,7 +73,7 @@ backend/__pycache__/
 # Test and coverage
 backend/.coverage
 backend/coverage/
-!backend/coverage.xml
+backend/coverage.xml
 
 # Pytest cache
 backend/.pytest_cache/
