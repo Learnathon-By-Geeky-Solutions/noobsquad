@@ -24,7 +24,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20.15.4'
+          node-version: '20'
 
       # Run SonarCloud scan (using already uploaded coverage.xml & lcov.info)
       - name: SonarCloud Scan
