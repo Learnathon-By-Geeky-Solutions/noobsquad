@@ -20,13 +20,27 @@ jobs:
         with:
           python-version: 3.12.4
 
-      # Optional: Set up Node.js if Sonar analyzes JS/TS code
+      # Set up Node.js and Vitest
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
 
-      # Run SonarCloud scan (using already uploaded coverage.xml & lcov.info)
+      # Install dependencies and run Vitest (Frontend) tests to generate LCOV report
+      - name: Install frontend dependencies and run tests
+        run: |
+          cd frontend
+          npm install
+          npm run test -- --coverage  # Ensure Vitest generates coverage
+
+      # Install Python dependencies and run tests for backend
+      - name: Install Python dependencies and run backend tests
+        run: |
+          pip install -r backend/requirements.txt
+          pip install pytest coverage
+          pytest --cov=backend --cov-report xml  # Backend coverage report for Python
+
+      # Run SonarCloud scan with coverage report
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
         with:
