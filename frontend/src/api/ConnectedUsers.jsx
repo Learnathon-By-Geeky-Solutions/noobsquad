@@ -71,11 +71,15 @@ const ConnectedUsers = () => {
             key={friend.id}
             className="bg-white shadow-md rounded-xl p-6 flex flex-col items-center text-center hover:shadow-lg transition"
           >
-            <img
-              src={friend.avatar || "/default-avatar.png"}
-              alt={friend.username}
-              className="w-24 h-24 rounded-full object-cover border-2 border-blue-500 mb-3"
-            />
+            <img       
+          src={
+            friend.profile_picture
+                  ? `http://127.0.0.1:8000/uploads/profile_pictures/${friend.profile_picture}`
+                  : "/default-avatar.png"
+            }
+                alt="Profile"
+                className="w-20 h-20 rounded-full object-cover border-2 border-blue-500 mb-3 mx-auto"
+             />
             <h3 className="text-lg font-semibold text-gray-800">{friend.username}</h3>
 
             <button

@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../api";
-import { FileText, UploadCloud, AlertTriangle, Loader2 } from "lucide-react";
+import { UploadCloud, AlertTriangle, Loader2 } from "lucide-react";
 
 const UploadPaper = () => {
   const [title, setTitle] = useState("");
@@ -50,9 +49,6 @@ const UploadPaper = () => {
     formData.append("file", file);
 
     try {
-      const response = await api.post("/research/upload-paper/", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
 
       alert("✅ Paper uploaded successfully!");
 
@@ -103,10 +99,14 @@ const UploadPaper = () => {
 
         {/* PDF Upload */}
         <div className="w-full">
-          <label className="block mb-1 text-sm font-medium text-gray-700">
+          <label
+            htmlFor="pdf-upload"
+            className="block mb-1 text-sm font-medium text-gray-700"
+          >
             Upload PDF File (Max 5MB)
           </label>
           <input
+            id="pdf-upload"
             type="file"
             accept="application/pdf"
             onChange={handleFileChange}

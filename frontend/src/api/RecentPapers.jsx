@@ -37,19 +37,27 @@ const RecentPapers = () => {
         Recent Research Papers
       </h2>
 
-      {loading ? (
-        <div className="flex justify-center mt-6">
-          <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-        </div>
-      ) : papers.length > 0 ? (
-        <ul className="space-y-4">
-          {papers.map((paper) => (
-            <PaperCard key={paper.id} paper={paper} />
-          ))}
-        </ul>
-      ) : (
-        <p className="text-center text-gray-500">No recent papers available.</p>
-      )}
+      {(() => {
+        if (loading) {
+          return (
+            <div className="flex justify-center mt-6">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+            </div>
+          );
+        }
+
+        if (papers.length > 0) {
+          return (
+            <ul className="space-y-4">
+              {papers.map((paper) => (
+                <PaperCard key={paper.id} paper={paper} />
+              ))}
+            </ul>
+          );
+        }
+
+        return <p className="text-center text-gray-500">No recent papers available.</p>;
+      })()}
     </div>
   );
 };

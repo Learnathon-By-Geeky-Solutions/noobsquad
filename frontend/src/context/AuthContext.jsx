@@ -1,7 +1,16 @@
-import { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+} from "react";
 import { useNavigate } from "react-router-dom";
+import PropTypes from "prop-types";
 import { fetchUser } from "../api/auth";
 
+// Create AuthContext
 const AuthContext = createContext({
   user: null,
   profileCompleted: false,
@@ -26,7 +35,6 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
-        console.log("Fetching user with token:", token);
         const userData = await fetchUser(token);
         setUser(userData);
         setProfileCompleted(userData.profile_completed);
@@ -41,23 +49,25 @@ export const AuthProvider = ({ children }) => {
     loadUser();
   }, []);
 
-  const login = useCallback(async (token) => {
-    localStorage.setItem("token", token);
-    try {
-      const response = await fetchUser(token);
-      const userData = response.data || response; 
+  const login = useCallback(
+    async (token) => {
+      localStorage.setItem("token", token);
+      try {
+        const response = await fetchUser(token);
+        const userData = response.data || response;
 
-      setUser(userData);
-      setProfileCompleted(userData.profile_completed);
+        setUser(userData);
+        setProfileCompleted(userData.profile_completed);
 
-      navigate(userData.profile_completed ? "/dashboard" : "/complete-profile");
-    } catch (error) {
-      console.error("Failed to fetch user after login:", error);
-    }
-  }, [navigate]);
+        navigate(userData.profile_completed ? "/dashboard/posts" : "/complete-profile");
+      } catch (error) {
+        console.error("Failed to fetch user after login:", error);
+      }
+    },
+    [navigate]
+  );
 
   const logout = useCallback(() => {
-    console.log("Logging out...");
     localStorage.removeItem("token");
     setUser(null);
     setProfileCompleted(false);
@@ -69,9 +79,19 @@ export const AuthProvider = ({ children }) => {
     [user, profileCompleted, login, logout, loading]
   );
 
-  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={contextValue}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
+// ✅ Add PropTypes validation
+AuthProvider.propTypes = {
+  children: PropTypes.node.isRequired,
+};
+
+// Custom hook
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

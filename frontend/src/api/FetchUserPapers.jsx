@@ -40,13 +40,17 @@ const FetchUserPapers = () => {
         My current works (Ongoing)
       </h2>
 
-      {loading ? (
+      {loading && (
         <div className="flex justify-center mt-6">
           <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
         </div>
-      ) : errorMessage ? (
+      )}
+
+      {!loading && errorMessage && (
         <p className="text-center text-gray-500">{errorMessage}</p>
-      ) : (
+      )}
+
+      {!loading && !errorMessage && (
         <ul className="space-y-4">
           {papers.map((paper) => (
             <li

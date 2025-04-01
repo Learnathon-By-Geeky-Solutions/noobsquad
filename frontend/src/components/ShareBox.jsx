@@ -1,11 +1,14 @@
 import { FaCopy, FaTimes } from "react-icons/fa";
-
+import PropTypes from "prop-types";
 const ShareBox = ({ shareLink, onClose }) => {
   const handleCopy = () => {
     navigator.clipboard.writeText(shareLink);
     alert("Link copied to clipboard!");
   };
-
+ShareBox.propTypes = {
+  shareLink: PropTypes.string.isRequired,
+  onClose: PropTypes.func.isRequired,
+};
   return (
     <div className="fixed top-0 left-0 w-full h-full flex justify-center items-center bg-black bg-opacity-50">
       <div className="bg-white p-4 rounded-lg shadow-lg w-96">

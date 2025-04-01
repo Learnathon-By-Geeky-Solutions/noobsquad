@@ -9,6 +9,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 import jwt
 import os
 from dotenv import load_dotenv
+from core.dependencies import get_db
 
 load_dotenv()
 
@@ -22,13 +23,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 # Router
 router = APIRouter()
 
-# Dependency to get DB session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 # ✅ Signup Route
 @router.post("/signup/")

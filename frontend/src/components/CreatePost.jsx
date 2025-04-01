@@ -2,11 +2,9 @@ import React, { useState } from "react";
 import api from "../api/axios";
 import { FaImage, FaFileAlt, FaCalendarAlt } from "react-icons/fa";
 import PropTypes from "prop-types";
-// ✅ Drag & Drop Library
 import { useDropzone } from "react-dropzone";
 
 const CreatePost = ({ userProfile }) => {
-  // ✅ State for post details
   const [postType, setPostType] = useState("text");
   const [content, setContent] = useState("");
   const [mediaFile, setMediaFile] = useState(null);
@@ -17,36 +15,31 @@ const CreatePost = ({ userProfile }) => {
   const [eventTime, setEventTime] = useState("");
   const [location, setLocation] = useState("");
   const [userTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
-  const [uploadProgress, setUploadProgress] = useState(0); // ✅ Upload Progress
+  const [uploadProgress, setUploadProgress] = useState(0); // ✅ Used in JSX
 
-  // Prop validation
   CreatePost.propTypes = {
     userProfile: PropTypes.shape({
-      id: PropTypes.number.isRequired,         // Add required userProfile properties here
-      name: PropTypes.string.isRequired,       // Example: user's name property
-      email: PropTypes.string.isRequired,      // Example: user's email property
-      profilePicture: PropTypes.string,        // Optional: user's profile picture
-      // Add other userProfile properties as needed
+      id: PropTypes.number.isRequired,
+      name: PropTypes.string.isRequired,
+      email: PropTypes.string.isRequired,
+      profilePicture: PropTypes.string,
     }).isRequired,
   };
 
-  // ✅ Drag & Drop for Media Files
   const { getRootProps: getMediaRootProps, getInputProps: getMediaInputProps } = useDropzone({
     accept: "image/*,video/*",
     onDrop: (acceptedFiles) => setMediaFile(acceptedFiles[0]),
   });
 
-  // ✅ Drag & Drop for Document Files
   const { getRootProps: getDocRootProps, getInputProps: getDocInputProps } = useDropzone({
     accept: ".pdf,.docx,.txt",
     onDrop: (acceptedFiles) => setDocumentFile(acceptedFiles[0]),
   });
 
-  // ✅ Function to submit the post
   const handleSubmit = async (e) => {
     e.preventDefault();
     let formData = new FormData();
-    setUploadProgress(0); // Reset progress before upload
+    setUploadProgress(0);
 
     try {
       let response;
@@ -59,7 +52,6 @@ const CreatePost = ({ userProfile }) => {
           { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
         );
       } else {
-        // ✅ Add Form Data
         formData.append("content", content);
         if (postType === "media" && mediaFile) formData.append("media_file", mediaFile);
         if (postType === "document" && documentFile) formData.append("document_file", documentFile);
@@ -72,7 +64,6 @@ const CreatePost = ({ userProfile }) => {
           formData.append("user_timezone", userTimezone);
         }
 
-        // ✅ Axios Request with Upload Progress Tracking
         response = await api.post(`/posts/create_${postType}_post/`, formData, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -95,7 +86,6 @@ const CreatePost = ({ userProfile }) => {
     window.location.reload();
   };
 
-  // ✅ Reset the form after successful submission
   const resetForm = () => {
     setContent("");
     setMediaFile(null);
@@ -106,14 +96,13 @@ const CreatePost = ({ userProfile }) => {
     setEventTime("");
     setLocation("");
     setPostType("text");
-    setUploadProgress(0); // ✅ Reset progress after upload
+    setUploadProgress(0);
   };
 
   return (
     <div className="bg-white shadow-md p-4 rounded-lg mb-4">
       <h2 className="text-lg font-semibold mb-2">Create Post</h2>
 
-      {/* ✅ Profile Image & Input */}
       <div className="flex items-center mb-3">
         <textarea
           value={content}
@@ -123,7 +112,6 @@ const CreatePost = ({ userProfile }) => {
         ></textarea>
       </div>
 
-      {/* ✅ Post Type Selection with Icons */}
       <div className="flex justify-around mb-3">
         <button
           onClick={() => setPostType("media")}
@@ -145,7 +133,6 @@ const CreatePost = ({ userProfile }) => {
         </button>
       </div>
 
-      {/* ✅ Drag & Drop Media Upload */}
       {postType === "media" && (
         <div {...getMediaRootProps()} className="border-2 border-dashed p-6 text-center rounded-lg mb-3 cursor-pointer bg-gray-100">
           <input {...getMediaInputProps()} />
@@ -157,7 +144,6 @@ const CreatePost = ({ userProfile }) => {
         </div>
       )}
 
-      {/* ✅ Drag & Drop Document Upload */}
       {postType === "document" && (
         <div {...getDocRootProps()} className="border-2 border-dashed p-6 text-center rounded-lg mb-3 cursor-pointer bg-gray-100">
           <input {...getDocInputProps()} />
@@ -169,7 +155,6 @@ const CreatePost = ({ userProfile }) => {
         </div>
       )}
 
-      {/* ✅ Event Fields with Labels */}
       {postType === "event" && (
         <div className="space-y-2">
           <input type="text" value={eventTitle} onChange={(e) => setEventTitle(e.target.value)} placeholder="Event Title *" className="border p-2 rounded w-full" />
@@ -180,7 +165,16 @@ const CreatePost = ({ userProfile }) => {
         </div>
       )}
 
-      {/* ✅ Submit Button */}
+      {/* ✅ Upload Progress Bar */}
+      {uploadProgress > 0 && uploadProgress < 100 && (
+        <div className="w-full bg-gray-200 rounded-full h-2.5 mt-4 mb-2">
+          <div
+            className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+            style={{ width: `${uploadProgress}%` }}
+          ></div>
+        </div>
+      )}
+
       <button onClick={handleSubmit} className="bg-blue-500 text-white px-4 py-2 rounded w-full">
         Post
       </button>

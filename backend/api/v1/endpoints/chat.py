@@ -106,11 +106,13 @@ def get_chat_history(friend_id: int, db: Session = Depends(get_db), current_user
     return messages
 
 
+from sqlalchemy.orm import joinedload
+
 @router.get("/chat/conversations", response_model=List[ConversationOut])
 def get_conversations(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     user_id = current_user.id
 
-    # Step 1: Get all messages involving this user (latest per conversation)
+    # Step 1: Get all latest messages for each conversation
     subquery = db.query(
         func.max(Message.id).label("latest_id")
     ).filter(
@@ -123,17 +125,20 @@ def get_conversations(db: Session = Depends(get_db), current_user=Depends(get_cu
         func.greatest(Message.sender_id, Message.receiver_id)
     ).subquery()
 
-    latest_messages = db.query(Message).join(
+    # ✅ Eager-load sender and receiver user objects
+    latest_messages = db.query(Message).options(
+        joinedload(Message.sender),
+        joinedload(Message.receiver)
+    ).join(
         subquery, Message.id == subquery.c.latest_id
     ).order_by(desc(Message.timestamp)).all()
 
     results = []
     for msg in latest_messages:
-        # Get the other user
         friend = msg.receiver if msg.sender_id == user_id else msg.sender
         other_user_id = friend.id
 
-        # ✅ Calculate unread messages from that friend
+        # ✅ Get unread message count from that friend
         unread_count = db.query(func.count(Message.id)).filter(
             Message.sender_id == other_user_id,
             Message.receiver_id == user_id,
@@ -143,11 +148,11 @@ def get_conversations(db: Session = Depends(get_db), current_user=Depends(get_cu
         results.append({
             "user_id": friend.id,
             "username": friend.username,
-            "avatar": getattr(friend, "avatar", None),
+            "avatar": friend.profile_picture,
             "last_message": msg.content,
             "timestamp": msg.timestamp,
             "is_sender": msg.sender_id == user_id,
-            "unread_count": unread_count,  # ✅ include it
+            "unread_count": unread_count,
         })
 
     return results

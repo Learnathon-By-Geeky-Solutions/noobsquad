@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { Routes, Route, NavLink } from "react-router-dom";
 import SearchPapers from "../api/SearchPapers";
 import UploadPaper from "../api/UploadPaper";
@@ -6,7 +7,6 @@ import RecentPapers from "../api/RecentPapers";
 import CollaborationRequests from "../api/CollaborationRequests";
 import FetchUserPapers from "../api/FetchUserPapers";
 
-// ✅ Lucide Icons
 import {
   Search,
   Upload,
@@ -20,12 +20,10 @@ import {
 const Research = () => {
   return (
     <div className="bg-gray-50 min-h-screen">
-      {/* Page Title */}
       <div className="pt-6 pb-2 text-center">
         <h1 className="text-2xl font-bold text-gray-800">Research</h1>
       </div>
 
-      {/* Tab Menu */}
       <div className="bg-white shadow-sm rounded-xl mx-auto max-w-6xl px-4 py-4 mb-6">
         <ul className="flex flex-wrap justify-center gap-4">
           <NavTab to="/dashboard/research/search" label="Search Papers" icon={Search} />
@@ -37,12 +35,11 @@ const Research = () => {
             to="/dashboard/research/my_post_research_papers"
             label="Currently Working"
             icon={FlaskConical}
-            loading={false} // change to true to show spinner
+            loading={false}
           />
         </ul>
       </div>
 
-      {/* Content Section */}
       <div className="max-w-6xl mx-auto p-6 bg-white shadow rounded-lg">
         <Routes>
           <Route path="search" element={<SearchPapers />} />
@@ -75,9 +72,7 @@ const NavTab = ({ to, label, icon: Icon, loading = false, badge = null }) => (
       ) : (
         <Icon className="w-4 h-4" />
       )}
-
       {label}
-
       {badge !== null && (
         <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-semibold">
           {badge}
@@ -86,5 +81,14 @@ const NavTab = ({ to, label, icon: Icon, loading = false, badge = null }) => (
     </NavLink>
   </li>
 );
+
+// ✅ PropTypes Validation
+NavTab.propTypes = {
+  to: PropTypes.string.isRequired,
+  label: PropTypes.string.isRequired,
+  icon: PropTypes.elementType.isRequired,
+  loading: PropTypes.bool,
+  badge: PropTypes.number,
+};
 
 export default Research;
