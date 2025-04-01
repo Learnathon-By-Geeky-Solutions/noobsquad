@@ -7,10 +7,11 @@ from schemas.connection import ConnectionCreate, ConnectionResponse
 from api.v1.endpoints.auth import get_current_user  # Ensure authentication middleware is implemented
 from models.user import User
 from models.connection import Connection
-from typing import Optional
+from sqlalchemy import select, or_, case
 
 router = APIRouter()
 
+internal_error = "Internal Server Error"
 @router.post("/connect/")
 def send_connection(
     friend_data: ConnectionCreate,
@@ -22,7 +23,7 @@ def send_connection(
         return new_request
     except Exception as e:
         logging.error(f"Connection error: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error") from e
+        raise HTTPException(status_code=500, detail=internal_error) from e
 
 @router.post("/accept/{request_id}")
 def accept_connection(request_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)) -> dict:
@@ -52,20 +53,60 @@ def list_connections(db: Session = Depends(get_db), current_user: User = Depends
         return get_connections(db, current_user.id)  # ✅ Use `current_user.id`
     except Exception as e:
         logging.error(f"Error fetching connections: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail=internal_error)
 
 @router.get("/users")
 def get_users(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Fetch all users excluding the current user."""
     try:
         if not current_user:
             raise HTTPException(status_code=401, detail="Unauthorized")
 
-        users = db.query(User).filter(User.id != current_user.id).all()  # ✅ Use current_user.id
+        # ✅ Get all friends of the current user (regardless of who initiated)
+        friends_subq = select(
+            case(
+                (Connection.user_id == current_user.id, Connection.friend_id),
+                else_=Connection.user_id
+            )
+        ).where(
+            or_(
+                Connection.user_id == current_user.id,
+                Connection.friend_id == current_user.id
+            ),
+            Connection.status == "accepted"
+        )
+
+        # ✅ Users you've sent requests to (pending)
+        sent_subq = select(Connection.friend_id).where(
+            Connection.user_id == current_user.id,
+            Connection.status == "pending"
+        )
+
+        # ✅ Users who sent requests to you (pending)
+        received_subq = select(Connection.user_id).where(
+            Connection.friend_id == current_user.id,
+            Connection.status == "pending"
+        )
+
+        # ✅ Now filter out all of those
+        users = db.query(User).filter(
+            User.id.notin_(friends_subq),
+            User.id.notin_(sent_subq),
+            User.id.notin_(received_subq),
+            User.id != current_user.id
+        ).all()
+
         return users
+
     except Exception as e:
+        import logging
         logging.error(f"Error fetching users: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+
+
+
+
    
 @router.get("/pending-requests")
 def get_pending_requests(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -80,7 +121,7 @@ def get_pending_requests(db: Session = Depends(get_db), current_user: User = Dep
         return pending_requests
     except Exception as e:
         logging.error(f"Error fetching pending requests: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail=internal_error)
     
 @router.get("/user/{user_id}")
 def get_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -97,5 +138,5 @@ def get_user(user_id: int, db: Session = Depends(get_db), current_user: User = D
         return user
     except Exception as e:
         logging.error(f"Error fetching user {user_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")    
+        raise HTTPException(status_code=500, detail=internal_error)    
 

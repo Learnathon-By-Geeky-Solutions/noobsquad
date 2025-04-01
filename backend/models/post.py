@@ -4,7 +4,6 @@ from database.session import Base
 from datetime import datetime, timezone
 import enum
 from sqlalchemy.sql import func
-from datetime import datetime, timezone
 
 
 USER_ID_FOREIGN_KEY = "users.id"
@@ -77,7 +76,7 @@ class EventAttendee(Base):
     __tablename__ = "event_attendees"
 
     id = Column(Integer, primary_key=True, index=True)
-    event_id = Column(Integer, ForeignKey("events.id"), nullable=False)
+    event_id = Column(Integer, ForeignKey("events.id", ondelete="CASCADE"), nullable=False)
     user_id = Column(Integer, ForeignKey(USER_ID_FOREIGN_KEY), nullable=False)
     status = Column(Enum("going", "interested", "not going", name="attendee_status_enum"), nullable=False)
 

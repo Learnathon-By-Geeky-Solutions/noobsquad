@@ -1,0 +1,35 @@
+name: SonarCloud CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  sonarcloud:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Optional: Set up Python if needed for SonarPython analysis
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12.4
+
+      # Optional: Set up Node.js if Sonar analyzes JS/TS code
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      # Run SonarCloud scan (using already uploaded coverage.xml & lcov.info)
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v2
+        with:
+          projectBaseDir: .
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
