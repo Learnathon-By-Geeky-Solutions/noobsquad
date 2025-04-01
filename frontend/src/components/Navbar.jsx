@@ -28,6 +28,15 @@ const Navbar = () => {
     navigate("/login");   // redirect
   };
 
+  const handleHomeClick = (e) => {
+    e.preventDefault(); // Prevent default link behavior
+    if (location.pathname === "/dashboard/posts") {
+      window.location.reload(); // ✅ Refresh only if already on posts page
+    } else {
+      navigate("/dashboard/posts"); // ✅ Navigate if not on posts page
+    }
+  };
+
   useEffect(() => {
     const fetchUnread = async () => {
       const token = localStorage.getItem("token");
@@ -52,7 +61,7 @@ const Navbar = () => {
   }, [location]);
 
   return (
-    <nav className="flex justify-between items-center px-6 py-4 shadow-md bg-white">
+    <nav className="fixed top-0 left-0 w-full z-50 bg-white shadow-md flex justify-between items-center px-6 py-4">
       {/* Logo */}
       <Link to={user ? "/dashboard" : "/"} className="flex items-center gap-2">
         <img src="/logo.png" alt="UHub Logo" className="h-10 cursor-pointer" />
@@ -62,7 +71,7 @@ const Navbar = () => {
       <div className="flex items-center gap-6">
         {user ? (
           <>
-            <Link to="/dashboard/posts" className="flex items-center gap-1 text-gray-700 hover:text-blue-600 transition">
+            <Link to="/dashboard/posts" onClick={handleHomeClick} className="flex items-center gap-1 text-gray-700 hover:text-blue-600 transition">
               <Home className="w-5 h-5" />
               Home
             </Link>
