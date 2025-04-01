@@ -4,6 +4,7 @@ from database.session import Base
 from datetime import datetime, timezone
 import enum
 from sqlalchemy.sql import func
+from zoneinfo import ZoneInfo
 
 
 USER_ID_FOREIGN_KEY = "users.id"
@@ -92,7 +93,7 @@ class Like(Base):
     user_id = Column(Integer, ForeignKey(USER_ID_FOREIGN_KEY), nullable=False)
     post_id = Column(Integer, ForeignKey(POSTS_ID_FOREIGN_KEY), nullable=True)
     comment_id = Column(Integer, ForeignKey("comments.id"), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(ZoneInfo("UTC")))
 
     __table_args__ = (
         CheckConstraint(

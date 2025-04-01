@@ -38,7 +38,7 @@ const UserProfile = () => {
     return <p className="text-center text-gray-500 mt-10">Loading...</p>;
 
   return (
-    <div className="flex justify-center mt-10 px-4">
+    <div className="flex justify-center px-4 mt-20 md:mt-24">
       <div className="bg-white shadow-xl rounded-2xl p-6 w-full max-w-3xl">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
           <img

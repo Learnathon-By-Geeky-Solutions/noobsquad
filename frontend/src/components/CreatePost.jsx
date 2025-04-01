@@ -100,7 +100,7 @@ const CreatePost = ({ userProfile }) => {
   };
 
   return (
-    <div className="bg-white shadow-md p-4 rounded-lg mb-4">
+    <div className="bg-white shadow-md p-4 rounded-lg mb-4 mt-20 md:mt-24">
       <h2 className="text-lg font-semibold mb-2">Create Post</h2>
 
       <div className="flex items-center mb-3">

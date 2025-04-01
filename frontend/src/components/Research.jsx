@@ -19,7 +19,7 @@ import {
 
 const Research = () => {
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-gray-50 min-h-screen mt-20 md:mt-24">
       <div className="pt-6 pb-2 text-center">
         <h1 className="text-2xl font-bold text-gray-800">Research</h1>
       </div>

@@ -96,7 +96,7 @@ const SuggestedUsers = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-4">
+    <div className="max-w-6xl mx-auto p-4 mt-20 md:mt-24">
       <h2 className="text-2xl font-bold flex items-center gap-2 mb-4 text-blue-700">
         <UserPlus className="w-6 h-6" /> People You May Know
       </h2>

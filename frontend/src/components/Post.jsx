@@ -84,13 +84,13 @@ const Post = ({ post, onUpdate, onDelete }) => {
   
   const isOwner = user?.id === postUser?.id;
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone; // Detect user's local timezone
-  const postDateUTC = DateTime.fromISO(created_at, { zone: "utc" });  //Parse as UTC
+  const postDateUTC = DateTime.fromISO(created_at, { zone: "utc" }); // Parse as UTC
+  
   const postDateLocal = postDateUTC.setZone(userTimezone); // Convert to user's local timezone
-
+  
   // ✅ Fix: Use `.toMillis()` instead of `.getTime()`
   const timeDiffMinutes = Math.floor((Date.now() - postDateLocal.toMillis()) / 60000);
   
-
   let timeAgo;
   if (timeDiffMinutes < 1) {
     timeAgo = "Just now";
@@ -101,6 +101,8 @@ const Post = ({ post, onUpdate, onDelete }) => {
   } else {
     timeAgo = `${Math.floor(timeDiffMinutes / 1440)} days ago`;
   }
+  
+  
 
   
   
