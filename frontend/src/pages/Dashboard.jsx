@@ -50,7 +50,7 @@ const Dashboard = () => {
         <Route path="suggested-users" element={<SuggestedUsers />} />
         <Route path="research/*" element={<Research />} />
         <Route path="posts" element={<Home />} />
-        <Route path="AboutMe" element={<UserProfile />} />
+        <Route path="AboutMe/*" element={<UserProfile />} /> 
       </Routes>
     </div>
   );
