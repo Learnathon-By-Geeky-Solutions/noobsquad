@@ -1,38 +1,49 @@
-import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
-import LandingPage from '../pages/LandingPage'
+import { describe, it, expect, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import LandingPage from "../pages/LandingPage";
+import { ChatProvider } from "../context/ChatContext";  // Import ChatProvider
 
-describe('LandingPage', () => {
-  it('renders the landing title and description', () => {
+// ✅ Mock Navbar component to isolate test
+vi.mock("../components/Navbar", () => {
+  return {
+    default: () => <div data-testid="navbar">Navbar</div>
+  };
+});
+
+describe("LandingPage", () => {
+  it("renders the LandingPage with all key elements", () => {
     render(
       <MemoryRouter>
-        <LandingPage />
+        <ChatProvider>  {/* Wrap LandingPage with ChatProvider */}
+          <LandingPage />
+        </ChatProvider>
       </MemoryRouter>
-    )
+    );
 
-    expect(screen.getByText(/Pair, Learn, and Grow with UHub/i)).toBeInTheDocument()
-    expect(screen.getByText(/Join a thriving university community/i)).toBeInTheDocument()
-  })
+    // Check Navbar renders
+    expect(screen.getByTestId("navbar")).toBeInTheDocument();
 
-  it('has a "Get Started" button linking to /signup', () => {
-    render(
-      <MemoryRouter>
-        <LandingPage />
-      </MemoryRouter>
-    )
+    // Check heading
+    expect(
+      screen.getByText("Pair, Learn, and Grow with UHub")
+    ).toBeInTheDocument();
 
-    const button = screen.getByRole('link', { name: /Get Started/i })
-    expect(button).toBeInTheDocument()
-    expect(button.getAttribute('href')).toBe('/signup')
-  })
+    // Check description
+    expect(
+      screen.getByText(
+        /Join a thriving university community platform/i
+      )
+    ).toBeInTheDocument();
 
-  it('renders the footer', () => {
-    render(
-      <MemoryRouter>
-        <LandingPage />
-      </MemoryRouter>
-    )
+    // Check "Get Started" button
+    const getStartedBtn = screen.getByRole("link", { name: /Get Started/i });
+    expect(getStartedBtn).toBeInTheDocument();
+    expect(getStartedBtn.getAttribute("href")).toBe("/signup");
 
-    expect(screen.getByText(/© 2025 UHub/i)).toBeInTheDocument()
-  })
-})
+    // Check footer
+    expect(
+      screen.getByText("© 2025 UHub. All rights reserved.")
+    ).toBeInTheDocument();
+  });
+});
