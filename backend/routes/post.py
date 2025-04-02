@@ -77,6 +77,7 @@ def get_posts(
     limit: int = Query(10, alias="limit"),  # Default to 10 posts
     offset: int = Query(0, alias="offset"),  # Start at 0
     last_seen_post: Optional[int] = Query(None, alias="last_seen"),  # Last post ID seen
+    user_id: Optional[int] = Query(None, alias="user_id"),  # User ID to filter posts (for profile)
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -88,6 +89,9 @@ def get_posts(
 
     # ✅ Get the posts query with the optional filter for newer posts
     query = get_newer_posts(last_seen_post, db)
+
+    if user_id:
+        query = query.filter(Post.user_id == user_id)
     
     # ✅ Apply pagination
     posts = query.order_by(Post.created_at.desc()).offset(offset).limit(limit).all()
@@ -254,19 +258,13 @@ async def create_event_post(
 
     return new_event  # Returns as EventResponse schema
 
-@router.get("/get_post/{post_id}")
-def get_post(post_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    post = db.query(Post).filter(Post.id == post_id, Post.user_id == current_user.id).first()
-    if not post:
-        raise HTTPException(status_code=404, detail=STATUS_404_ERROR)
+@router.get("/posts/")
+def get_posts(user_id: Optional[int] = None, db: Session = Depends(get_db)):
+    query = db.query(Post)
+    if user_id:
+        query = query.filter(Post.user_id == user_id)
+    return query.all()
 
-    media_entry = db.query(PostMedia).filter(PostMedia.post_id == post.id).first()
-    
-    return {
-        "post_id": post.id,
-        "content": post.content,
-        "media_url": media_entry.media_url if media_entry else None
-    }
 
 
 @router.put("/update_text_post/{post_id}")
