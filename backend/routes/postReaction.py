@@ -13,6 +13,8 @@ from typing import List
 from models.user import User
 from models.post import Post, PostMedia, PostDocument, Event, Like, Comment
 from zoneinfo import ZoneInfo
+from crud.notification import create_notification
+from schemas.notification import NotificationCreate
 
 router = APIRouter()
 
@@ -79,6 +81,23 @@ def like_action(like_data: LikeCreate, db: Session = Depends(get_db), current_us
         }
 
     new_like = add_like(like_data, db, current_user)
+
+    if like_data.post_id:
+        post = db.query(Post).filter(Post.id == like_data.post_id).first()
+        if post and post.user_id != current_user.id:  # Don't notify if liking own post
+            notification_data = NotificationCreate(
+                user_id=post.user_id,   # Receiver = Post Owner
+                actor_id=current_user.id,  # Action Performer = Liker
+                type="like",
+                post_id=post.id
+            )
+            create_notification(
+                db=db,
+                recipient_id=post.user_id,  # The owner of the post being liked
+                actor_id=current_user.id,  # The user who liked the post
+                notif_type="like",
+                post_id=post.id  # The post that was liked
+            )
     
     return {
         "id": new_like.id,
@@ -110,6 +129,9 @@ def comment_post(comment_data: CommentCreate, db: Session = Depends(get_db), cur
     db.add(new_comment)
     db.commit()
     db.refresh(new_comment)
+    post_owner = db.query(User).filter(User.id == new_comment.post.user_id).first()
+    if post_owner and post_owner.id != current_user.id:
+        create_notification(db, recipient_id=post_owner.id, actor_id=current_user.id, notif_type="comment", post_id=new_comment.post_id)
     return new_comment
 
 
@@ -136,6 +158,10 @@ def reply_comment(comment_data: CommentCreate, db: Session = Depends(get_db), cu
     db.add(new_reply)
     db.commit()
     db.refresh(new_reply)
+    # 🔔 Send Notification to Comment Owner
+    comment_owner = db.query(User).filter(User.id == parent_comment.user_id).first()
+    if comment_owner and comment_owner.id != current_user.id:
+        create_notification(db, recipient_id=comment_owner.id, actor_id=current_user.id, notif_type="reply", post_id=new_reply.post_id)
     return new_reply
 
 
@@ -232,6 +258,10 @@ def share_post(share_data: ShareCreate, db: Session = Depends(get_db), current_u
     db.commit()
     db.refresh(new_share)
     share_link = f"http://localhost:5173/share/{new_share.share_token}"
+
+    post_owner = db.query(User).filter(User.id == post.user_id).first()
+    if post_owner and post_owner.id != current_user.id:
+        create_notification(db, recipient_id=post_owner.id, actor_id=current_user.id, notif_type="share", post_id=new_share.post_id)
 
     return {
         "id": new_share.id,

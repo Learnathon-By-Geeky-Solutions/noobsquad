@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, ForeignKey, String, Boolean, DateTime
 from datetime import datetime, timezone
 from sqlalchemy.orm import relationship
-from database import Base
+from database.session import Base
 from zoneinfo import ZoneInfo
 
 class Notification(Base):

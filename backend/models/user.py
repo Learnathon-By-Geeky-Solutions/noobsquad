@@ -34,3 +34,6 @@ class User(Base):
 
     messages_sent = relationship("Message", back_populates="sender", foreign_keys="Message.sender_id", cascade= CASCADE_DELETE_ORPHAN)
     messages_received = relationship("Message", back_populates="receiver", foreign_keys="Message.receiver_id", cascade= CASCADE_DELETE_ORPHAN)
+
+    received_notifications = relationship("Notification", foreign_keys="Notification.user_id", back_populates="user")
+    sent_notifications = relationship("Notification", foreign_keys="Notification.actor_id", back_populates="actor")

@@ -13,6 +13,8 @@ from database.session import SessionLocal
 from zoneinfo import ZoneInfo
 from sqlalchemy.orm import Session, joinedload
 import shutil
+from core.connection_crud import get_connections
+from crud.notification import create_notification
 
 router = APIRouter()
 
@@ -29,9 +31,8 @@ DOCUMENT_DIR = "uploads/document/"
 os.makedirs(DOCUMENT_DIR, exist_ok=True) 
 STATUS_404_ERROR= "Post not found"
 
-from fastapi import Query, Depends
-from sqlalchemy.orm import Session
-from typing import Optional
+
+
 
 # Helper function to get the latest post after the provided `last_seen_post`
 def get_newer_posts(last_seen_post: Optional[int], db: Session):
@@ -123,6 +124,28 @@ def get_posts(
 
     return {"posts": post_list, "count": len(post_list)}
 
+def send_post_notifications(db: Session, user: User, post: Post):
+    """Sends notifications to all friends when a user creates a post."""
+    
+    # ✅ Fetch connected friends
+    friends = get_connections(db, user.id)
+
+    # ✅ Create notifications for all connected friends
+    for friend in friends:
+        friend_id = friend["friend_id"] if friend["user_id"] == user.id else friend["user_id"]
+        
+        create_notification(
+            db=db,
+            recipient_id=friend_id,  # ✅ Friend should receive the notification
+            actor_id=user.id,        # ✅ The user who created the post
+            notif_type="new_post",
+            post_id=post.id
+        )
+
+    db.commit()  # ✅ Commit once after all notifications are added
+
+
+
 @router.post("/create_text_post/", response_model=PostResponse)
 async def create_text_post(
     content: str = Form(...),
@@ -133,6 +156,7 @@ async def create_text_post(
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
+    send_post_notifications(db, current_user, new_post)
 
 
     return new_post  # Returns as PostResponse schema
@@ -171,6 +195,7 @@ async def create_media_post(
     db.add(new_media)
     db.commit()
     db.refresh(new_media)
+    send_post_notifications(db, current_user, new_post)
 
     return new_media  # Returns as MediaPostResponse schema
 
@@ -205,6 +230,8 @@ async def create_document_post(
     db.add(new_document)
     db.commit()
     db.refresh(new_document)
+    send_post_notifications(db, current_user, new_post)
+
 
 
     return new_document  # Returns as DocumentPostResponse schema
@@ -255,6 +282,7 @@ async def create_event_post(
     db.add(new_event)
     db.commit()
     db.refresh(new_event)
+    send_post_notifications(db, current_user, new_post)
 
     return new_event  # Returns as EventResponse schema
 
