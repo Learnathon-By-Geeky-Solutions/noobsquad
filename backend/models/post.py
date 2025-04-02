@@ -37,6 +37,8 @@ class Post(Base):
     likes = relationship("Like", back_populates="post", cascade=CASCADE_DELETE_ORPHAN)
     comments = relationship("Comment", back_populates="post", cascade=CASCADE_DELETE_ORPHAN)
     shares = relationship("Share", back_populates="post", cascade=CASCADE_DELETE_ORPHAN)
+
+    notifications = relationship("Notification", back_populates="post", cascade="all, delete-orphan")
    
 class PostMedia(Base):
     __tablename__ = "post_media"
