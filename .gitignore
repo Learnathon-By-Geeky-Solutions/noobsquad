@@ -41,7 +41,7 @@ frontend/.cache/
 
 # Test and coverage artifacts
 frontend/coverage/*
-!frontend/coverage/lcov.info
+frontend/coverage/lcov.info
 
 # Optional lock files (use only one depending on your package manager)
 frontend/package-lock.json
