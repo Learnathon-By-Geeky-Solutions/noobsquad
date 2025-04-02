@@ -34,7 +34,7 @@ const ChatSidebar = () => {
   };
 
   return (
-    <aside className="w-80 h-full border-r overflow-y-auto bg-white">
+    <aside className="w-80 h-full border-r overflow-y-auto bg-white mt-20 md:mt-24">
       <h2 className="text-xl font-bold p-4 border-b">Chats</h2>
 
       {conversations.length === 0 ? (
