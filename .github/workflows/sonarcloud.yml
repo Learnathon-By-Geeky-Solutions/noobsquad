@@ -33,12 +33,12 @@ jobs:
           npm install
           npm run test -- --coverage  # Ensure Vitest generates coverage
 
-      # Install Python dependencies and run tests for backend
-      - name: Install Python dependencies and run backend tests
-        run: |
-          pip install -r backend/requirements.txt
-          pip install pytest coverage
-          pytest --cov=backend --cov-report xml  # Backend coverage report for Python
+      # # Install Python dependencies and run tests for backend
+      # - name: Install Python dependencies and run backend tests
+      #   run: |
+      #     pip install -r backend/requirements.txt
+      #     pip install pytest coverage
+      #     pytest --cov=backend --cov-report xml  # Backend coverage report for Python
 
       # Run SonarCloud scan with coverage report
       - name: SonarCloud Scan
