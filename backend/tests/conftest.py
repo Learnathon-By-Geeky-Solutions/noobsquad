@@ -19,8 +19,11 @@ from models.research_paper import ResearchPaper
 from models.collaboration_request import CollaborationRequest
 from models.research_collaboration import ResearchCollaboration
 
+print("Loading conftest.py")
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_database():
+    print("Creating tables")
     # Create all tables before tests start
     Base.metadata.drop_all(bind=engine)  # Ensure clean state
     Base.metadata.create_all(bind=engine)
