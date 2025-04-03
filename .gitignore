@@ -91,3 +91,6 @@ uploads/profile_pictures/*
 uploads/media/*
 uploads/document/*
 !.gitkeep  # Allows keeping empty dirs if you add .gitkeep files
+
+test_auth.py
+test_connections.py
