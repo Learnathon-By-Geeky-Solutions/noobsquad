@@ -11,7 +11,7 @@ from main import app
 # Import all models to register with Base
 from models.user import User
 from models.connection import Connection
-from models.chat import Chat  # Verify this matches your chat.py
+from models.chat import Message # Verify this matches your chat.py
 from models.post import Post
 from models.notifications import Notification
 # Add other models from your coverage report if missing
