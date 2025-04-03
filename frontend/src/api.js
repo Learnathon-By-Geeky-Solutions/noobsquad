@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:8000"; // Update if needed
+const API_BASE_URL = 'http://127.0.0.1:8000/'; // Update if needed
 
 // ✅ Create an Axios instance with JWT Authorization
 const api = axios.create({
