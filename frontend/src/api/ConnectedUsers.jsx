@@ -18,28 +18,23 @@ const fetchUserDetails = async (userId) => {
 };
 
 const fetchConnectedUsers = async () => {
-  try {
-    const token = localStorage.getItem("token");
-    const currentUserId = parseInt(localStorage.getItem("user_id"));
-    const response = await axios.get(
-      "http://127.0.0.1:8000/connections/connections/",
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+  const token = localStorage.getItem("token");
+  const currentUserId = parseInt(localStorage.getItem("user_id"));
+  const response = await axios.get(
+    "http://127.0.0.1:8000/connections/connections/",
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
 
-    if (!Array.isArray(response.data)) throw new Error("Unexpected API response format");
+  if (!Array.isArray(response.data)) throw new Error("Unexpected API response format");
 
-    const friendIds = new Set();
-    response.data.forEach((conn) => {
-      if (conn.user_id === currentUserId) friendIds.add(conn.friend_id);
-      else if (conn.friend_id === currentUserId) friendIds.add(conn.user_id);
-    });
+  const friendIds = new Set();
+  response.data.forEach((conn) => {
+    if (conn.user_id === currentUserId) friendIds.add(conn.friend_id);
+    else if (conn.friend_id === currentUserId) friendIds.add(conn.user_id);
+  });
 
-    const users = await Promise.all([...friendIds].map(fetchUserDetails));
-    return users;
-  } catch (error) {
-    console.error("Error fetching connected users:", error.message);
-    return [];
-  }
+  const users = await Promise.all([...friendIds].map(fetchUserDetails));
+  return users;
 };
 
 const ConnectedUsers = () => {
@@ -71,15 +66,15 @@ const ConnectedUsers = () => {
             key={friend.id}
             className="bg-white shadow-md rounded-xl p-6 flex flex-col items-center text-center hover:shadow-lg transition"
           >
-            <img       
-          src={
-            friend.profile_picture
+            <img
+              src={
+                friend.profile_picture
                   ? `http://127.0.0.1:8000/uploads/profile_pictures/${friend.profile_picture}`
                   : "/default-avatar.png"
-            }
-                alt="Profile"
-                className="w-20 h-20 rounded-full object-cover border-2 border-blue-500 mb-3 mx-auto"
-             />
+              }
+              alt="Profile"
+              className="w-20 h-20 rounded-full object-cover border-2 border-blue-500 mb-3 mx-auto"
+            />
             <h3 className="text-lg font-semibold text-gray-800">{friend.username}</h3>
 
             <button
