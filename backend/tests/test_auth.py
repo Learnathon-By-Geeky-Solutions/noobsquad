@@ -4,11 +4,12 @@ import pytest
 import uuid
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 from models.user import User
 from core.security import hash_password
 
 # Add backend directory to sys.path
-sys.path.append(str(Path(__file__).resolve().parents[1]))
+
 
 from main import app
 
