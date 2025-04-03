@@ -41,7 +41,7 @@ jobs:
           pip install pytest coverage
           pytest tests --cov=. --cov-report=xml --cov-report=term-missing  # Backend coverage report for Python
         env:
-           DATABASE_URL: "sqlite:///:memory:"
+           DATABASE_URL: "postgresql://postgres:anish50@localhost:5432/uhubdatabase"
       # Run SonarCloud scan with coverage report
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
