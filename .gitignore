@@ -92,5 +92,3 @@ uploads/media/*
 uploads/document/*
 !.gitkeep  # Allows keeping empty dirs if you add .gitkeep files
 
-backend/tests/test_auth.py
-backend/tests/test_connections.py
