@@ -12,12 +12,6 @@ def client():
     with TestClient(app) as client:
         yield client
 
-@pytest.fixture(autouse=True)
-def setup_database():
-    Base.metadata.create_all(bind=engine)
-    yield
-    Base.metadata.drop_all(bind=engine)
-
 def test_cors_middleware(client):
     response = client.options(
         "/auth/login",

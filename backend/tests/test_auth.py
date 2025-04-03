@@ -3,23 +3,22 @@ from pathlib import Path
 import pytest
 import uuid
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 # Add backend directory to sys.path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from main import app
-from database.session import SessionLocal, Base, engine
+from database.session import SessionLocal, engine
 from models.user import User
 from core.security import hash_password
-from sqlalchemy.orm import Session
 
 # Initialize FastAPI test client
-client = TestClient(app)
+@pytest.fixture
+def client():
+    return TestClient(app)
 
-# Ensure tables exist before testing
-Base.metadata.create_all(bind=engine)
-
-# Dependency override to use testing DB session
+# Dependency override for DB session
 def override_get_db():
     db = SessionLocal()
     try:
@@ -34,9 +33,8 @@ app.dependency_overrides[Session] = override_get_db
 # 🔧 Fixture for test user
 # ----------------------
 @pytest.fixture
-def test_user():
-    db: Session = SessionLocal()
-    user = db.query(User).filter(User.username == "testuser").first()
+def test_user(db_session: Session):
+    user = db_session.query(User).filter(User.username == "testuser").first()
     if not user:
         user = User(
             username="testuser",
@@ -44,16 +42,26 @@ def test_user():
             hashed_password=hash_password("testpass"),
             profile_completed=True
         )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-    db.close()
+        db_session.add(user)
+        db_session.commit()
+        db_session.refresh(user)
     return user
+
+# ----------------------
+# 🔧 Fixture for DB session (replaces direct SessionLocal usage)
+# ----------------------
+@pytest.fixture
+def db_session():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 # ----------------------
 # ✅ Test user signup
 # ----------------------
-def test_signup():
+def test_signup(client: TestClient):
     unique_username = f"user_{uuid.uuid4().hex[:8]}"
     unique_email = f"{unique_username}@example.com"
 
@@ -71,7 +79,7 @@ def test_signup():
 # ----------------------
 # ✅ Test login success
 # ----------------------
-def test_login_success(test_user):
+def test_login_success(client: TestClient, test_user: User):
     response = client.post(
         "/auth/token",
         data={
@@ -87,7 +95,7 @@ def test_login_success(test_user):
 # ----------------------
 # ✅ Test fetch current user
 # ----------------------
-def test_get_current_user(test_user):
+def test_get_current_user(client: TestClient, test_user: User):
     token_response = client.post(
         "/auth/token",
         data={
