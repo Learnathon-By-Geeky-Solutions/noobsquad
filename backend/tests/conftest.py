@@ -2,6 +2,8 @@ import pytest
 from sqlalchemy.orm import Session
 from fastapi.testclient import TestClient
 import sys
+from pathlib import Path
+from fastapi import Depends
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 from database.session import engine, Base, SessionLocal
 from main import app
