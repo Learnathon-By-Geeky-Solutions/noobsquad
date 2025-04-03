@@ -10,22 +10,8 @@ from sqlalchemy.orm import Session
 from models.user import User
 from models.connection import Connection
 from core.security import hash_password
+
 from main import app
-
-# Initialize FastAPI test client as a fixture
-@pytest.fixture
-def client():
-    return TestClient(app)
-
-# Dependency override for DB session (moved to conftest.py, but kept here for reference)
-@pytest.fixture
-def db_session():
-    from database.session import SessionLocal
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 # Fixture to create a test user
 @pytest.fixture
@@ -73,7 +59,6 @@ def jwt_token(test_user: User, client: TestClient):
 
 # Test the `/connections/accept/{request_id}` endpoint
 def test_accept_connection(test_user: User, friend_user: User, db_session: Session, client: TestClient, jwt_token: str):
-    # Create a pending connection request
     connection = Connection(user_id=test_user.id, friend_id=friend_user.id, status="pending")
     db_session.add(connection)
     db_session.commit()
@@ -88,7 +73,6 @@ def test_accept_connection(test_user: User, friend_user: User, db_session: Sessi
 
 # Test the `/connections/reject/{request_id}` endpoint
 def test_reject_connection(test_user: User, friend_user: User, db_session: Session, client: TestClient, jwt_token: str):
-    # Create a pending connection request
     connection = Connection(user_id=test_user.id, friend_id=friend_user.id, status="pending")
     db_session.add(connection)
     db_session.commit()
@@ -101,9 +85,8 @@ def test_reject_connection(test_user: User, friend_user: User, db_session: Sessi
     assert response.status_code == 200
     assert "Connection rejected!" in response.json()["message"]
 
-# Test the `/connections/connections` endpoint to fetch user connections
+# Test the `/connections/connections` endpoint
 def test_list_connections(test_user: User, friend_user: User, db_session: Session, client: TestClient, jwt_token: str):
-    # Create an accepted connection
     connection = Connection(user_id=test_user.id, friend_id=friend_user.id, status="accepted")
     db_session.add(connection)
     db_session.commit()
@@ -114,11 +97,10 @@ def test_list_connections(test_user: User, friend_user: User, db_session: Sessio
     )
     assert response.status_code == 200
     connections = response.json()
-    assert len(connections) > 0  # Ensure at least one connection is returned
+    assert len(connections) > 0
 
-# Test the `/connections/users` endpoint to fetch users excluding current connections
+# Test the `/connections/users` endpoint
 def test_get_users(test_user: User, friend_user: User, db_session: Session, client: TestClient, jwt_token: str):
-    # Create an accepted connection
     connection = Connection(user_id=test_user.id, friend_id=friend_user.id, status="accepted")
     db_session.add(connection)
     db_session.commit()
@@ -129,9 +111,9 @@ def test_get_users(test_user: User, friend_user: User, db_session: Session, clie
     )
     assert response.status_code == 200
     users = response.json()
-    assert len(users) >= 0  # Could be 0 if all users are connected, so >= is safer
+    assert len(users) >= 0
 
-# Test the `/connections/user/{user_id}` endpoint to fetch a specific user
+# Test the `/connections/user/{user_id}` endpoint
 def test_get_user(test_user: User, friend_user: User, client: TestClient, jwt_token: str):
     response = client.get(
         f"/connections/user/{friend_user.id}",

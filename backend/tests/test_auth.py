@@ -4,30 +4,13 @@ import pytest
 import uuid
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
+from models.user import User
+from core.security import hash_password
 
 # Add backend directory to sys.path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from main import app
-from database.session import SessionLocal, engine
-from models.user import User
-from core.security import hash_password
-
-# Initialize FastAPI test client
-@pytest.fixture
-def client():
-    return TestClient(app)
-
-# Dependency override for DB session
-def override_get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-# Override DB session dependency globally
-app.dependency_overrides[Session] = override_get_db
 
 # ----------------------
 # 🔧 Fixture for test user
@@ -46,17 +29,6 @@ def test_user(db_session: Session):
         db_session.commit()
         db_session.refresh(user)
     return user
-
-# ----------------------
-# 🔧 Fixture for DB session (replaces direct SessionLocal usage)
-# ----------------------
-@pytest.fixture
-def db_session():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 # ----------------------
 # ✅ Test user signup
