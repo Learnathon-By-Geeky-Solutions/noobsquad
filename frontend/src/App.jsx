@@ -46,6 +46,7 @@ function AppContent() {
         />
         <Route path="/share/:shareToken" element={<SharedPost />} />
         <Route path="*" element={<Navigate to="/" />} />
+
       </Routes>
 
       {/* ✅ Only show global chat popups if logged in */}

@@ -8,11 +8,13 @@ import {
   MessageCircle,
   Book,
   Users,
+  Bell,
   UserPlus
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useChat } from "../context/ChatContext"; // ✅ Chat context
+import NotificationBell from "./notifications/notificationbell";
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -95,6 +97,10 @@ const Navbar = () => {
               <Search className="w-5 h-5" />
               Search
             </Link>
+            <div className="relative flex items-center gap-1 text-gray-700 hover:text-blue-600 transition">
+              <Bell className="w-5 h-5 cursor-pointer" />
+              {user && <NotificationBell userId={user.id} />}
+            </div>
             <Link to="/dashboard/AboutMe" className="flex items-center gap-1 text-gray-700 font-medium cursor-pointer">
               <UserCircle className="w-5 h-5" />
               Me

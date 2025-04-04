@@ -15,6 +15,8 @@ class NotificationResponse(BaseModel):
     post_id: int | None
     is_read: bool
     created_at: datetime
+    actor_username: str  # <-- Add this
+    actor_image_url: str
 
     class Config:
         from_attributes = True

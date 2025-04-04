@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
 import api from "../api/axios";
-import { FaSave, FaTimes, FaEllipsisV, FaHeart, FaRegHeart, FaComment, FaShare } from "react-icons/fa";
+import { FaSave, FaTimes, FaEllipsisV, FaHeart, FaRegHeart, FaComment, FaShare, FaThumbsUp  } from "react-icons/fa";
 import { DateTime } from "luxon";
 import { useAuth } from "../context/AuthContext";
 import ShareBox from "./ShareBox"; // Import the ShareBox component
 import PropTypes from "prop-types";
+import { TimeAgo } from "../utils/TimeUtils";
 
 
-const Post = ({ post, onUpdate, onDelete }) => {
+const Post =  React.forwardRef(({ post, onUpdate, onDelete, id }, ref) => {
   const { user } = useAuth();
   const { post_type, created_at, user: postUser, event } = post ;
 
@@ -257,38 +258,9 @@ const Post = ({ post, onUpdate, onDelete }) => {
   };
 
 
-  const TimeAgo = (dateString) => {
-    // Convert to UTC first and then to the user's local timezone
-    const date = DateTime.fromISO(dateString, { zone: 'utc' });  // Parse as UTC
-    const localDate = date.setZone(Intl.DateTimeFormat().resolvedOptions().timeZone);  // Convert to local timezone
-  
-    const now = DateTime.local();  // Get current time in local timezone
-    const seconds = Math.floor(now.diff(localDate, 'seconds').seconds); // Calculate difference in seconds
-  
-    const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
-  
-    const timeUnits = [
-      { name: 'year', seconds: 60 * 60 * 24 * 365 },
-      { name: 'month', seconds: 60 * 60 * 24 * 30 },
-      { name: 'day', seconds: 60 * 60 * 24 },
-      { name: 'hour', seconds: 60 * 60 },
-      { name: 'minute', seconds: 60 },
-      { name: 'second', seconds: 1 },
-    ];
-  
-    for (const unit of timeUnits) {
-      if (Math.abs(seconds) >= unit.seconds) {
-        const timeValue = Math.round(seconds / unit.seconds);
-        return rtf.format(timeValue, unit.name);
-      }
-    }
-  };
-
-
-
-
 return (
-  <div className="bg-white shadow-md rounded-lg p-4 mb-4 relative">
+  <div ref={ref} id={id} className="bg-white shadow-md rounded-lg p-4 mb-4 relative">
+    
     {/* Post Header */}
     <div className="flex justify-between items-center mb-3">
       <div className="flex items-center">
@@ -458,7 +430,7 @@ return (
           onClick={() => handleLike(post.id)}
           className="flex items-center text-gray-700"
         >
-          {liked ? <FaHeart className="text-red-500" /> : <FaRegHeart className="text-gray-500" />}
+          {liked ? <FaThumbsUp className="text-blue-600" /> : <FaThumbsUp className="text-gray-600" />}
         </button>
       </div>
 
@@ -598,8 +570,8 @@ return (
     
 
   </div>
-);
+  );
 
-}
+});
 
 export default Post;
