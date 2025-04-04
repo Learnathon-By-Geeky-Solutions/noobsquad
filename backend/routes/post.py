@@ -144,6 +144,36 @@ def send_post_notifications(db: Session, user: User, post: Post):
 
     db.commit()  # ✅ Commit once after all notifications are added
 
+@router.get("/{post_id}")
+def get_single_post(
+    post_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    post = db.query(Post).filter(Post.id == post_id).first()
+
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    user_liked = get_user_like_status(post.id, current_user.id, db)
+
+    post_data = {
+        "id": post.id,
+        "post_type": post.post_type,
+        "content": post.content,
+        "created_at": post.created_at,
+        "user": {
+            "id": post.user.id,
+            "username": post.user.username,
+            "profile_picture": f"http://127.0.0.1:8000/uploads/profile_pictures/{post.user.profile_picture}"
+        },
+        "total_likes": post.like_count,
+        "user_liked": user_liked
+    }
+
+    post_data.update(get_post_additional_data(post, db))
+
+    return post_data
 
 
 @router.post("/create_text_post/", response_model=PostResponse)

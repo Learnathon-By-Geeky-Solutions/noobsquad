@@ -43,6 +43,7 @@ frontend/.cache/
 frontend/coverage/*
 frontend/coverage/lcov.info
 
+
 # Optional lock files (use only one depending on your package manager)
 frontend/package-lock.json
 frontend/yarn.lock
@@ -60,6 +61,7 @@ backend/__pycache__/
 **/__pycache__/
 *.py[cod]
 *.pyo
+backend/coverage_html/
 
 # Compiled binaries
 *.so
@@ -83,3 +85,9 @@ backend/.pytest_cache/
 
 # Alembic / Django migrations
 backend/migrations/
+
+# Uploaded files
+uploads/profile_pictures/*
+uploads/media/*
+uploads/document/*
+!.gitkeep  # Allows keeping empty dirs if you add .gitkeep files
