@@ -99,21 +99,29 @@ const ProfileCard = () => {
             className="w-24 h-24 rounded-full object-cover border-2 border-gray-300"
           />
 
-          {/* Hover Overlay - only shows over the image */}
-          <div
-            className="absolute inset-0 rounded-full bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition duration-300 cursor-pointer"
-            onClick={triggerFileInput}
-          >
-            <Camera className="text-white w-6 h-6" />
-          </div>
+        {/* Hover Overlay - only shows over the image */}
+        <div
+          className="absolute inset-0 rounded-full bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition duration-300 cursor-pointer"
+          onClick={triggerFileInput}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              triggerFileInput();
+            }
+          }}
+          tabIndex={0} // Makes the div focusable for keyboard navigation
+          role="button" // Specifies this is a button-like element
+          aria-label="Change profile picture" // Describes the action for screen readers
+        >
+          <Camera className="text-white w-6 h-6" />
+        </div>
 
-          <input
-            type="file"
-            accept="image/*"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            className="hidden"
-          />
+        <input
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          className="hidden"
+        />
         </div>
 
         {/* Popup to confirm new image */}
