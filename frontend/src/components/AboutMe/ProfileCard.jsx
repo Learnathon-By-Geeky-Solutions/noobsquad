@@ -28,6 +28,12 @@ const ProfileCard = () => {
         setError(err.response?.data?.detail || "Failed to connect to server");
       });
   }, []);
+  // 🔐 Utility function for URL sanitization
+  const sanitizeUrl = (url) => {
+    if (!url || typeof url !== 'string') return '/default-avatar.png';
+    const sanitized = url.trim().replace(/javascript:/gi, '');
+    return sanitized;
+  };
 
   const triggerFileInput = () => {
     fileInputRef.current.click();
@@ -92,7 +98,7 @@ const ProfileCard = () => {
         {/* Profile Picture Container */}
         <div className="relative group w-24 h-24 rounded-full">
           <img
-            src={previewURL || currentPicture}
+            src={sanitizeUrl(previewURL || currentPicture)}
             alt="Profile"
             className="w-24 h-24 rounded-full object-cover border-2 border-gray-300"
           />
@@ -118,7 +124,7 @@ const ProfileCard = () => {
         {showEditPopup && previewURL && (
           <div className="absolute top-28 w-60 bg-white border border-gray-300 rounded-xl shadow-lg p-4 z-10 flex flex-col items-center">
             <img
-              src={previewURL}
+              src={sanitizeUrl(previewURL)}
               alt="New Preview"
               className="w-20 h-20 rounded-full object-cover mb-3 border"
             />
