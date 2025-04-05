@@ -3,6 +3,7 @@ import axios from "axios";
 import {
   Mail, University, User, Camera
 } from "lucide-react";
+import { sanitizeUrl } from "../../utils/SanitizeUrl";
 
 const ProfileCard = () => {
   const [user, setUser] = useState(null);
@@ -28,12 +29,7 @@ const ProfileCard = () => {
         setError(err.response?.data?.detail || "Failed to connect to server");
       });
   }, []);
-  // 🔐 Utility function for URL sanitization
-  const sanitizeUrl = (url) => {
-    if (!url || typeof url !== 'string') return '/default-avatar.png';
-    const sanitized = url.trim().replace(/javascript:/gi, '');
-    return sanitized;
-  };
+
 
   const triggerFileInput = () => {
     fileInputRef.current.click();
