@@ -1,75 +1,19 @@
-import PropTypes from "prop-types";
-import { Routes, Route, NavLink } from "react-router-dom";
+import ResearchTabView from "../ResearchTabView";
+import { Upload, FilePlus, Handshake, FlaskConical } from "lucide-react";
 import UploadPaper from "../../api/UploadPaper";
 import PostResearch from "../../api/PostResearch";
 import CollaborationRequests from "../../api/CollaborationRequests";
 import FetchUserPapers from "../../api/FetchUserPapers";
 
-import { Upload, FilePlus, Handshake, FlaskConical, Loader2 } from "lucide-react";
+const tabs = [
+  { path: "upload", label: "Upload Paper", icon: Upload, element: <UploadPaper /> },
+  { path: "post-research", label: "Post Current Work", icon: FilePlus, element: <PostResearch /> },
+  { path: "collab-requests", label: "Collab Requests", icon: Handshake, badge: 3, element: <CollaborationRequests /> },
+  { path: "my_post_research_papers", label: "Currently Working", icon: FlaskConical, element: <FetchUserPapers /> },
+];
 
-const ResearchProfile = () => {
-  return (
-    <div className="bg-gray-50 min-h-screen mt-20 md:mt-24">
-      <div className="pt-6 pb-2 text-center">
-        <h1 className="text-2xl font-bold text-gray-800">My Research</h1>
-      </div>
-
-      <div className="bg-white shadow-sm rounded-xl mx-auto max-w-6xl px-4 py-4 mb-6">
-        <ul className="flex flex-wrap justify-center gap-4">
-          <NavTab to="/dashboard/AboutMe/upload" label="Upload Paper" icon={Upload} />
-          <NavTab to="/dashboard/AboutMe/post-research" label="Post Current Work" icon={FilePlus} />
-          <NavTab to="/dashboard/AboutMe/collab-requests" label="Collab Requests" icon={Handshake} badge={3} />
-          <NavTab to="/dashboard/AboutMe/my_post_research_papers" label="Currently Working" icon={FlaskConical} />
-        </ul>
-      </div>
-
-      <div className="max-w-6xl mx-auto p-6 bg-white shadow rounded-lg">
-        <Routes>
-          <Route path="upload" element={<UploadPaper />} />
-          <Route path="post-research" element={<PostResearch />} />
-          <Route path="collab-requests" element={<CollaborationRequests />} />
-          <Route path="my_post_research_papers" element={<FetchUserPapers />} />
-        </Routes>
-      </div>
-    </div>
-  );
-};
-
-// ✅ NavTab Component (Same as Before)
-const NavTab = ({ to, label, icon: Icon, loading = false, badge = null }) => (
-  <li>
-    <NavLink
-      to={to}
-      className={({ isActive }) =>
-        `relative inline-flex items-center gap-2 px-4 py-2 rounded-full font-medium text-sm transition ${
-          isActive
-            ? "bg-blue-600 text-white shadow"
-            : "bg-gray-100 text-gray-700 hover:bg-blue-100 hover:text-blue-600"
-        }`
-      }
-    >
-      {loading ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
-      ) : (
-        <Icon className="w-4 h-4" />
-      )}
-      {label}
-      {badge !== null && (
-        <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-semibold">
-          {badge}
-        </span>
-      )}
-    </NavLink>
-  </li>
+const ResearchProfile = () => (
+  <ResearchTabView title="My Research" basePath="/dashboard/AboutMe" tabs={tabs} />
 );
-
-// ✅ PropTypes Validation
-NavTab.propTypes = {
-  to: PropTypes.string.isRequired,
-  label: PropTypes.string.isRequired,
-  icon: PropTypes.elementType.isRequired,
-  loading: PropTypes.bool,
-  badge: PropTypes.number,
-};
 
 export default ResearchProfile;
