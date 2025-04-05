@@ -50,6 +50,7 @@ const UserProfile = () => {
         </div>
         {activeTab === "posts" ? (
         <> 
+          <div className="-mt-20 md:-mt-24"><CreatePost /></div>
           <Posts userId={user.id} />
         </>
       ) : (
