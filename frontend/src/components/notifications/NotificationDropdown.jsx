@@ -75,10 +75,20 @@ const NotificationDropdown = ({ userId, onRead }) => {
           <div
             key={notif.id}
             onClick={() => handleNotificationClick(notif.post_id, notif.id)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                handleNotificationClick(notif.post_id, notif.id);
+              }
+            }}
+            tabIndex={0} // Makes the div focusable for keyboard navigation
+            role="button" // Indicates that this element acts like a button
+            aria-label={`Notification about post ${notif.post_id}`} // Describes the action for screen readers
             className={`flex items-start gap-3 p-3 border-b cursor-pointer transition-all relative hover:bg-gray-50 ${
               notif.is_read ? 'bg-white text-gray-600' : 'bg-blue-50 text-gray-800'
             }`}
           >
+            {/* Notification content here */}
+          
             {/* Avatar */}
             <img
               src={notif.actor_image_url || "/default-avatar.png"} // fallback image

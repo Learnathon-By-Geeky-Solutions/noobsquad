@@ -100,10 +100,10 @@ const Feed = () => {
   
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
-        el.classList.add("bg-blue-200", "transition");
+        el.classList.add("bg-yellow-200", "transition");
   
         setTimeout(() => {
-          el.classList.remove("bg-blue-200");
+          el.classList.remove("bg-yellow-200");
         }, 3000);
       }
   
