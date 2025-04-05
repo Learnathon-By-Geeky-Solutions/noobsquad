@@ -8,7 +8,6 @@ import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Home from "./Newsfeed";
 import UserProfile from "../components/AboutMe/AboutMe";
-import NotificationBell from "../components/notifications/notificationbell";
 
 const Dashboard = () => {
   const { user } = useAuth();
