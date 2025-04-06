@@ -4,6 +4,7 @@ from database.session import engine, Base
 from api.v1.endpoints import auth, connections, research, chat
 from routes import profile, post, postReaction, notification
 from fastapi.staticfiles import StaticFiles
+from api.v1.endpoints import search
 
 
 
@@ -33,4 +34,5 @@ app.include_router(connections.router, prefix="/connections", tags=["Connections
 app.include_router(research.router, prefix="/research", tags=["Research"])
 app.include_router(chat.router, prefix="/chat", tags=["Chat"])
 app.include_router(notification.router, prefix="/notifications", tags=["Notifications"])
+app.include_router(search.router, prefix="/search", tags=["Search"])
 
