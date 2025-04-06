@@ -93,7 +93,7 @@ const Navbar = () => {
                 </span>
               )}
             </div>
-            <Link to="/dashboard" className="flex items-center gap-1 text-gray-700 hover:text-blue-600 transition">
+            <Link to="/dashboard/search" className="flex items-center gap-1 text-gray-700 hover:text-blue-600 transition">
               <Search className="w-5 h-5" />
               Search
             </Link>

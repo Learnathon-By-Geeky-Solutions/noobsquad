@@ -45,7 +45,7 @@ const CreateEventForm = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white rounded-md shadow-md mt-10 md:mt-24">
+    <div className="max-w-2xl mx-auto p-6 bg-white rounded-md shadow-md mt-0">
       <h2 className="text-2xl font-semibold mb-4">Create Event Post</h2>
       {error && <div className="text-red-500 mb-4">{error}</div>}
       <form onSubmit={handleSubmit}>
@@ -116,18 +116,6 @@ const CreateEventForm = () => {
             className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-          />
-        </div>
-
-        <div className="mb-4">
-          <label htmlFor="content" className="block text-sm font-medium text-gray-700">
-            Content (Optional)
-          </label>
-          <textarea
-            id="content"
-            className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
           />
         </div>
 
