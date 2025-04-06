@@ -11,6 +11,7 @@ import UserProfile from "../components/AboutMe/AboutMe";
 import CreateEventForm from "../components/Events/CreateEventForm";
 import EventPosts from "../components/Events/EventList";
 import PostAndEventLayout from "../components/Homepage/PostAndEventLayout";
+import Search from "../components/Search/Search"; 
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -57,6 +58,7 @@ const Dashboard = () => {
         <Route path="events" element={<CreateEventForm />} /> 
         <Route path="eventposts" element={<EventPosts />} /> 
         <Route path="home" element={<PostAndEventLayout />} /> 
+        <Route path="search" element={<Search />} />
       </Routes>
     </div>
   );

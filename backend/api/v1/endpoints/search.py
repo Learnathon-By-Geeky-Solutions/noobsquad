@@ -64,7 +64,7 @@ def search_by_keyword(
 
         # Search posts by content or user
         posts = db.query(Post).filter(
-            (Post.content.ilike(f"%{keyword}%")) |
+            (Post.content.ilike(f"%{keyword}%")& (Post.event == None)) |
             (Post.user.has(User.username.ilike(f"%{keyword}%")))
         ).all()
 
