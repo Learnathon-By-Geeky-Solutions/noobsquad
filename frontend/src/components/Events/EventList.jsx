@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../../api"; // Your custom axios API instance
-import { ThumbsUp, UserPlus, Calendar } from "lucide-react"; // Importing Lucide icons
+import { ThumbsUp, UserPlus } from "lucide-react"; // Importing Lucide icons
 
 const EventList = () => {
   const [events, setEvents] = useState([]);

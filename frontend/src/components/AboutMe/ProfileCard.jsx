@@ -100,20 +100,13 @@ const ProfileCard = () => {
           />
 
         {/* Hover Overlay - only shows over the image */}
-        <div
+        <button
           className="absolute inset-0 rounded-full bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition duration-300 cursor-pointer"
           onClick={triggerFileInput}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              triggerFileInput();
-            }
-          }}
-          tabIndex={0} // Makes the div focusable for keyboard navigation
-          role="button" // Specifies this is a button-like element
           aria-label="Change profile picture" // Describes the action for screen readers
         >
           <Camera className="text-white w-6 h-6" />
-        </div>
+        </button>
 
         <input
           type="file"
@@ -169,7 +162,7 @@ const ProfileCard = () => {
           {user.fields_of_interest
             ? user.fields_of_interest.split(",").map((field, index) => (
                 <span
-                  key={index}
+                  key={field.trim()}
                   className="bg-blue-100 text-blue-600 text-sm px-3 py-1 rounded-full"
                 >
                   {field.trim()}

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TimeAgo } from '../../utils/TimeUtils';
+import PropTypes from 'prop-types';
 
 
 const NotificationDropdown = ({ userId, onRead }) => {
@@ -114,6 +115,10 @@ const NotificationDropdown = ({ userId, onRead }) => {
     </div>
   );
   
+};
+NotificationDropdown.propTypes = {
+  userId: PropTypes.number.isRequired,
+  onRead: PropTypes.func.isRequired,
 };
 
 export default NotificationDropdown;

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import PropTypes from "prop-types";
 import api from "../../api/axios"; // Ensure the correct import path
 import Post from "../Post";
 
@@ -31,6 +32,9 @@ const Posts = ({ userId }) => {
       ))}
     </div>
   );
+};
+Posts.propTypes = {
+  userId: PropTypes.string, // Adjust the type based on your actual data type
 };
 
 export default Posts;

@@ -6,9 +6,9 @@ const CreateEventForm = () => {
   const [eventDescription, setEventDescription] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [eventTime, setEventTime] = useState("");
-  const [userTimezone, setUserTimezone] = useState("Asia/Dhaka");
+  const [userTimezone] = useState("Asia/Dhaka");
   const [location, setLocation] = useState("");
-  const [content, setContent] = useState("");
+  const [content] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 

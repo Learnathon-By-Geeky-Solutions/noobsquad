@@ -42,6 +42,7 @@ const ProfileSuggestedFriends = () => {
       });
       setConnectionStatus(prev => ({ ...prev, [userId]: "Pending" }));
     } catch (error) {
+      console.error("Error sending connection request:", error);
       setConnectionStatus(prev => ({ ...prev, [userId]: "Connect" }));
     }
   };

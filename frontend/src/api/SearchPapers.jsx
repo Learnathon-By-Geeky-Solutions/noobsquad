@@ -26,6 +26,7 @@ const SearchPapers = () => {
         setPapers(response.data);
       }
     } catch (error) {
+      console.error(error);
       setErrorMessage("Error fetching papers. Please try again.");
     } finally {
       setLoading(false);

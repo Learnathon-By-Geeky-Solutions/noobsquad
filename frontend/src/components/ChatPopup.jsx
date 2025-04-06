@@ -57,6 +57,7 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
           setMessages((prev) => [...prev, msg]);
         }
       } catch (err) {
+        console.error("Failed to parse message", err);
         console.warn("📭 Non-JSON message from server:", event.data);
       }
     };

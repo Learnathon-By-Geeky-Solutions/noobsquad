@@ -15,6 +15,7 @@ const SharePost = () => {
           setPost(response.data);
           console.log(response.data);
         } catch (error) {
+          console.error("Error fetching post:", error);
           setError("Post not found or link is invalid.");
         }
         setLoading(false);

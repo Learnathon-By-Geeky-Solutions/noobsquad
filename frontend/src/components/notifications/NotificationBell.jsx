@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import NotificationDropdown from './NotificationDropdown';
 
 const NotificationBell = ({ userId }) => {
@@ -39,5 +40,9 @@ const NotificationBell = ({ userId }) => {
     </div>
   );
 };
+NotificationBell.propTypes = {
+  userId: PropTypes.string.isRequired,
+};
+
 
 export default NotificationBell;

@@ -85,12 +85,7 @@ def like_action(like_data: LikeCreate, db: Session = Depends(get_db), current_us
     if like_data.post_id:
         post = db.query(Post).filter(Post.id == like_data.post_id).first()
         if post and post.user_id != current_user.id:  # Don't notify if liking own post
-            notification_data = NotificationCreate(
-                user_id=post.user_id,   # Receiver = Post Owner
-                actor_id=current_user.id,  # Action Performer = Liker
-                type="like",
-                post_id=post.id
-            )
+
             create_notification(
                 db=db,
                 recipient_id=post.user_id,  # The owner of the post being liked

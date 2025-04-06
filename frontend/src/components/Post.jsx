@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import api from "../api/axios";
-import { FaSave, FaTimes, FaEllipsisV, FaHeart, FaRegHeart, FaComment, FaShare, FaThumbsUp  } from "react-icons/fa";
+import { FaSave, FaTimes, FaEllipsisV, FaComment, FaShare, FaThumbsUp  } from "react-icons/fa";
 import { DateTime } from "luxon";
 import { useAuth } from "../context/AuthContext";
 import ShareBox from "./ShareBox"; // Import the ShareBox component
@@ -81,6 +81,7 @@ const Post =  React.forwardRef(({ post, onUpdate, onDelete, id }, ref) => {
     }).isRequired,
     onUpdate: PropTypes.func.isRequired,
     onDelete: PropTypes.func.isRequired,
+    id: PropTypes.string.isRequired, // Add validation for the 'id' prop
   };
   
   const isOwner = user?.id === postUser?.id;

@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session, joinedload
 from models.notifications import Notification
 from schemas.notification import NotificationCreate
-from datetime import datetime
+from datetime import datetime, timezone
 from models.user import User
 
 # Function to create a new notification
@@ -11,7 +11,7 @@ def create_notification(db: Session, recipient_id: int, actor_id: int, notif_typ
         actor_id=actor_id,  # Action performer
         type=notif_type,
         post_id=post_id,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
         is_read=False
     )
     db.add(new_notification)
