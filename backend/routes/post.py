@@ -275,7 +275,7 @@ async def create_event_post(
     event_description: str = Form(...),
     event_date: str = Form(...),   # ✅ Accepts date in "YYYY-MM-DD"
     event_time: str = Form(...),   # ✅ Accepts time in "HH:MM"
-    user_timezone: str = Form(...),  # ✅ User’s timezone (e.g., "Asia/Dhaka")
+    user_timezone: str = Form("Asia/Dhaka"),  # ✅ User’s timezone (e.g., "Asia/Dhaka")
     location: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -578,3 +578,13 @@ async def delete_post(
     db.commit()
 
     return {"message": "Post deleted successfully"}
+
+@router.get("/events/", response_model=List[EventResponse])
+async def get_all_events(
+    current_user: User = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
+    events = db.query(Event).all()  # Query all events from the Event table
+    if not events:
+        raise HTTPException(status_code=404, detail="No events found")
+    return events

@@ -8,6 +8,9 @@ import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Home from "./Newsfeed";
 import UserProfile from "../components/AboutMe/AboutMe";
+import CreateEventForm from "../components/Events/CreateEventForm";
+import EventPosts from "../components/Events/EventList";
+import PostAndEventLayout from "../components/Homepage/PostAndEventLayout";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -25,7 +28,7 @@ const Dashboard = () => {
   if (!user) return null;
 
   return (
-    <div className="flex flex-col bg-gray-100">
+    <div className="flex flex-col bg-gray-100" >
       <Navbar onLogoutChatClear={() => setSelectedUser(null)} />
 
       {/* Main Dashboard Content */}
@@ -51,6 +54,9 @@ const Dashboard = () => {
         <Route path="research/*" element={<Research />} />
         <Route path="posts/*" element={<Home />} />
         <Route path="AboutMe/*" element={<UserProfile />} /> 
+        <Route path="events" element={<CreateEventForm />} /> 
+        <Route path="eventposts" element={<EventPosts />} /> 
+        <Route path="home" element={<PostAndEventLayout />} /> 
       </Routes>
     </div>
   );
