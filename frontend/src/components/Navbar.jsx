@@ -32,10 +32,10 @@ const Navbar = () => {
 
   const handleHomeClick = (e) => {
     e.preventDefault(); // Prevent default link behavior
-    if (location.pathname === "/dashboard/posts") {
+    if (location.pathname === "/dashboard/home") {
       window.location.reload(); // ✅ Refresh only if already on posts page
     } else {
-      navigate("/dashboard/posts"); // ✅ Navigate if not on posts page
+      navigate("/dashboard/home"); // ✅ Navigate if not on posts page
     }
   };
 
@@ -73,7 +73,7 @@ const Navbar = () => {
       <div className="flex items-center gap-6">
         {user ? (
           <>
-            <Link to="/dashboard/posts" onClick={handleHomeClick} className="flex items-center gap-1 text-gray-700 hover:text-blue-600 transition">
+            <Link to="/dashboard/home" onClick={handleHomeClick} className="flex items-center gap-1 text-gray-700 hover:text-blue-600 transition">
               <Home className="w-5 h-5" />
               Home
             </Link>

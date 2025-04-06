@@ -38,7 +38,7 @@ const EventList = () => {
         events.map((event) => (
           <div
             key={event.id}
-            className="bg-white rounded-lg shadow-sm overflow-hidden transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-xl"
+            className="bg-white bg-black/10 rounded-lg shadow-sm overflow-hidden transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-xl"
           >
             <img
               src="https://via.placeholder.com/400" // Replace with event's actual image URL
@@ -47,20 +47,20 @@ const EventList = () => {
             />
             <div className="p-3">
               <div className="flex justify-between items-center">
-                <h2 className="text-sm font-semibold text-gray-800">{event.title}</h2>
+                <h2 className="text-sm font-semibold text-gray-900">{event.title}</h2>
                 {event.event_datetime === new Date().toISOString().split("T")[0] ? (
                   <span className="bg-red-500 text-white text-xs font-bold py-1 px-2 rounded-full">
                     Happening now
                   </span>
                 ) : (
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-gray-600">
                     {new Date(event.event_datetime).toLocaleDateString()}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-gray-600 mt-2">{event.description}</p>
+              <p className="text-xs text-gray-700 mt-2">{event.description}</p>
 
-              <div className="flex justify-between items-center mt-3 text-xs text-gray-700">
+              <div className="flex justify-between items-center mt-3 text-xs text-gray-800">
                 <div className="flex items-center">
                   <ThumbsUp className="w-4 h-4 mr-1 text-blue-500" />
                   <span>{event.interested} Interested</span>
@@ -76,7 +76,7 @@ const EventList = () => {
                 <button className="w-full flex items-center justify-center py-1 px-3 bg-blue-500 text-white rounded-lg transition-all duration-300 hover:bg-blue-600 text-xs">
                   <ThumbsUp className="w-4 h-4 mr-2" /> Interested
                 </button>
-                <button className="w-full flex items-center justify-center py-1 px-3 bg-gray-200 text-gray-800 rounded-lg transition-all duration-300 hover:bg-gray-300 text-xs">
+                <button className="w-full flex items-center justify-center py-1 px-3 bg-gray-600 text-white rounded-lg transition-all duration-300 hover:bg-gray-700 text-xs">
                   <UserPlus className="w-4 h-4 mr-2" /> Going
                 </button>
               </div>
@@ -84,7 +84,7 @@ const EventList = () => {
           </div>
         ))
       ) : (
-        <p>No events available.</p>
+        <p className="text-gray-700">No events available.</p>
       )}
     </div>
   );
