@@ -34,6 +34,7 @@ const CreateEventForm = () => {
 
       const data = await response.data;
       alert("Event created successfully!");
+      window.location.reload();
       console.log(data);
     } catch (err) {
       setError("An error occurred while creating the event.");
