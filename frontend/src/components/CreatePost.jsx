@@ -15,7 +15,8 @@ const CreatePost = ({ userProfile }) => {
   const [eventTime, setEventTime] = useState("");
   const [location, setLocation] = useState("");
   const [userTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
-  const [uploadProgress, setUploadProgress] = useState(0); // ✅ Used in JSX
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [errorMessage, setErrorMessage] = useState(null); // New state for error message
 
   CreatePost.propTypes = {
     userProfile: PropTypes.shape({
@@ -40,6 +41,7 @@ const CreatePost = ({ userProfile }) => {
     e.preventDefault();
     let formData = new FormData();
     setUploadProgress(0);
+    setErrorMessage(null); // Clear previous error
 
     try {
       let response;
@@ -49,7 +51,12 @@ const CreatePost = ({ userProfile }) => {
         response = await api.post(
           "/posts/create_text_post/",
           new URLSearchParams({ content }),
-          { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+          {
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+              Authorization: `Bearer ${token}`, // Add token if required by backend
+            },
+          }
         );
       } else {
         formData.append("content", content);
@@ -79,11 +86,16 @@ const CreatePost = ({ userProfile }) => {
       if (response?.data) {
         console.log("✅ Post created successfully:", response.data);
         resetForm();
+        window.location.reload(); // Reload only on success
       }
     } catch (error) {
       console.error("❌ Error creating post:", error);
+      if (error.response && error.response.status === 400) {
+        setErrorMessage(error.response.data.detail); // Display "Inappropriate content detected"
+      } else {
+        setErrorMessage("An unexpected error occurred. Please try again.");
+      }
     }
-    window.location.reload();
   };
 
   const resetForm = () => {
@@ -97,6 +109,7 @@ const CreatePost = ({ userProfile }) => {
     setLocation("");
     setPostType("text");
     setUploadProgress(0);
+    setErrorMessage(null); // Clear error on reset
   };
 
   return (
@@ -165,7 +178,6 @@ const CreatePost = ({ userProfile }) => {
         </div>
       )}
 
-      {/* ✅ Upload Progress Bar */}
       {uploadProgress > 0 && uploadProgress < 100 && (
         <div className="w-full bg-gray-200 rounded-full h-2.5 mt-4 mb-2">
           <div
@@ -173,6 +185,11 @@ const CreatePost = ({ userProfile }) => {
             style={{ width: `${uploadProgress}%` }}
           ></div>
         </div>
+      )}
+
+      {/* Display error message */}
+      {errorMessage && (
+        <p className="text-red-500 mt-2 text-center">{errorMessage}</p>
       )}
 
       <button onClick={handleSubmit} className="bg-blue-500 text-white px-4 py-2 rounded w-full">

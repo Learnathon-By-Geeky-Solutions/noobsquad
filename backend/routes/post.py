@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session, joinedload
 import shutil
 from core.connection_crud import get_connections
 from crud.notification import create_notification
+from AI.moderation import moderate_text
 
 router = APIRouter()
 
@@ -182,13 +183,19 @@ async def create_text_post(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Check if the content is inappropriate using the AI-based moderation function
+    if moderate_text(content):
+        raise HTTPException(status_code=400, detail="Inappropriate content detected")
+    
     new_post = Post(content=content, user_id=current_user.id, post_type="text")
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
     send_post_notifications(db, current_user, new_post)
 
-
+    # Add required fields dynamically
+    new_post.comment_count = 0
+    new_post.user_liked = False
     return new_post  # Returns as PostResponse schema
 
 
