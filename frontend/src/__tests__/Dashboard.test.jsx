@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import Dashboard from '../pages/Dashboard'; // Adjust path as needed
 import { useAuth } from '../context/AuthContext';
 
@@ -22,9 +22,12 @@ vi.mock('react-router-dom', async () => {
 
 // Mock components
 vi.mock('../components/Navbar', () => ({
-  default: ({ onLogoutChatClear }) => (
+  default: ({ onLogoutChatClear, onToggleChat }) => (
     <div data-testid="navbar">
       <button onClick={onLogoutChatClear}>Logout</button>
+      <button onClick={onToggleChat} data-testid="toggle-chat">
+        Toggle Chat
+      </button>
     </div>
   ),
 }));
@@ -107,6 +110,10 @@ describe('Dashboard Component', () => {
   it('shows ChatPopup when a user is selected', async () => {
     renderDashboard('/dashboard/chat');
 
+    // Toggle chat visibility to true
+    fireEvent.click(screen.getByTestId('toggle-chat'));
+
+    // Select a user
     const selectUserButton = screen.getByText('Select User');
     fireEvent.click(selectUserButton);
 
@@ -119,12 +126,19 @@ describe('Dashboard Component', () => {
   it('closes ChatPopup when close button is clicked', async () => {
     renderDashboard('/dashboard/chat');
 
+    // Toggle chat visibility to true
+    fireEvent.click(screen.getByTestId('toggle-chat'));
+
+    // Select a user
     fireEvent.click(screen.getByText('Select User'));
+
     await waitFor(() => {
       expect(screen.getByTestId('chat-popup')).toBeInTheDocument();
     });
 
+    // Close the chat popup
     fireEvent.click(screen.getByText('Close'));
+
     await waitFor(() => {
       expect(screen.queryByTestId('chat-popup')).not.toBeInTheDocument();
     });
@@ -133,12 +147,19 @@ describe('Dashboard Component', () => {
   it('clears selected user on logout', async () => {
     renderDashboard('/dashboard/chat');
 
+    // Toggle chat visibility to true
+    fireEvent.click(screen.getByTestId('toggle-chat'));
+
+    // Select a user
     fireEvent.click(screen.getByText('Select User'));
+
     await waitFor(() => {
       expect(screen.getByTestId('chat-popup')).toBeInTheDocument();
     });
 
+    // Trigger logout
     fireEvent.click(screen.getByText('Logout'));
+
     await waitFor(() => {
       expect(screen.queryByTestId('chat-popup')).not.toBeInTheDocument();
     });
