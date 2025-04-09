@@ -16,6 +16,7 @@ import axios from "axios";
 import { useChat } from "../context/ChatContext"; // ✅ Chat context
 import NotificationBell from "./notifications/notificationbell";
 
+
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();

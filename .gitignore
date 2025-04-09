@@ -87,7 +87,7 @@ backend/.pytest_cache/
 backend/migrations/
 
 # Uploaded files
-uploads/profile_pictures/*
-uploads/media/*
-uploads/document/*
+backend/uploads/profile_pictures/*
+backend/uploads/media/*
+backend/uploads/document/*
 !.gitkeep  # Allows keeping empty dirs if you add .gitkeep files

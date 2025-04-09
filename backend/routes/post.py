@@ -185,7 +185,7 @@ async def create_text_post(
 ):
     # Check if the content is inappropriate using the AI-based moderation function
     if moderate_text(content):
-        raise HTTPException(status_code=400, detail="Inappropriate content detected")
+        raise HTTPException(status_code=400, detail="Inappropriate content detected, Please revise your content")
     
     new_post = Post(content=content, user_id=current_user.id, post_type="text")
     db.add(new_post)

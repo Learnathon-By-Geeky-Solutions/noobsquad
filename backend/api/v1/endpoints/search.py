@@ -1,29 +1,17 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 from database.session import SessionLocal
 from typing import List
 from pydantic import BaseModel
-from models.connection import Connection
-from models.post import Post, Event
+from models.post import Post
 from core.dependencies import get_db
 import logging
 from models.user import User
 from api.v1.endpoints.auth import get_current_user
 
-
 router = APIRouter()
 
-# Define your Pydantic models for the response
-class ConnectionBase(BaseModel):
-    id: int
-    user_id: int
-    friend_id: int
-    status: str
-
-    class Config:
-        from_attributes = True
-
+# Pydantic model for the post response
 class PostBase(BaseModel):
     id: int
     user_id: int
@@ -33,85 +21,42 @@ class PostBase(BaseModel):
     like_count: int
 
     class Config:
-        from_attributes = True
+        from_attributes = True  # Allows mapping SQLAlchemy models to Pydantic
 
-class EventBase(BaseModel):
-    id: int
-    user_id: int
-    title: str
-    description: str
-    location: str
-
-    class Config:
-        from_attributes = True
-
-
-@router.get("/search")
-def search_by_keyword(
+@router.get("/search", response_model=dict[str, List[PostBase]])
+def search_posts_by_keyword(
     keyword: str = Query(..., min_length=1, title="Search Keyword"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    Search for posts and connections by a specific keyword.
+    Search for posts by a specific keyword in content or username.
+    Returns only posts for now, as per the requirement.
     """
     try:
-        # Search connections by username (both user and friend)
-        connections = db.query(Connection).filter(
-            (Connection.user.has(User.username.ilike(f"%{keyword}%"))) |
-            (Connection.friend.has(User.username.ilike(f"%{keyword}%")))
-        ).all()
-
-        # Search posts by content or user
+        # Search posts by content or username
         posts = db.query(Post).filter(
-            (Post.content.ilike(f"%{keyword}%")& (Post.event == None)) |
-            (Post.user.has(User.username.ilike(f"%{keyword}%")))
+            (Post.content.ilike(f"%{keyword}%") & (Post.event == None)) |  # Posts with matching content, not tied to events
+            (Post.user.has(User.username.ilike(f"%{keyword}%")))  # Posts by users with matching username
         ).all()
 
-        #Search events by title or description
-        events = db.query(Event).filter(
-            (Event.title.ilike(f"%{keyword}%")) |
-            (Event.description.ilike(f"%{keyword}%")) |
-            (Event.user.has(User.username.ilike(f"%{keyword}%")))
-        ).all()
+        # If no posts are found
+        if not posts:
+            return {"posts": []}  # Return empty list instead of raising 404, for simplicity
 
-        # If no results are found for both connections and posts
-        if not connections and not posts and not events:
-            raise HTTPException(status_code=404, detail="No results found")
-
-        # Prepare the results
+        # Prepare the response
         return {
-            "connections": [
-                {
-                    "id": connection.id,
-                    "user_id": connection.user_id,
-                    "friend_id": connection.friend_id,
-                    "status": connection.status
-                }
-                for connection in connections
-            ],
             "posts": [
                 {
                     "id": post.id,
                     "user_id": post.user_id,
                     "content": post.content,
                     "post_type": post.post_type,
-                    "created_at": post.created_at.isoformat(),
+                    "created_at": post.created_at.isoformat(),  # Convert datetime to string
                     "like_count": post.like_count
                 }
                 for post in posts
-            ],
-            "events": [
-                {
-                    "id": event.id,
-                    "user_id": event.user_id,
-                    "title": event.title,
-                    "description": event.description,
-                    "location":event.location
-                }
-                for event in events
             ]
-
         }
 
     except Exception as e:
