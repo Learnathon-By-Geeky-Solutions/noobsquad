@@ -4,7 +4,6 @@ load_dotenv()
 
 hf_key = os.getenv("HUGGINGFACE_API_KEY")
 os.environ["HUGGINGFACE_API_KEY"]= hf_key
-os.environ["LANGCHAIN_TRACING_V2"]="true"
 
 from fastapi import APIRouter,UploadFile, File, Form, Depends, HTTPException
 from schemas.huggingface import PromptRequest, PromptResponse, BotResponse
