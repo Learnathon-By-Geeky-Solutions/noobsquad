@@ -11,7 +11,6 @@ import UserProfile from "../components/AboutMe/AboutMe";
 import CreateEventForm from "../components/Events/CreateEventForm";
 import EventPosts from "../components/Events/EventList";
 import PostAndEventLayout from "../components/Homepage/PostAndEventLayout";
-import Search from "../components/Search/SearchResults"; 
 import SearchResults from "../components/Search/SearchResults";
 
 const Dashboard = () => {
