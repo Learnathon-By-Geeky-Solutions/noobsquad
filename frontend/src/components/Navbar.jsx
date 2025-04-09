@@ -10,11 +10,14 @@ import {
   Users,
   Bell,
   UserPlus,
+  Bot
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useChat } from "../context/ChatContext";
 import NotificationBell from "./notifications/notificationbell";
+import ChatPopupWrapper from "./AIPopup";
+
 import api from "../api/axios"; // Import your axios instance
 
 const Navbar = () => {
@@ -22,6 +25,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [totalUnread, setTotalUnread] = useState(0);
+  const [showAiChat, setShowAiChat] = useState(false);
   const [keyword, setKeyword] = useState(""); // Search keyword state
   const { resetChats } = useChat();
 
@@ -142,6 +146,14 @@ const Navbar = () => {
                 </span>
               )}
             </div>
+            <button
+              onClick={() => setShowAiChat((prev) => !prev)}
+              className="relative flex items-center gap-1 text-gray-700 hover:text-blue-600 transition transform hover:scale-105 animate-glow"
+            >
+              <Bot className="w-5 h-5 animate-pulse" />
+              <span className="font-semibold tracking-wide">AskU</span>
+              <span className="absolute -top-1 -right-2 w-2 h-2 bg-green-500 rounded-full animate-ping"></span>
+            </button>
             <div className="relative flex items-center gap-1 text-gray-700 hover:text-blue-600 transition">
               <Bell className="w-5 h-5 cursor-pointer" />
               {user && <NotificationBell userId={user.id} />}
@@ -179,6 +191,11 @@ const Navbar = () => {
           </>
         )}
       </div>
+      {showAiChat && (
+  <div className="fixed bottom-20 right-6 z-50">
+    <ChatPopupWrapper onClose={() => setShowAiChat(false)} />
+  </div>
+)}
     </nav>
   );
 };

@@ -1,3 +1,16 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@keyframes glow {
+    0%, 100% {
+      text-shadow: 0 0 5px #60a5fa, 0 0 10px #3b82f6, 0 0 20px #2563eb;
+    }
+    50% {
+      text-shadow: 0 0 10px #3b82f6, 0 0 20px #2563eb, 0 0 30px #1d4ed8;
+    }
+  }
+  
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite;
+  }

@@ -17,6 +17,8 @@ const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedUser, setSelectedUser] = useState(null);
+  const [isChatVisible, setIsChatVisible] = useState(false); // New state for chat visibility
+
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -29,25 +31,26 @@ const Dashboard = () => {
   if (!user) return null;
 
   return (
-    <div className="flex flex-col bg-gray-100" >
-      <Navbar onLogoutChatClear={() => setSelectedUser(null)} />
+    
+      <div className="flex flex-col bg-gray-100" >
+        <Navbar onLogoutChatClear={() => setSelectedUser(null)} onToggleChat={() => setIsChatVisible(!isChatVisible)} />
 
-      {/* Main Dashboard Content */}
-      <div className="flex flex-grow overflow-hidden">
-        {/* Sidebar - Only for Chat */}
-        <Routes>
-          <Route path="/chat" element={<ChatSidebar onSelectUser={(user) => setSelectedUser(user)} />} />
-        </Routes>
-      </div>
+        {/* Main Dashboard Content */}
+        <div className="flex flex-grow overflow-hidden">
+          {/* Sidebar - Only for Chat */}
+          <Routes>
+            <Route path="/chat" element={<ChatSidebar onSelectUser={(user) => setSelectedUser(user)} />} />
+          </Routes>
+        </div>
 
-      {/* ✅ Chat Popup shown only when logged in and user is selected */}
-      {user && selectedUser && (
-        <ChatPopup
-          user={selectedUser}
-          socket={null} // Replace with actual socket if available
-          onClose={() => setSelectedUser(null)}
-        />
-      )}
+        {/* ✅ Chat Popup shown only when logged in and user is selected */}
+        {user && selectedUser && isChatVisible && (
+          <ChatPopup
+            user={selectedUser}
+            socket={null} // Replace with actual socket if available
+            onClose={() => setSelectedUser(null)}
+          />
+        )}
 
       {/* Nested Routing */}
       <Routes>
