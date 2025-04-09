@@ -62,7 +62,7 @@ const RecentPapers = () => {
   );
 };
 
-const PaperCard = ({ paper }) => {
+export const PaperCard = ({ paper }) => {
   const [collabRequested, setCollabRequested] = useState(
     paper.can_request_collaboration !== undefined ? !paper.can_request_collaboration : false
   );
