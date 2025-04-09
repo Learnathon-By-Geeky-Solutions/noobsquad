@@ -12,7 +12,6 @@ import CreateEventForm from "../components/Events/CreateEventForm";
 import EventPosts from "../components/Events/EventList";
 import PostAndEventLayout from "../components/Homepage/PostAndEventLayout";
 import Search from "../components/Search/Search"; 
-import ChatPopupWrapper from "../components/AIPopup";
 
 
 const Dashboard = () => {
