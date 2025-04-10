@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Form, File, UploadFile, Query
 from sqlalchemy.orm import Session
-from typing import Optional, List
+from typing import Optional, List, Union
 import os
 import secrets
 from pathlib import Path
@@ -586,12 +586,19 @@ async def delete_post(
 
     return {"message": "Post deleted successfully"}
 
-@router.get("/events/", response_model=List[EventResponse])
-async def get_all_events(
-    current_user: User = Depends(get_current_user), 
+@router.get("/events/", response_model=Union[List[EventResponse], EventResponse])
+async def get_events(
+    event_id: Optional[int] = None,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    events = db.query(Event).all()  # Query all events from the Event table
-    if not events:
-        raise HTTPException(status_code=404, detail="No events found")
-    return events
+    if event_id is not None:
+        event = db.query(Event).filter(Event.id == event_id).first()
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
+        return event
+    else:
+        events = db.query(Event).all()
+        if not events:
+            raise HTTPException(status_code=404, detail="No events found")
+        return events
