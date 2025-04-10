@@ -110,7 +110,7 @@ const EventList = () => {
   }
 
   return (
-    <div className="max-w-full mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 mt-10">
+    <div className="max-w-full mx-auto grid grid-cols-1 sm:grid-cols-2 gap-2 mt-10">
       {events.length > 0 ? (
         events.map((event) => {
           const eventRsvp = rsvpStatus[event.id] || {};
@@ -118,10 +118,8 @@ const EventList = () => {
           const isGoing = eventRsvp.going || false;
 
           return (
-            
-
             <div
-              className="bg-white bg-black/10 rounded-lg shadow-sm overflow-hidden transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-xl"
+              className="bg-white bg-black/5 rounded-lg shadow-sm overflow-hidden transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-xl"
             >
               <img
                 src="https://via.placeholder.com/400"
