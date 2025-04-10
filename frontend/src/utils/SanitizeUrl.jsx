@@ -1,43 +1,35 @@
 /**
- * 🔐 Securely sanitizes URLs by blocking potentially malicious schemes.
- * Blocks: javascript:, data:, vbscript:, and ensures proper URL format.
+ * 🔐 Securely sanitizes URLs by allowing only trusted schemes (http, https).
+ * Rejects all other schemes to prevent execution of untrusted code.
  */
 export const sanitizeUrl = (url) => {
   // Return default if URL is invalid or not a string
   if (!url || typeof url !== 'string') return '/default-avatar.png';
 
-  // Decode the URL fully, trim whitespace, and normalize to lowercase
-  let decodedUrl = url;
+  // Trim whitespace from the URL
+  const trimmedUrl = url.trim();
+
+  // Use the URL API to parse the URL and extract the scheme (protocol)
+  let parsedUrl;
   try {
-    // Handle multiple layers of encoding by repeatedly decoding until no changes occur
-    while (decodedUrl !== decodeURIComponent(decodedUrl)) {
-      decodedUrl = decodeURIComponent(decodedUrl);
-    }
+    parsedUrl = new URL(trimmedUrl);
   } catch (e) {
-    // If decoding fails, return the default
+    // If the URL is malformed, return the default
     return '/default-avatar.png';
   }
 
-  // Normalize the URL
-  decodedUrl = decodedUrl.trim().toLowerCase();
-
-  // Block malicious schemes (javascript:, data:, vbscript:)
-  // Use a regex to catch variations and ensure we match the scheme properly
-  if (
-    decodedUrl.match(/^(javascript|data|vbscript):/i) || // Case-insensitive match for schemes
-    decodedUrl.includes('javascript:') || // Catch any occurrence of javascript: in the string
-    decodedUrl.includes('data:') || // Catch any occurrence of data: in the string
-    decodedUrl.includes('vbscript:') // Catch any occurrence of vbscript: in the string
-  ) {
+  // Whitelist: Allow only http and https schemes
+  const allowedSchemes = ['http:', 'https:'];
+  if (!allowedSchemes.includes(parsedUrl.protocol)) {
     return '/default-avatar.png';
   }
 
-  // Ensure valid http(s) URL format using a stricter regex
-  const urlPattern = /^https?:\/\/([a-zA-Z0-9\-]+\.)+[a-zA-Z]{2,}(\/.*)?$/;
-  if (!urlPattern.test(decodedUrl)) {
+  // Ensure the URL has a valid hostname (not empty, not just localhost)
+  const hostname = parsedUrl.hostname;
+  if (!hostname || hostname === 'localhost' || !hostname.includes('.')) {
     return '/default-avatar.png';
   }
 
-  // If all checks pass, return the original URL (not the decoded one, to preserve the original format)
-  return url;
+  // If all checks pass, return the original URL
+  return trimmedUrl;
 };
