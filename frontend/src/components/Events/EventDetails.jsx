@@ -1,10 +1,10 @@
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import api from "../../api"; // Your custom axios API instance
-import { MapPin, Clock, AlertCircle } from "lucide-react"; // Lucide icons for location, time, and error
+import api from "../../api";
+import { MapPin, Clock, AlertCircle, Users } from "lucide-react"; // Added Users for attendee count
 
 const EventDetails = () => {
-  const { eventId } = useParams(); // Get eventId from URL parameters
+  const { eventId } = useParams();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -12,7 +12,6 @@ const EventDetails = () => {
   useEffect(() => {
     const fetchEventDetails = async () => {
       try {
-        // Modified endpoint to match typical REST API pattern
         const response = await api.get(`/posts/events/?event_id=${eventId}`);
         setEvent(response.data);
       } catch (err) {
@@ -28,91 +27,116 @@ const EventDetails = () => {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-
-    // Get the day of the month
     const day = date.getDate();
-
-    // Get the month and convert it to a string (e.g., "April")
     const month = date.toLocaleString("default", { month: "long" });
-
-    // Get the year
     const year = date.getFullYear();
-
-    // Add the ordinal suffix (e.g., "st", "nd", "rd", "th")
-    const ordinalSuffix = (n) => {
-      const suffix = ["th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th"];
-      return n % 10 <= 3 && Math.floor(n / 10) !== 1 ? suffix[n % 10] : suffix[0];
-    };
-
-    // Combine the formatted date
+    const ordinalSuffix = (n) =>
+      ["th", "st", "nd", "rd"][(n % 10 <= 3 && Math.floor(n / 10) !== 1) ? n % 10 : 0];
     return `${day}${ordinalSuffix(day)} ${month}, ${year}`;
   };
 
   if (loading) {
     return (
-      <div className="text-center flex items-center justify-center h-screen">
-        <span className="text-2xl">Loading event details...</span>
+      <div className="flex items-center justify-center h-screen bg-gray-100">
+        <span className="text-xl text-gray-700">Loading event details...</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center text-red-600 flex items-center justify-center h-screen">
-        <AlertCircle className="w-6 h-6 mr-2" />
-        <span>{error}</span>
+      <div className="flex items-center justify-center h-screen bg-gray-100">
+        <AlertCircle className="w-6 h-6 text-red-600 mr-2" />
+        <span className="text-red-600">{error}</span>
       </div>
     );
   }
 
   if (!event) {
     return (
-      <div className="text-center text-gray-700">
-        <span>No event found!</span>
+      <div className="flex items-center justify-center h-screen bg-gray-100">
+        <span className="text-gray-700">No event found!</span>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex items-center justify-center bg-gray-100 md:mt-20">
-      <div className="max-w-4xl w-full p-8 bg-white rounded-xl shadow-2xl transform transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-xl">
-        {/* Page Name: "Event Details" */}
-        <h2 className="text-5xl text-gray-900 text-center mb-8">Event Details</h2>
+    <div className="min-h-screen bg-gray-100">
+      {/* Cover Photo */}
+      <div className="relative">
+        <img
+          src={event.image_url || "https://via.placeholder.com/1200x400"}
+          alt={event.title}
+          className="w-full h-80 object-cover"
+        />
+        {/* Event Title Overlay */}
+        <div className="absolute bottom-0 left-0 p-6 bg-gradient-to-t from-black/60 to-transparent w-full">
+          <h1 className="text-3xl md:text-4xl font-bold text-white">{event.title}</h1>
+        </div>
+      </div>
 
-        {/* Event Title */}
-        <div className="text-center mb-6">
-          <h2 className="text-4xl font-extrabold text-gray-900 mb-4">{event.title}</h2>
+      {/* Main Content */}
+      <div className="max-w-4xl mx-auto -mt-16 px-4 md:mt-5">
+        {/* Card Container */}
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          {/* Event Actions (RSVP Buttons) */}
+          <div className="p-4 border-b border-gray-200 flex space-x-4">
+            <button className="px-4 py-2 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700 transition">
+              Going
+            </button>
+            <button className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md font-semibold hover:bg-gray-300 transition">
+              Interested
+            </button>
+            <button className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md font-semibold hover:bg-gray-300 transition">
+              Share
+            </button>
+          </div>
+
+          {/* Event Details */}
+          <div className="p-6">
+            {/* Date and Time */}
+            <div className="flex items-center mb-4">
+              <Clock className="w-5 h-5 text-gray-500 mr-2" />
+              <span className="text-gray-800 font-medium">
+                {formatDate(event.event_datetime)} at{" "}
+                {new Date(event.event_datetime).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
+
+            {/* Location */}
+            <div className="flex items-center mb-4">
+              <MapPin className="w-5 h-5 text-gray-500 mr-2" />
+              <span className="text-gray-800">{event.location}</span>
+            </div>
+
+            {/* Attendees Placeholder */}
+            <div className="flex items-center mb-6">
+              <Users className="w-5 h-5 text-gray-500 mr-2" />
+              <span className="text-gray-600">X people going • Y interested</span>
+              {/* Replace X and Y with actual data if available */}
+            </div>
+
+            {/* Description */}
+            <div className="border-t border-gray-200 pt-4">
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">About This Event</h2>
+              <p className="text-gray-700">{event.description}</p>
+            </div>
+          </div>
         </div>
 
-        {/* Event Image */}
-        <div className="mb-6">
-          <img
-            src={event.image_url || "https://via.placeholder.com/600"} // Use a default image if no image URL is provided
-            alt={event.title}
-            className="w-full h-64 object-cover rounded-lg shadow-md"
-          />
-        </div>
-
-        {/* Event Time */}
-        <div className="flex justify-center items-center mb-6">
-          <Clock className="w-6 h-6 text-gray-500" />
-          <p className="text-lg text-gray-700">
-            {new Date(event.event_datetime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-          </p>
-        </div>
-
-        {/* Event Date */}
-        <p className="text-xl text-gray-800 mb-6 text-center">
-          {formatDate(event.event_datetime)} {/* Using the custom formatDate function */}
-        </p>
-
-        {/* Event Description */}
-        <p className="text-lg text-gray-700 mb-6 text-center">{event.description}</p>
-
-        {/* Event Location */}
-        <div className="flex justify-center items-center text-gray-600 mt-4">
-          <MapPin className="w-5 h-5 text-blue-500 mr-2" />
-          <p className="text-lg">{event.location}</p>
+        {/* Tabs Placeholder (Optional) */}
+        <div className="mt-6 bg-white rounded-lg shadow-md p-4">
+          <div className="flex space-x-6 border-b border-gray-200">
+            <button className="pb-2 text-blue-600 border-b-2 border-blue-600 font-semibold">
+              Details
+            </button>
+            <button className="pb-2 text-gray-600 hover:text-blue-600">Discussion</button>
+            <button className="pb-2 text-gray-600 hover:text-blue-600">More</button>
+          </div>
+          {/* Add content for tabs here if implementing */}
         </div>
       </div>
     </div>
