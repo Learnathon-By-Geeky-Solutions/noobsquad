@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import api from "../../api"; // Your custom axios API instance
 import { ThumbsUp, UserPlus, UserCheck, MapPin, MessageCircleHeart, HeartOff, Heart, Check } from "lucide-react"; // Importing Lucide icons
+import { Link } from "react-router-dom";
 
 const EventList = () => {
   const [events, setEvents] = useState([]);
@@ -117,8 +118,9 @@ const EventList = () => {
           const isGoing = eventRsvp.going || false;
 
           return (
+            
+
             <div
-              key={event.id}
               className="bg-white bg-black/10 rounded-lg shadow-sm overflow-hidden transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-xl"
             >
               <img
@@ -128,7 +130,14 @@ const EventList = () => {
               />
               <div className="p-3">
                 <div className="flex justify-between items-center">
+                <Link
+              to={`/dashboard/events/${event.id}`}
+              key={event.id}
+              className="block"
+            >
                   <h2 className="text-sm font-semibold text-gray-900">{event.title}</h2>
+
+                </Link>
                   {event.event_datetime === new Date().toISOString().split("T")[0] ? (
                     <span className="bg-red-500 text-white text-xs font-bold py-1 px-2 rounded-full">
                       Happening now

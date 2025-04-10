@@ -1,51 +1,46 @@
-import { useState, useEffect } from 'react';
+import { useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import api from "../../api"; // Your custom axios API instance
 
-const EventDetails = ({ eventId }) => {
+const EventDetails = () => {
+  const { eventId } = useParams(); // Get eventId from URL parameters
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!eventId) return; // Do nothing if no eventId is provided
-
-    const fetchEvent = async () => {
+    const fetchEventDetails = async () => {
       try {
-        const response = await fetch(`/posts/events/?event_id=${eventId}`);
-        if (!response.ok) {
-          throw new Error('Event not found');
-        }
-        const data = await response.json();
-        setEvent(data);
+        // Modified endpoint to match typical REST API pattern
+        const response = await api.get(`/posts/events/?event_id=${eventId}`);
+        setEvent(response.data);
       } catch (err) {
-        setError(err.message);
+        setError("Failed to fetch event details.");
+        console.error(err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchEvent();
+    fetchEventDetails();
   }, [eventId]);
 
   if (loading) {
-    return <div className="text-center text-xl">Loading...</div>;
+    return <div className="text-center">Loading event details...</div>;
   }
 
   if (error) {
-    return <div className="text-center text-xl text-red-500">{error}</div>;
-  }
-
-  if (!event) {
-    return <div className="text-center text-xl">Event not found</div>;
+    return <div className="text-red-500">{error}</div>;
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg">
-      <h2 className="text-3xl font-bold mb-4">{event.name}</h2>
-      <p className="text-xl mb-2">{event.date}</p>
-      <p className="text-gray-600 mb-4">{event.description}</p>
-      <div className="flex justify-between items-center">
-        <span className="font-semibold">Location: </span>
-        <span>{event.location}</span>
+    <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg md:mt-24 mt-10">
+      <h2 className="text-3xl font-bold mb-4">{event.title}</h2>
+      <p className="text-xl mb-4">{new Date(event.event_datetime).toLocaleDateString()}</p>
+      <p className="text-lg text-gray-700">{event.description}</p>
+      <div className="mt-4 text-gray-600">
+        <p><strong>Location:</strong> {event.location}</p>
+        {/* Add more details as needed */}
       </div>
     </div>
   );
