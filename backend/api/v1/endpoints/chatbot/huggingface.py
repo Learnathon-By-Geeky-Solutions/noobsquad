@@ -59,7 +59,7 @@ def create_qa_chain(text: str):
 
     # Cloud-based LLM from Hugging Face Hub
     llm = HuggingFaceHub(
-        repo_id="mistralai/Mistral-7B-Instruct-v0.3",
+        repo_id= model,
         model_kwargs={"temperature": 0.5, "max_new_tokens": 512},huggingfacehub_api_token=hf_key
     )
 
@@ -81,7 +81,7 @@ import re
 
 def remove_duplicate_qa(text):
     # Keep only the last Helpful Answer
-    answers = re.findall(r"Helpful Answer: (.*?)\n?(?=(Follow Up Input:|$))", text, re.DOTALL)
+    answers = re.findall(r"Helpful Answer: (.*)\n?(?=(Follow Up Input:|$))", text, re.DOTALL)
     if answers:
         return answers[-1][0].strip()
     return text.strip()
@@ -108,7 +108,7 @@ def api_response(
 
     qa_chain = user_chains.get(current_user.id)
     if qa_chain is None:
-        response = client.text_generation(req, model="mistralai/Mistral-7B-Instruct-v0.3")
+        response = client.text_generation(req, model= model)
         clean_response = remove_duplicate_qa(response)
         return {"response": clean_response}
 

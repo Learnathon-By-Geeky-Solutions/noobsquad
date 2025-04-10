@@ -1,4 +1,5 @@
 import ChatBox from "./AIChat";
+import PropTypes from "prop-types";
 
 const ChatPopupWrapper = ({ onClose }) => {
   return (
@@ -18,6 +19,9 @@ const ChatPopupWrapper = ({ onClose }) => {
       </div>
     </div>
   );
+};
+ChatPopupWrapper.propTypes = {
+  onClose: PropTypes.func.isRequired,
 };
 
 export default ChatPopupWrapper;
