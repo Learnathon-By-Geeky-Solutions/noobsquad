@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
 
-# Load the .env file
+# Load the .env file for local development
 load_dotenv()
 
 # Check the environment (local or CI/CD)
@@ -12,12 +12,13 @@ environment = os.getenv("ENV", "local")
 
 # Determine the DATABASE_URL based on the environment
 if environment == "ci":
-    DATABASE_URL = os.getenv("DATABASE_URL")
+    # For CI/CD, the DATABASE_URL can be set in GitHub Secrets or environment variables
+    DATABASE_URL = os.getenv("CI_DATABASE_URL", "postgresql://sonar:sonar@localhost:5432/sonar")
 else:
-    # Fallback to local DATABASE_URL if not in CI/CD environment
-    DATABASE_URL = os.getenv("DATABASE_URL")
+    # For local development, fallback to the DATABASE_URL in the .env file
+    DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://localhost:5432/local_db")
 
-# Setup SQLAlchemy engine
+# Setup SQLAlchemy engine with the appropriate DATABASE_URL
 engine = create_engine(DATABASE_URL)
 
 # Create sessionmaker for database interaction

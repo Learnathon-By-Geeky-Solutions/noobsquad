@@ -29,11 +29,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # Set environment variables directly for CI (without using .env.ci)
       - name: Set up environment for CI
         run: |
-          cp .env.ci .env  # Copy .env.ci to .env for CI setup
+          echo "CI_DATABASE_URL=postgresql://sonar:sonar@localhost:5432/sonar" >> $GITHUB_ENV
+          echo "ENV=ci" >> $GITHUB_ENV  # Set the ENV variable to "ci"
+          echo "DB_HOST=localhost" >> $GITHUB_ENV
+          echo "DB_PORT=5432" >> $GITHUB_ENV
+          echo "DB_NAME=sonar" >> $GITHUB_ENV
+          echo "DB_USER=sonar" >> $GITHUB_ENV
+          echo "DB_PASSWORD=sonar" >> $GITHUB_ENV
 
-      # Optional: Set up Python if needed for SonarPython analysis
+      # Optional: Set up Python for backend analysis
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -52,7 +59,7 @@ jobs:
           npm install
           npm run test -- --coverage  # Ensure Vitest generates coverage
 
-      # Set up PostgreSQL for backend tests
+      # Set up PostgreSQL for backend tests (client libraries)
       - name: Set up PostgreSQL Database for Backend
         run: |
           sudo apt-get update
@@ -66,13 +73,6 @@ jobs:
           pip install -r requirements.txt
           pip install pytest coverage
           
-          # Set up environment variables for PostgreSQL connection
-          export DB_HOST=localhost
-          export DB_PORT=5432
-          export DB_NAME=sonar
-          export DB_USER=sonar
-          export DB_PASSWORD=sonar
-
           # Run the backend tests with the PostgreSQL database
           pytest tests --cov=. --cov-report=xml --cov-report=term-missing  # Backend coverage report for Python
 
@@ -80,6 +80,6 @@ jobs:
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
         with:
-          projectBaseDir: .
+          projectBaseDir: .  # Ensure to adjust based on your project folder structure
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
