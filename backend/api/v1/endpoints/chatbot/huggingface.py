@@ -3,7 +3,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 hf_key = os.getenv("HUGGINGFACE_API_KEY")
-os.environ["HUGGINGFACE_API_KEY"]= hf_key
+# Handle missing key gracefully
+if hf_key:
+    os.environ["HUGGINGFACE_API_KEY"] = hf_key
+else:
+    # Optional: log or warn, but don't raise error in CI
+    print("⚠️ Warning: HUGGINGFACE_API_KEY is not set. Some features may be disabled.")
+
 
 from fastapi import APIRouter,UploadFile, File, Form, Depends, HTTPException
 from schemas.huggingface import PromptRequest, PromptResponse, BotResponse
