@@ -4,10 +4,6 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 import pytest
 import uuid
 from fastapi.testclient import TestClient
-
-# Add backend directory to sys.path
-sys.path.append(str(Path(__file__).resolve().parents[1]))
-
 from main import app
 from database.session import SessionLocal, Base, engine
 from models.user import User

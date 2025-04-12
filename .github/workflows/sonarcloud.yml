@@ -8,7 +8,7 @@ on:
 
 jobs:
   sonarcloud:
-    runs-on: ubuntu-latest  # Use windows-latest if you're running the tests on Windows
+    runs-on: ubuntu-latest
 
     services:
       postgres:
@@ -29,64 +29,57 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Set environment variables directly for CI (without using .env.ci)
-      - name: Set up environment for CI
+      - name: Set environment variables for CI
         run: |
           echo "CI_DATABASE_URL=postgresql://sonar:sonar@localhost:5432/sonar" >> $GITHUB_ENV
-          echo "ENV=ci" >> $GITHUB_ENV  # Set the ENV variable to "ci"
+          echo "ENV=ci" >> $GITHUB_ENV
           echo "DB_HOST=localhost" >> $GITHUB_ENV
           echo "DB_PORT=5432" >> $GITHUB_ENV
           echo "DB_NAME=sonar" >> $GITHUB_ENV
           echo "DB_USER=sonar" >> $GITHUB_ENV
           echo "DB_PASSWORD=sonar" >> $GITHUB_ENV
 
-      # Optional: Set up Python for backend analysis
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.12.4  # Ensure Python version is compatible with pywin32
+          python-version: 3.12.4
 
-      # Set up Node.js and Vitest (Frontend)
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
 
-      # Install frontend dependencies and run tests
-      - name: Install frontend dependencies and run tests
+      - name: Install frontend dependencies and run Vitest
         run: |
           cd frontend
           npm install
-          npm run test -- --coverage  # Ensure Vitest generates coverage
+          npm run test -- --coverage
 
-      # Set up PostgreSQL for backend tests (client libraries)
-      - name: Set up PostgreSQL Database for Backend
+      - name: Prepare backend folders
+        run: |
+          mkdir -p backend/uploads/event_images
+          mkdir -p backend/uploads/profile_pictures
+          mkdir -p backend/uploads/media
+          mkdir -p backend/uploads/document
+
+      - name: Install PostgreSQL client for Python
         run: |
           sudo apt-get update
-          sudo apt-get install -y libpq-dev  # Required for PostgreSQL client
-          pip install psycopg2  # Install the PostgreSQL client in Python
+          sudo apt-get install -y libpq-dev
+          pip install psycopg2
 
-      # Install Python dependencies and run backend tests
       - name: Install Python dependencies and run backend tests
         run: |
           cd backend
           pip install -r requirements.txt
           pip install pytest coverage
           
-          # Install pywin32 only on Windows
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            echo "Installing pywin32 for Windows"
-            pip install pywin32
-          fi
+          # Run tests and collect coverage
+          pytest tests --cov=. --cov-report=xml --cov-report=term-missing
 
-          # Run the backend tests with the PostgreSQL database
-          pytest tests --cov=. --cov-report=xml --cov-report=term-missing  # Backend coverage report for Python
-
-      # SonarCloud Scan
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
         with:
-          projectBaseDir: .  # Ensure to adjust based on your project folder structure
+          projectBaseDir: .
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
