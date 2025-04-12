@@ -90,4 +90,5 @@ backend/migrations/
 backend/uploads/profile_pictures/*
 backend/uploads/media/*
 backend/uploads/document/*
+backend/uploads/event_images/*
 !.gitkeep  # Allows keeping empty dirs if you add .gitkeep files
