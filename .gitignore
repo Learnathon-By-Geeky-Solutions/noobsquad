@@ -92,3 +92,5 @@ backend/uploads/media/*
 backend/uploads/document/*
 backend/uploads/event_images/*
 !.gitkeep  # Allows keeping empty dirs if you add .gitkeep files
+# Ignore Alembic migration scripts 
+alembic/versions/
