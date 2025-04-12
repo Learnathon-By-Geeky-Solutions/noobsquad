@@ -8,7 +8,7 @@ on:
 
 jobs:
   sonarcloud:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Change this to windows-latest if you're running on Windows
 
     services:
       postgres:
@@ -83,3 +83,9 @@ jobs:
           projectBaseDir: .  # Ensure to adjust based on your project folder structure
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      # Optional: Set up Windows-specific steps (only if needed for pywin32 installation in Windows)
+      - name: Install pywin32 (for Windows only)
+        if: runner.os == 'Windows'
+        run: |
+          pip install pywin32  # Only install pywin32 on Windows if necessary
