@@ -10,39 +10,73 @@ jobs:
   sonarcloud:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:13
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: sonar
+          POSTGRES_PASSWORD: sonar
+          POSTGRES_DB: sonar
+        options: >-
+          --health-cmd="pg_isready -U sonar"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Optional: Set up Python if needed for SonarPython analysis
+      - name: Set environment variables for CI
+        run: |
+          echo "CI_DATABASE_URL=postgresql://sonar:sonar@localhost:5432/sonar" >> $GITHUB_ENV
+          echo "ENV=ci" >> $GITHUB_ENV
+          echo "DB_HOST=localhost" >> $GITHUB_ENV
+          echo "DB_PORT=5432" >> $GITHUB_ENV
+          echo "DB_NAME=sonar" >> $GITHUB_ENV
+          echo "DB_USER=sonar" >> $GITHUB_ENV
+          echo "DB_PASSWORD=sonar" >> $GITHUB_ENV
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: 3.12.4
 
-      # Set up Node.js and Vitest (Frontend)
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
 
-      # Install frontend dependencies and run tests
-      - name: Install frontend dependencies and run tests
+      - name: Install frontend dependencies and run Vitest
         run: |
           cd frontend
           npm install
-          npm run test -- --coverage  # Ensure Vitest generates coverage
+          npm run test -- --coverage
 
-      # # Install Python dependencies and run backend tests
-      # - name: Install Python dependencies and run backend tests
-      #   run: |
-      #     cd backend
-      #     pip install -r requirements.txt
-      #     pip install pytest coverage
-      #     pytest tests --cov=. --cov-report=xml --cov-report=term-missing  # Backend coverage report for Python
-      #   env:
-      #      DATABASE_URL: "sqlite:///:memory:"
-      # Run SonarCloud scan with coverage report
+      - name: Prepare backend folders
+        run: |
+          mkdir -p backend/uploads/event_images
+          mkdir -p backend/uploads/profile_pictures
+          mkdir -p backend/uploads/media
+          mkdir -p backend/uploads/document
+
+      - name: Install PostgreSQL client for Python
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpq-dev
+          pip install psycopg2
+
+      - name: Install Python dependencies and run backend tests
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          pip install pytest coverage
+          
+          # Run tests and collect coverage
+          pytest tests --cov=. --cov-report=xml --cov-report=term-missing
+
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
         with:
