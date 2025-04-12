@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Form, File, UploadFile, Query
+from uuid import uuid4
+from fastapi import APIRouter, Depends, HTTPException, Form, File, UploadFile, Query, Request
 from sqlalchemy.orm import Session
 from typing import Optional, List, Union
 import os
@@ -284,6 +285,7 @@ async def create_event_post(
     event_time: str = Form(...),   # ✅ Accepts time in "HH:MM"
     user_timezone: str = Form("Asia/Dhaka"),  # ✅ User’s timezone (e.g., "Asia/Dhaka")
     location: Optional[str] = Form(None),
+    event_image: Optional[UploadFile] = File(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -300,7 +302,24 @@ async def create_event_post(
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid date/time format: {str(e)}")
+    # ✅ Handle image upload
+    image_url = None
+    if event_image:
+        try:
+            upload_folder = "uploads/event_images"
+            os.makedirs(upload_folder, exist_ok=True)
 
+            file_extension = os.path.splitext(event_image.filename)[1]
+            file_name = f"{uuid4()}{file_extension}"
+            file_path = os.path.join(upload_folder, file_name)
+
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(event_image.file, buffer)
+
+            # This URL assumes you're serving /static via StaticFiles
+            image_url = f"/{file_path}".replace("\\", "/")  # Normalize path for URL
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to save image: {str(e)}")
     # ✅ Create Post Entry
     new_post = Post(content=content, user_id=current_user.id, post_type="event")
     db.add(new_post)
@@ -314,7 +333,8 @@ async def create_event_post(
         title=event_title,
         description=event_description,
         event_datetime=event_datetime_utc,  # ✅ Store in UTC
-        location=location
+        location=location,
+        image_url=image_url
     )
     db.add(new_event)
     db.commit()
@@ -588,6 +608,7 @@ async def delete_post(
 
 @router.get("/events/", response_model=Union[List[EventResponse], EventResponse])
 async def get_events(
+    request: Request,  # We need this to access the base URL of the server
     event_id: Optional[int] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -596,9 +617,24 @@ async def get_events(
         event = db.query(Event).filter(Event.id == event_id).first()
         if not event:
             raise HTTPException(status_code=404, detail="Event not found")
+
+        # Build the full image URL if it exists
+        if event.image_url:
+            # Replace any backslashes with forward slashes
+            full_image_url = f"{str(request.base_url).rstrip('/')}{event.image_url.replace('\\', '/')}"
+            event.image_url = full_image_url
+
         return event
     else:
         events = db.query(Event).all()
         if not events:
             raise HTTPException(status_code=404, detail="No events found")
+
+        # Add full image URL to each event in the list
+        for event in events:
+            if event.image_url:
+                # Replace any backslashes with forward slashes
+                full_image_url = f"{str(request.base_url).rstrip('/')}{event.image_url.replace('\\', '/')}"
+                event.image_url = full_image_url
+
         return events

@@ -61,7 +61,7 @@ const EventDetails = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 md:mt-20">
       {/* Cover Photo */}
       <div className="relative">
         <img

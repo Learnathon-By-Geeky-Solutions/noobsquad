@@ -122,7 +122,7 @@ const EventList = () => {
               className="bg-white bg-black/5 rounded-lg shadow-sm overflow-hidden transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-xl"
             >
               <img
-                src="https://via.placeholder.com/400"
+                src={event.image_url || "https://via.placeholder.com/400"}
                 alt={event.title}
                 className="w-full h-32 object-cover rounded-t-lg"
               />

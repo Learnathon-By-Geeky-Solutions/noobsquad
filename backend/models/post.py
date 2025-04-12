@@ -70,6 +70,7 @@ class Event(Base):
     description = Column(Text, nullable=True)
     event_datetime = Column(DateTime, nullable=False) 
     location = Column(String, nullable=True)
+    image_url = Column(String, nullable=True)
 
     post = relationship("Post", back_populates="event")
     user = relationship("User", back_populates="events")  # ✅ Tracks creator

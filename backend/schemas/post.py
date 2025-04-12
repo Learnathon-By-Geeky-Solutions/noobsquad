@@ -42,6 +42,7 @@ class EventResponse(BaseModel):
     description: Optional[str] = None
     event_datetime: datetime  # ✅ Use datetime instead of separate date and time
     location: Optional[str] = None
+    image_url: Optional[str]
 
     class Config:
         from_attributes = True
