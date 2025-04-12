@@ -10,9 +10,28 @@ jobs:
   sonarcloud:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:13
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: sonar
+          POSTGRES_PASSWORD: sonar
+          POSTGRES_DB: sonar
+        options: >-
+          --health-cmd="pg_isready -U sonar"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Set up environment for CI
+        run: |
+          cp .env.ci .env  # Copy .env.ci to .env for CI setup
 
       # Optional: Set up Python if needed for SonarPython analysis
       - name: Set up Python
@@ -33,16 +52,31 @@ jobs:
           npm install
           npm run test -- --coverage  # Ensure Vitest generates coverage
 
-      # # Install Python dependencies and run backend tests
-      # - name: Install Python dependencies and run backend tests
-      #   run: |
-      #     cd backend
-      #     pip install -r requirements.txt
-      #     pip install pytest coverage
-      #     pytest tests --cov=. --cov-report=xml --cov-report=term-missing  # Backend coverage report for Python
-      #   env:
-      #      DATABASE_URL: "sqlite:///:memory:"
-      # Run SonarCloud scan with coverage report
+      # Set up PostgreSQL for backend tests
+      - name: Set up PostgreSQL Database for Backend
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpq-dev  # Required for PostgreSQL client
+          pip install psycopg2  # Install the PostgreSQL client in Python
+
+      # Install Python dependencies and run backend tests
+      - name: Install Python dependencies and run backend tests
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          pip install pytest coverage
+          
+          # Set up environment variables for PostgreSQL connection
+          export DB_HOST=localhost
+          export DB_PORT=5432
+          export DB_NAME=sonar
+          export DB_USER=sonar
+          export DB_PASSWORD=sonar
+
+          # Run the backend tests with the PostgreSQL database
+          pytest tests --cov=. --cov-report=xml --cov-report=term-missing  # Backend coverage report for Python
+
+      # SonarCloud Scan
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
         with:
