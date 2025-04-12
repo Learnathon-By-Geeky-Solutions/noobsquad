@@ -1,6 +1,14 @@
 import sys
+import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# ✅ Load test environment variables (e.g., SECRET_KEY, ALGORITHM)
+load_dotenv(dotenv_path=Path(__file__).resolve().parents[1] / ".env.test")
+
+# ✅ Ensure backend directory is in sys.path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
+
 import pytest
 import uuid
 from fastapi.testclient import TestClient
@@ -10,13 +18,13 @@ from models.user import User
 from core.security import hash_password
 from sqlalchemy.orm import Session
 
-# Initialize FastAPI test client
+# ✅ Initialize FastAPI test client
 client = TestClient(app)
 
-# Ensure tables exist before testing
+# ✅ Ensure tables exist before testing
 Base.metadata.create_all(bind=engine)
 
-# Dependency override to use testing DB session
+# ✅ Dependency override to use testing DB session
 def override_get_db():
     db = SessionLocal()
     try:
@@ -24,7 +32,7 @@ def override_get_db():
     finally:
         db.close()
 
-# Override DB session dependency globally
+# ✅ Apply DB dependency override
 app.dependency_overrides[Session] = override_get_db
 
 # ----------------------
@@ -74,7 +82,8 @@ def test_login_success(test_user):
         data={
             "username": "testuser",
             "password": "testpass"
-        }
+        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
     )
     assert response.status_code == 200
     json_data = response.json()
@@ -90,7 +99,8 @@ def test_get_current_user(test_user):
         data={
             "username": "testuser",
             "password": "testpass"
-        }
+        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
     )
     token = token_response.json()["access_token"]
 
