@@ -8,7 +8,7 @@ on:
 
 jobs:
   sonarcloud:
-    runs-on: ubuntu-latest  # Change this to windows-latest if you're running on Windows
+    runs-on: ubuntu-latest  # Use windows-latest if you're running the tests on Windows
 
     services:
       postgres:
@@ -44,7 +44,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.12.4
+          python-version: 3.12.4  # Ensure Python version is compatible with pywin32
 
       # Set up Node.js and Vitest (Frontend)
       - name: Set up Node.js
@@ -73,6 +73,12 @@ jobs:
           pip install -r requirements.txt
           pip install pytest coverage
           
+          # Install pywin32 only on Windows
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            echo "Installing pywin32 for Windows"
+            pip install pywin32
+          fi
+
           # Run the backend tests with the PostgreSQL database
           pytest tests --cov=. --cov-report=xml --cov-report=term-missing  # Backend coverage report for Python
 
@@ -84,8 +90,3 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-      # Optional: Set up Windows-specific steps (only if needed for pywin32 installation in Windows)
-      - name: Install pywin32 (for Windows only)
-        if: runner.os == 'Windows'
-        run: |
-          pip install pywin32  # Only install pywin32 on Windows if necessary
