@@ -8,7 +8,8 @@ const CreateEventForm = () => {
   const [eventTime, setEventTime] = useState("");
   const [userTimezone] = useState("Asia/Dhaka");
   const [location, setLocation] = useState("");
-  const [content] = useState("");
+  const [content, setContent] = useState("");  // Added content state
+  const [eventImage, setEventImage] = useState(null);  // Added event image state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -25,12 +26,17 @@ const CreateEventForm = () => {
     formData.append("event_time", eventTime);
     formData.append("user_timezone", userTimezone);
     formData.append("location", location);
+    
+    // Append event image if exists
+    if (eventImage) {
+      formData.append("event_image", eventImage);
+    }
 
     try {
       // Send POST request with FormData directly (no need to set Content-Type header manually)
-      const response = await api.post("posts/create_event_post/", formData, { 
+      const response = await api.post("posts/create_event_post/", formData, {
         headers: { "Content-Type": "multipart/form-data" },
-    });
+      });
 
       const data = await response.data;
       alert("Event created successfully!");
@@ -116,6 +122,31 @@ const CreateEventForm = () => {
             className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
+          />
+        </div>
+
+        <div className="mb-4">
+          <label htmlFor="content" className="block text-sm font-medium text-gray-700">
+            Content (Optional)
+          </label>
+          <textarea
+            id="content"
+            className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+          />
+        </div>
+
+        <div className="mb-4">
+          <label htmlFor="eventImage" className="block text-sm font-medium text-gray-700">
+            Event Image (Optional)
+          </label>
+          <input
+            type="file"
+            id="eventImage"
+            className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
+            accept="image/*"
+            onChange={(e) => setEventImage(e.target.files[0])}
           />
         </div>
 
