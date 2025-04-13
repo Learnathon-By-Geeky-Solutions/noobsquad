@@ -28,6 +28,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # ✅ Disable shallow clone for SCM features
 
       - name: Set environment variables for CI
         run: |
@@ -43,11 +45,6 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: 3.12.4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
 
       - name: Prepare backend folders
         run: |
@@ -67,11 +64,13 @@ jobs:
           cd backend
           pip install -r requirements.txt
           pip install pytest coverage
-          
-          # Run tests and collect coverage
-          pytest tests --cov=. --cov-report=xml --cov-report=term-missing
-      
 
+          # ✅ Run backend tests and collect relative-path coverage report
+          coverage run -m pytest tests
+          coverage xml --relative-base=.
+
+      - name: Check backend coverage file
+        run: ls -l backend/coverage.xml
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
