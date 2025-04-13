@@ -39,49 +39,14 @@ const CreatePost = ({ userProfile }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    let formData = new FormData();
     setUploadProgress(0);
     setErrorMessage(null); // Clear previous error
 
     try {
-      let response;
       const token = localStorage.getItem("token");
-
-      if (postType === "text") {
-        response = await api.post(
-          "/posts/create_text_post/",
-          new URLSearchParams({ content }),
-          {
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded",
-              Authorization: `Bearer ${token}`, // Add token if required by backend
-            },
-          }
-        );
-      } else {
-        formData.append("content", content);
-        if (postType === "media" && mediaFile) formData.append("media_file", mediaFile);
-        if (postType === "document" && documentFile) formData.append("document_file", documentFile);
-        if (postType === "event") {
-          formData.append("event_title", eventTitle);
-          formData.append("event_description", eventDescription);
-          formData.append("event_date", eventDate);
-          formData.append("event_time", eventTime);
-          formData.append("location", location);
-          formData.append("user_timezone", userTimezone);
-        }
-
-        response = await api.post(`/posts/create_${postType}_post/`, formData, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-          onUploadProgress: (progressEvent) => {
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            setUploadProgress(percentCompleted);
-          },
-        });
-      }
+      const response = postType === "text" 
+        ? await createTextPost(token) 
+        : await createOtherPost(token);
 
       if (response?.data) {
         console.log("✅ Post created successfully:", response.data);
@@ -89,12 +54,55 @@ const CreatePost = ({ userProfile }) => {
         window.location.reload(); // Reload only on success
       }
     } catch (error) {
-      console.error("❌ Error creating post:", error);
-      if (error.response && error.response.status === 400) {
-        setErrorMessage(error.response.data.detail); // Display "Inappropriate content detected"
-      } else {
-        setErrorMessage("An unexpected error occurred. Please try again.");
+      handlePostError(error);
+    }
+  };
+
+  const createTextPost = async (token) => {
+    return await api.post(
+      "/posts/create_text_post/",
+      new URLSearchParams({ content }),
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: `Bearer ${token}`, // Add token if required by backend
+        },
       }
+    );
+  };
+
+  const createOtherPost = async (token) => {
+    let formData = new FormData();
+    formData.append("content", content);
+    if (postType === "media" && mediaFile) formData.append("media_file", mediaFile);
+    if (postType === "document" && documentFile) formData.append("document_file", documentFile);
+    if (postType === "event") {
+      formData.append("event_title", eventTitle);
+      formData.append("event_description", eventDescription);
+      formData.append("event_date", eventDate);
+      formData.append("event_time", eventTime);
+      formData.append("location", location);
+      formData.append("user_timezone", userTimezone);
+    }
+
+    return await api.post(`/posts/create_${postType}_post/`, formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      },
+      onUploadProgress: (progressEvent) => {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        setUploadProgress(percentCompleted);
+      },
+    });
+  };
+
+  const handlePostError = (error) => {
+    console.error("❌ Error creating post:", error);
+    if (error.response && error.response.status === 400) {
+      setErrorMessage(error.response.data.detail); // Display "Inappropriate content detected"
+    } else {
+      setErrorMessage("An unexpected error occurred. Please try again.");
     }
   };
 

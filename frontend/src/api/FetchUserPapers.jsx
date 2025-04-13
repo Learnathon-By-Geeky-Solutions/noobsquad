@@ -42,11 +42,12 @@ const FetchUserPapers = () => {
 
       {loading && (
         <div className="flex justify-center mt-6">
-          <Loader2
-            className="w-6 h-6 animate-spin text-blue-600"
-            role="status"
-            aria-label="loading"
-          />
+          <output aria-live="polite">
+            <Loader2
+              className="w-6 h-6 animate-spin text-blue-600"
+              aria-label="loading"
+            />
+          </output>
         </div>
       )}
 

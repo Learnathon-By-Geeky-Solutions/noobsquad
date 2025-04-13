@@ -1,4 +1,5 @@
 from uuid import uuid4
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, Form, File, UploadFile, Query, Request
 from sqlalchemy.orm import Session
 from typing import Optional, List, Union
@@ -276,6 +277,13 @@ async def create_document_post(
 
 
 
+# Path sanitization
+def sanitize_filename(filename: str) -> str:
+    """
+    Generate a safe file name using uuid4 to avoid user-controlled data issues.
+    """
+    return f"{uuid.uuid4().hex}{os.path.splitext(filename)[1]}"
+
 @router.post("/create_event_post/", response_model=EventResponse)
 async def create_event_post(
     content: Optional[str] = Form(None),
@@ -294,32 +302,36 @@ async def create_event_post(
         local_datetime = datetime.strptime(f"{event_date} {event_time}", "%Y-%m-%d %H:%M")
 
         # ✅ Convert to UTC
-        # With zoneinfo
         local_tz = ZoneInfo(user_timezone)
         local_dt_with_tz = local_datetime.replace(tzinfo=local_tz)
         event_datetime_utc = local_dt_with_tz.astimezone(ZoneInfo("UTC"))
 
-
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid date/time format: {str(e)}")
-    # ✅ Handle image upload
+
+    # ✅ Handle image upload securely
     image_url = None
     if event_image:
         try:
+            # Create the upload folder if it doesn't exist
             upload_folder = "uploads/event_images"
             os.makedirs(upload_folder, exist_ok=True)
 
-            file_extension = os.path.splitext(event_image.filename)[1]
-            file_name = f"{uuid4()}{file_extension}"
+            # Generate a unique filename using uuid to avoid path injection attacks
+            file_name = sanitize_filename(event_image.filename)
+
+            # Create the full file path for saving the image
             file_path = os.path.join(upload_folder, file_name)
 
+            # Save the uploaded image to the server
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(event_image.file, buffer)
 
-            # This URL assumes you're serving /static via StaticFiles
+            # Normalize the path for URL (e.g., assuming you're serving static files)
             image_url = f"/{file_path}".replace("\\", "/")  # Normalize path for URL
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to save image: {str(e)}")
+
     # ✅ Create Post Entry
     new_post = Post(content=content, user_id=current_user.id, post_type="event")
     db.add(new_post)
@@ -339,9 +351,11 @@ async def create_event_post(
     db.add(new_event)
     db.commit()
     db.refresh(new_event)
+
+    # Notify users about the new event
     send_post_notifications(db, current_user, new_post)
 
-    return new_event  # Returns as EventResponse schema
+    return new_event  # Returns the Event object as an EventResponse schema
 
 @router.get("/posts/")
 def get_posts(user_id: Optional[int] = None, db: Session = Depends(get_db)):
