@@ -275,8 +275,6 @@ async def create_document_post(
 
     return new_document  # Returns as DocumentPostResponse schema
 
-
-
 # Path sanitization
 def sanitize_filename(filename: str) -> str:
     """
@@ -284,24 +282,36 @@ def sanitize_filename(filename: str) -> str:
     """
     return f"{uuid.uuid4().hex}{os.path.splitext(filename)[1]}"
 
+def ensure_safe_path(base_dir: str, file_path: str) -> str:
+    """
+    Ensure the file path is within the intended base directory to prevent directory traversal.
+    """
+    abs_base_dir = os.path.abspath(base_dir)
+    abs_file_path = os.path.abspath(file_path)
+    
+    if not abs_file_path.startswith(abs_base_dir):
+        raise HTTPException(status_code=400, detail="Invalid file path: directory traversal detected")
+    
+    return abs_file_path
+
 @router.post("/create_event_post/", response_model=EventResponse)
 async def create_event_post(
     content: Optional[str] = Form(None),
     event_title: str = Form(...),
     event_description: str = Form(...),
-    event_date: str = Form(...),   # ✅ Accepts date in "YYYY-MM-DD"
-    event_time: str = Form(...),   # ✅ Accepts time in "HH:MM"
-    user_timezone: str = Form("Asia/Dhaka"),  # ✅ User’s timezone (e.g., "Asia/Dhaka")
+    event_date: str = Form(...),   # Accepts date in "YYYY-MM-DD"
+    event_time: str = Form(...),   # Accepts time in "HH:MM"
+    user_timezone: str = Form("Asia/Dhaka"),  # User’s timezone (e.g., "Asia/Dhaka")
     location: Optional[str] = Form(None),
     event_image: Optional[UploadFile] = File(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     try:
-        # ✅ Combine Date & Time
+        # Combine Date & Time
         local_datetime = datetime.strptime(f"{event_date} {event_time}", "%Y-%m-%d %H:%M")
 
-        # ✅ Convert to UTC
+        # Convert to UTC
         local_tz = ZoneInfo(user_timezone)
         local_dt_with_tz = local_datetime.replace(tzinfo=local_tz)
         event_datetime_utc = local_dt_with_tz.astimezone(ZoneInfo("UTC"))
@@ -309,11 +319,11 @@ async def create_event_post(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid date/time format: {str(e)}")
 
-    # ✅ Handle image upload securely
+    # Handle image upload securely
     image_url = None
     if event_image:
         try:
-            # Create the upload folder if it doesn't exist
+            # Define the upload folder (hardcoded to prevent user control)
             upload_folder = "uploads/event_images"
             os.makedirs(upload_folder, exist_ok=True)
 
@@ -323,28 +333,31 @@ async def create_event_post(
             # Create the full file path for saving the image
             file_path = os.path.join(upload_folder, file_name)
 
+            # Ensure the file path is safe and within the intended directory
+            file_path = ensure_safe_path(upload_folder, file_path)
+
             # Save the uploaded image to the server
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(event_image.file, buffer)
 
             # Normalize the path for URL (e.g., assuming you're serving static files)
-            image_url = f"/{file_path}".replace("\\", "/")  # Normalize path for URL
+            image_url = f"/{upload_folder}/{file_name}".replace("\\", "/")  # Construct URL safely
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to save image: {str(e)}")
 
-    # ✅ Create Post Entry
+    # Create Post Entry
     new_post = Post(content=content, user_id=current_user.id, post_type="event")
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
 
-    # ✅ Add Event Entry with UTC time
+    # Add Event Entry with UTC time
     new_event = Event(
         post_id=new_post.id,
         user_id=current_user.id,
         title=event_title,
         description=event_description,
-        event_datetime=event_datetime_utc,  # ✅ Store in UTC
+        event_datetime=event_datetime_utc,  # Store in UTC
         location=location,
         image_url=image_url
     )
