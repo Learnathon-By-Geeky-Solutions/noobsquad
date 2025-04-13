@@ -48,7 +48,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '20'
-          
+
       - name: Prepare backend folders
         run: |
           mkdir -p backend/uploads/event_images
@@ -71,10 +71,7 @@ jobs:
           # Run tests and collect coverage
           pytest tests --cov=. --cov-report=xml --cov-report=term-missing
       
-      - name: Check if coverage reports are generated
-        run: |
-          ls -l backend/coverage.xml
-          ls -l frontend/coverage/lcov.info
+
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
