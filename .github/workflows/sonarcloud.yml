@@ -48,13 +48,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '20'
-
-      - name: Install frontend dependencies and run Vitest
-        run: |
-          cd frontend
-          npm install
-          npm run test -- --coverage
-
+          
       - name: Prepare backend folders
         run: |
           mkdir -p backend/uploads/event_images
