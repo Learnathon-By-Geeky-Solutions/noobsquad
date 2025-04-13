@@ -16,7 +16,7 @@ if environment == "ci":
     DATABASE_URL = os.getenv("CI_DATABASE_URL", "postgresql://sonar:sonar@localhost:5432/sonar")
 else:
     # For local development, fallback to the DATABASE_URL in the .env file
-    DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://localhost:5432/local_db")
+    DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Setup SQLAlchemy engine with the appropriate DATABASE_URL
 engine = create_engine(DATABASE_URL)
