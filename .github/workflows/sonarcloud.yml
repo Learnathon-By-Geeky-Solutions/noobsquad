@@ -76,7 +76,7 @@ jobs:
           
           # Run tests and collect coverage
           pytest tests --cov=. --cov-report=xml --cov-report=term-missing
-
+      
       - name: Check if coverage reports are generated
         run: |
           ls -l backend/coverage.xml
@@ -88,20 +88,3 @@ jobs:
           projectBaseDir: .
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          
-        # SonarCloud specific settings
-        with:
-          projectKey: Learnathon-By-Geeky-Solutions_noobsquad
-          projectName: noobsquad
-          organization: learnathon-by-geeky-solutions
-          hostUrl: https://sonarcloud.io
-          sources: frontend,backend
-          tests: frontend/src,backend/tests
-          testInclusions: '**/*.test.jsx,**/*.test.js,**/test_*.py'
-          coverageExclusions: '**/tests/**/*,**/__tests__/**/*'
-      
-          javascript.lcov.reportPaths: frontend/coverage/lcov.info
-          python.coverage.reportPaths: backend/coverage.xml
-          python.source: backend/
-          python.version: 3.12.4
-          verbose: true
