@@ -1,0 +1,7 @@
+[run]
+source = .
+
+[paths]
+source =
+    .
+    /home/runner/work/noobsquad/backend
