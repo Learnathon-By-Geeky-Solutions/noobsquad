@@ -211,7 +211,7 @@ async def create_media_post(
     if not media_file:
         raise HTTPException(status_code=400, detail="No media file received")  # ✅ Debugging
 
-    allowed_media = {".jpg", ".jpeg", ".jfif", ".png", ".gif", ".webp", ".mp4", ".mov"}
+    allowed_media = {".jpg", jpeg, ".jfif", ".png", ".gif", webp, ".mp4", ".mov"}
     media_ext = Path(media_file.filename).suffix.lower()
     if media_ext not in allowed_media:
         raise HTTPException(status_code=400, detail="Invalid media format.")
@@ -275,24 +275,12 @@ async def create_document_post(
 
     return new_document  # Returns as DocumentPostResponse schema
 
-# Path sanitization
-def sanitize_filename(filename: str) -> str:
-    """
-    Generate a safe file name using uuid4 to avoid user-controlled data issues.
-    """
-    return f"{uuid.uuid4().hex}{os.path.splitext(filename)[1]}"
-
-def ensure_safe_path(base_dir: str, file_path: str) -> str:
-    """
-    Ensure the file path is within the intended base directory to prevent directory traversal.
-    """
-    abs_base_dir = os.path.abspath(base_dir)
-    abs_file_path = os.path.abspath(file_path)
-    
-    if not abs_file_path.startswith(abs_base_dir):
-        raise HTTPException(status_code=400, detail="Invalid file path: directory traversal detected")
-    
-    return abs_file_path
+# Define upload directory as a constant
+EVENT_UPLOAD_DIR = "uploads/event_images"
+os.makedirs(EVENT_UPLOAD_DIR, exist_ok=True)
+#Constant
+jpeg = ".jpeg"
+webp =".webp"
 
 @router.post("/create_event_post/", response_model=EventResponse)
 async def create_event_post(
@@ -323,25 +311,29 @@ async def create_event_post(
     image_url = None
     if event_image:
         try:
-            # Define the upload folder (hardcoded to prevent user control)
-            upload_folder = "uploads/event_images"
-            os.makedirs(upload_folder, exist_ok=True)
+            # Validate file extension
+            ALLOWED_EXTENSIONS = {".jpg", jpeg, ".png", ".gif", webp}
+            file_extension = Path(event_image.filename).suffix.lower()
+            if file_extension not in ALLOWED_EXTENSIONS:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid file type"
+                )
 
-            # Generate a unique filename using uuid to avoid path injection attacks
-            file_name = sanitize_filename(event_image.filename)
+            # Generate a secure filename
+            secure_filename = f"{current_user.id}_{secrets.token_hex(8)}{file_extension}"
+            file_location = os.path.abspath(os.path.join(EVENT_UPLOAD_DIR, secure_filename))
 
-            # Create the full file path for saving the image
-            file_path = os.path.join(upload_folder, file_name)
-
-            # Ensure the file path is safe and within the intended directory
-            file_path = ensure_safe_path(upload_folder, file_path)
+            # Prevent directory traversal
+            if not file_location.startswith(os.path.abspath(EVENT_UPLOAD_DIR)):
+                raise HTTPException(status_code=400, detail="Invalid file path detected.")
 
             # Save the uploaded image to the server
-            with open(file_path, "wb") as buffer:
-                shutil.copyfileobj(event_image.file, buffer)
+            with open(file_location, "wb") as buffer:
+                buffer.write(event_image.file.read())
 
-            # Normalize the path for URL (e.g., assuming you're serving static files)
-            image_url = f"/{upload_folder}/{file_name}".replace("\\", "/")  # Construct URL safely
+            # Construct the image URL using the mounted static path
+            image_url = f"http://127.0.0.1:8000/uploads/event_images/{secure_filename}"
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to save image: {str(e)}")
 
@@ -357,7 +349,7 @@ async def create_event_post(
         user_id=current_user.id,
         title=event_title,
         description=event_description,
-        event_datetime=event_datetime_utc,  # Store in UTC
+        event_datetime=event_datetime_utc,
         location=location,
         image_url=image_url
     )
@@ -368,7 +360,7 @@ async def create_event_post(
     # Notify users about the new event
     send_post_notifications(db, current_user, new_post)
 
-    return new_event  # Returns the Event object as an EventResponse schema
+    return new_event
 
 @router.get("/posts/")
 def get_posts(user_id: Optional[int] = None, db: Session = Depends(get_db)):
@@ -645,11 +637,11 @@ async def get_events(
         if not event:
             raise HTTPException(status_code=404, detail="Event not found")
 
-        # Build the full image URL if it exists
-        if event.image_url:
-            # Replace any backslashes with forward slashes
-            full_image_url = f"{str(request.base_url).rstrip('/')}{event.image_url.replace('\\', '/')}"
-            event.image_url = full_image_url
+        # # Build the full image URL if it exists
+        # if event.image_url:
+        #     # Replace any backslashes with forward slashes
+        #     # full_image_url = f"{str(request.base_url).rstrip('/')}{event.image_url.replace('\\', '/')}"
+        #     event.image_url = full_image_url
 
         return event
     else:
@@ -658,10 +650,10 @@ async def get_events(
             raise HTTPException(status_code=404, detail="No events found")
 
         # Add full image URL to each event in the list
-        for event in events:
-            if event.image_url:
-                # Replace any backslashes with forward slashes
-                full_image_url = f"{str(request.base_url).rstrip('/')}{event.image_url.replace('\\', '/')}"
-                event.image_url = full_image_url
+        # for event in events:
+        #     if event.image_url:
+        #         # Replace any backslashes with forward slashes
+        #         full_image_url = f"{str(request.base_url).rstrip('/')}{event.image_url.replace('\\', '/')}"
+        #         event.image_url = full_image_url
 
         return events
