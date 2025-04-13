@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react";
 const ChatBox = () => {
 
   const [messages, setMessages] = useState([
-    { sender: "bot", text: "Hi! How can I help you today?" }
+      { id: Date.now(), sender: "bot", text: "Hi! How can I help you today?" }
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -32,8 +32,8 @@ const ChatBox = () => {
 
     // Show user message for PDF upload
     setMessages(prev => [
-      ...prev,
-      { sender: "user", text: `📄 Uploaded file: ${file.name}` }
+        ...prev,
+        { id: Date.now(), sender: "user", text: `📄 Uploaded file: ${file.name}` }
     ]);
 
     const formData = new FormData();
@@ -49,9 +49,10 @@ const ChatBox = () => {
       });
 
       const data = await response.json();
-      setMessages(prev => [...prev, { sender: "bot", text: data.response }]);
+      setMessages(prev => [...prev, { id: Date.now(), sender: "bot", text: data.response }]);
     } catch (error) {
-      setMessages(prev => [...prev, { sender: "bot", text: "❌ File upload failed." }]);
+      console.error("Error:", error);
+      setMessages(prev => [...prev, { id: Date.now(), sender: "bot", text: "❌ File upload failed." }]);
     } finally {
       setFile(null); // clear the file after upload
       setIsAnalyzingPDF(false);
@@ -61,7 +62,7 @@ const ChatBox = () => {
   const handleSendMessage = async () => {
     const token = localStorage.getItem("token");
     if (!token) {
-      setMessages(prev => [...prev, { sender: "bot", text: "⚠️ You're not logged in." }]);
+      setMessages(prev => [...prev, { id: Date.now(), sender: "bot", text: "⚠️ You're not logged in." }]);
       setLoading(false);
       return;
     }
@@ -82,7 +83,8 @@ const ChatBox = () => {
       const botMessage = { sender: "bot", text: data.response || "..." };
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
-      setMessages(prev => [...prev, { sender: "bot", text: "❌ Error: Unable to connect." }]);
+      console.error("Error:", error);
+      setMessages(prev => [...prev, { id: Date.now(), sender: "bot", text: "❌ Error: Unable to connect." }]);
     } finally {
       setLoading(false);
     }
@@ -96,7 +98,7 @@ const ChatBox = () => {
       await handleFileUpload();
       setLoading(false);
     } else if (input.trim() && !file) {
-      const userMessage = { sender: "user", text: input };
+      const userMessage = { id: Date.now(), sender: "user", text: input };
       setMessages(prev => [...prev, userMessage]);
       setInput("");
       setLoading(true);
@@ -127,7 +129,7 @@ const ChatBox = () => {
       <div className="flex-1 overflow-y-auto space-y-2 mt-6 p-2 border rounded bg-gray-50">
       {messages.map((msg, idx) => (
       <div
-        key={idx}
+        key={msg.id}
         className={`flex items-end gap-2 ${
           msg.sender === "user" ? "justify-end" : "justify-start"
         }`}
@@ -153,7 +155,7 @@ const ChatBox = () => {
               </span>
             </p>
           ) : (
-            msg.text.split("\n").map((line, i) => <p key={i}>{line}</p>)
+            msg.text.split("\n").map((line, i) => <p key={`${msg.id}-${i}`}>{line}</p>)
           )}
         </div>
 

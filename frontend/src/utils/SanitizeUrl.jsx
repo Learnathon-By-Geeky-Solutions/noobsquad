@@ -14,6 +14,7 @@ export const sanitizeUrl = (url) => {
   try {
     parsedUrl = new URL(trimmedUrl);
   } catch (e) {
+    console.error('Malformed URL:', e);
     // If the URL is malformed, return the default
     return '/default-avatar.png';
   }

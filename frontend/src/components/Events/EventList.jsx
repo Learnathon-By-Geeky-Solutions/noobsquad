@@ -1,48 +1,46 @@
 import { useState, useEffect } from "react";
-import api from "../../api"; // Your custom axios API instance
-import { ThumbsUp, UserPlus, UserCheck, MapPin, MessageCircleHeart, HeartOff, Heart, Check } from "lucide-react"; // Importing Lucide icons
+import api from "../../api";
+import { ThumbsUp, UserPlus, UserCheck, MapPin, Check } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const EventList = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [actionLoading, setActionLoading] = useState({}); // Track loading state for each event
-  const [rsvpStatus, setRsvpStatus] = useState({}); // Track RSVP status for each event
-  const [currentUserId, setCurrentUserId] = useState(null); // Store the current user's ID
+  const [actionLoading, setActionLoading] = useState({});
+  const [rsvpStatus, setRsvpStatus] = useState({});
+  const [currentUserId, setCurrentUserId] = useState(null);
 
-  // Fetch the current user's ID and then fetch events and attendees
+  const fetchAttendeesForEvent = async (eventId, userId) => {
+    try {
+      const attendeesResponse = await api.get(`/interactions/event/${eventId}/attendees`);
+      const attendees = attendeesResponse.data;
+      const userRsvp = attendees.find((attendee) => attendee.user_id === userId);
+      return {
+        interested: userRsvp?.status === "interested" || false,
+        going: userRsvp?.status === "going" || false,
+      };
+    } catch (err) {
+      console.error(`Error fetching attendees for event ${eventId}:`, err);
+      return { interested: false, going: false };
+    }
+  };
+
   useEffect(() => {
     const fetchUserAndEvents = async () => {
       try {
-        // Step 1: Fetch the current user's ID
         const userResponse = await api.get("/auth/users/me/");
-        const userId = userResponse.data.id; // Assuming the response contains an "id" field
+        const userId = userResponse.data.id;
         setCurrentUserId(userId);
 
-        // Step 2: Fetch all events
         const eventsResponse = await api.get("posts/events/");
         const fetchedEvents = eventsResponse.data;
         setEvents(fetchedEvents);
 
-        // Step 3: Fetch attendees for each event to determine user's RSVP status
         const rsvpData = {};
         await Promise.all(
           fetchedEvents.map(async (event) => {
-            try {
-              const attendeesResponse = await api.get(`/interactions/event/${event.id}/attendees`);
-              const attendees = attendeesResponse.data;
-
-              // Check if the current user has RSVP'd
-              const userRsvp = attendees.find((attendee) => attendee.user_id === userId);
-              rsvpData[event.id] = {
-                interested: userRsvp?.status === "interested" || false,
-                going: userRsvp?.status === "going" || false,
-              };
-            } catch (err) {
-              console.error(`Error fetching attendees for event ${event.id}:`, err);
-              rsvpData[event.id] = { interested: false, going: false }; // Default to false on error
-            }
+            rsvpData[event.id] = await fetchAttendeesForEvent(event.id, userId);
           })
         );
 
@@ -58,7 +56,6 @@ const EventList = () => {
     fetchUserAndEvents();
   }, []);
 
-  // Function to handle RSVP (mark or unmark)
   const handleRSVP = async (eventId, status, isUnmarking = false) => {
     if (!currentUserId) {
       alert("User ID not available. Please try again later.");
@@ -68,11 +65,9 @@ const EventList = () => {
     setActionLoading((prev) => ({ ...prev, [eventId]: true }));
     try {
       if (isUnmarking) {
-        // Unmark RSVP
         await api.delete(`/interactions/event/${eventId}/rsvp`);
         alert(`You have successfully unmarked your ${status} status!`);
       } else {
-        // Mark RSVP
         await api.post(`/interactions/event/${eventId}/rsvp`, {
           event_id: eventId,
           status: status,
@@ -80,7 +75,6 @@ const EventList = () => {
         alert(`You have successfully marked yourself as ${status}!`);
       }
 
-      // Refetch attendees to update RSVP status
       const attendeesResponse = await api.get(`/interactions/event/${eventId}/attendees`);
       const attendees = attendeesResponse.data;
       const userRsvp = attendees.find((attendee) => attendee.user_id === currentUserId);
@@ -117,8 +111,48 @@ const EventList = () => {
           const isInterested = eventRsvp.interested || false;
           const isGoing = eventRsvp.going || false;
 
+          let interestedButtonClass;
+
+          if (actionLoading[event.id]) {
+            interestedButtonClass = "opacity-50 cursor-not-allowed";
+          } else if (isInterested) {
+            interestedButtonClass = "hover:bg-blue-700";
+          } else {
+            interestedButtonClass = "hover:bg-blue-600";
+          }
+
+          let interestedButtonText;
+
+          if (actionLoading[event.id]) {
+            interestedButtonText = "Processing...";
+          } else if (isInterested) {
+            interestedButtonText = "";
+          } else {
+            interestedButtonText = "Interested";
+          }
+
+          let goingButtonClass;
+
+          if (actionLoading[event.id]) {
+            goingButtonClass = "opacity-50 cursor-not-allowed";
+          } else if (isGoing) {
+            goingButtonClass = "hover:bg-gray-800";
+          } else {
+            goingButtonClass = "hover:bg-gray-700";
+          }
+          let goingButtonText;
+
+          if (actionLoading[event.id]) {
+            goingButtonText = "Processing...";
+          } else if (isGoing) {
+            goingButtonText = "";
+          } else {
+            goingButtonText = "Going";
+          }
+
           return (
             <div
+              key={event.id}
               className="bg-white bg-black/5 rounded-lg shadow-sm overflow-hidden transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-xl"
             >
               <img
@@ -128,14 +162,13 @@ const EventList = () => {
               />
               <div className="p-3">
                 <div className="flex justify-between items-center">
-                <Link
-              to={`/dashboard/events/${event.id}`}
-              key={event.id}
-              className="block"
-            >
-                  <h2 className="text-sm font-semibold text-gray-900">{event.title}</h2>
-
-                </Link>
+                  <Link
+                    to={`/dashboard/events/${event.id}`}
+                    key={event.id}
+                    className="block"
+                  >
+                    <h2 className="text-sm font-semibold text-gray-900">{event.title}</h2>
+                  </Link>
                   {event.event_datetime === new Date().toISOString().split("T")[0] ? (
                     <span className="bg-red-500 text-white text-xs font-bold py-1 px-2 rounded-full">
                       Happening now
@@ -155,54 +188,30 @@ const EventList = () => {
                   </div>
                 </div>
 
-                {/* Event Actions */}
                 <div className="flex space-x-3 mt-3">
                   <button
-                    onClick={() =>
-                      handleRSVP(event.id, "interested", isInterested)
-                    }
+                    onClick={() => handleRSVP(event.id, "interested", isInterested)}
                     disabled={actionLoading[event.id]}
-                    className={`w-full flex items-center justify-center py-1 px-3 bg-blue-500 text-white rounded-lg transition-all duration-300 text-xs ${
-                      actionLoading[event.id]
-                        ? "opacity-50 cursor-not-allowed"
-                        : isInterested
-                        ? "hover:bg-blue-700"
-                        : "hover:bg-blue-600"
-                    }`}
+                    className={`w-full flex items-center justify-center py-1 px-3 bg-blue-500 text-white rounded-lg transition-all duration-300 text-xs ${interestedButtonClass}`}
                   >
                     {isInterested ? (
                       <Check className="w-4 h-4 mr-2" />
                     ) : (
                       <ThumbsUp className="w-4 h-4 mr-2" />
                     )}
-                    
-                    {actionLoading[event.id]
-                      ? "Processing..."
-                      : isInterested
-                      ? ""
-                      : "Interested"}
+                    {interestedButtonText}
                   </button>
                   <button
                     onClick={() => handleRSVP(event.id, "going", isGoing)}
                     disabled={actionLoading[event.id]}
-                    className={`w-full flex items-center justify-center py-1 px-3 bg-gray-600 text-white rounded-lg transition-all duration-300 text-xs ${
-                      actionLoading[event.id]
-                        ? "opacity-50 cursor-not-allowed"
-                        : isGoing
-                        ? "hover:bg-gray-800"
-                        : "hover:bg-gray-700"
-                    }`}
+                    className={`w-full flex items-center justify-center py-1 px-3 bg-gray-600 text-white rounded-lg transition-all duration-300 text-xs ${goingButtonClass}`}
                   >
                     {isGoing ? (
                       <UserCheck className="w-4 h-4 mr-2" />
                     ) : (
                       <UserPlus className="w-4 h-4 mr-2" />
                     )}
-                    {actionLoading[event.id]
-                      ? "Processing..."
-                      : isGoing
-                      ? ""
-                      : "Going"}
+                    {goingButtonText}
                   </button>
                 </div>
               </div>
