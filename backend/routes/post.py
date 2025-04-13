@@ -211,7 +211,7 @@ async def create_media_post(
     if not media_file:
         raise HTTPException(status_code=400, detail="No media file received")  # ✅ Debugging
 
-    allowed_media = {".jpg", ".jpeg", ".jfif", ".png", ".gif", ".webp", ".mp4", ".mov"}
+    allowed_media = {".jpg", jpeg, ".jfif", ".png", ".gif", webp, ".mp4", ".mov"}
     media_ext = Path(media_file.filename).suffix.lower()
     if media_ext not in allowed_media:
         raise HTTPException(status_code=400, detail="Invalid media format.")
@@ -278,6 +278,9 @@ async def create_document_post(
 # Define upload directory as a constant
 EVENT_UPLOAD_DIR = "uploads/event_images"
 os.makedirs(EVENT_UPLOAD_DIR, exist_ok=True)
+#Constant
+jpeg = ".jpeg"
+webp =".webp"
 
 @router.post("/create_event_post/", response_model=EventResponse)
 async def create_event_post(
@@ -309,7 +312,7 @@ async def create_event_post(
     if event_image:
         try:
             # Validate file extension
-            ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+            ALLOWED_EXTENSIONS = {".jpg", jpeg, ".png", ".gif", webp}
             file_extension = Path(event_image.filename).suffix.lower()
             if file_extension not in ALLOWED_EXTENSIONS:
                 raise HTTPException(
