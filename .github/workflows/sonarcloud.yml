@@ -51,8 +51,6 @@ jobs:
             echo "DATABASE_URL=postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}"
             echo "HUGGINGFACE_API_KEY=${{ secrets.HUGGINGFACE_API_KEY }}"
             echo "SECRET_KEY=${{ secrets.SECRET_KEY }}"
-            echo "ALGORITHM=${{ secrets.ALGORITHM }}"
-
           } > backend/.env
         shell: bash
 
@@ -62,11 +60,12 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          pytest backend/tests --cov=backend --cov-report=xml:backend/coverage.xml --cov-report=term-missing
+          pytest backend/tests --cov=backend --cov-config=.coveragerc --cov-report=xml:backend/coverage.xml --cov-report=term-missing
 
-      - name: Show first lines of coverage.xml
+      - name: Show coverage.xml contents
         run: |
-          head -n 20 backend/coverage.xml || true
+          ls -l backend/coverage.xml
+          head -n 30 backend/coverage.xml || true
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
