@@ -52,6 +52,7 @@ jobs:
             echo "HUGGINGFACE_API_KEY=${{ secrets.HUGGINGFACE_API_KEY }}"
             echo "SECRET_KEY=${{ secrets.SECRET_KEY }}"
             echo "ALGORITHM=${{ secrets.ALGORITHM }}"
+
           } > backend/.env
         shell: bash
 
@@ -61,12 +62,12 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          pytest backend
+          pytest backend/tests --cov=backend --cov-config=.coveragerc --cov-report=xml:backend/coverage.xml --cov-report=term-missing
 
       - name: Show coverage.xml contents
         run: |
           ls -l backend/coverage.xml
-          cat backend/coverage.xml || true
+          head -n 30 backend/coverage.xml || true
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
