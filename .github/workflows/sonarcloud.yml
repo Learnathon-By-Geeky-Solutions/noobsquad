@@ -50,7 +50,7 @@ jobs:
           echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
           echo "ALGORITHM=${{ secrets.ALGORITHM }}" >> .env
           # Run tests with correct coverage paths
-          pytest tests --cov=backend --cov-report=xml:coverage.xml --cov-report=term-missing
+          pytest tests --cov=. --cov-report=xml:coverage.xml --cov-report=term-missing
           # Debug: Inspect coverage file
           ls -l coverage.xml
           head -n 20 coverage.xml
