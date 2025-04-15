@@ -3,6 +3,11 @@ branch = True
 source = backend
 relative_files = True
 
+[paths]
+source =
+    backend
+    /home/runner/work/noobsquad/noobsquad/backend
+
 [report]
 show_missing = True
 exclude_lines =
