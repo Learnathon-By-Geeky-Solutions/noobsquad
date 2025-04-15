@@ -61,9 +61,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          cd backend
-          pytest tests --cov=. --cov-config=../.coveragerc --cov-report=xml:coverage.xml --cov-report=term-missing
-          cd ..
+          pytest backend
 
       - name: Show coverage.xml contents
         run: |
