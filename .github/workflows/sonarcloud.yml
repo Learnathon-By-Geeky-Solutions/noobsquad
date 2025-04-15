@@ -9,10 +9,26 @@ on:
 jobs:
   sonarcloud:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Fetch all history
 
       # Optional: Set up Python if needed for SonarPython analysis
       - name: Set up Python
@@ -20,28 +36,24 @@ jobs:
         with:
           python-version: 3.12.4
 
-      # Set up Node.js and Vitest (Frontend)
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-
-      # Install frontend dependencies and run tests
-      - name: Install frontend dependencies and run tests
+      - name: Install dependencies
         run: |
-          cd frontend
-          npm install
-          npm run test -- --coverage  # Ensure Vitest generates coverage
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest pytest-cov python-dotenv
 
-      # # Install Python dependencies and run backend tests
-      # - name: Install Python dependencies and run backend tests
-      #   run: |
-      #     cd backend
-      #     pip install -r requirements.txt
-      #     pip install pytest coverage
-      #     pytest tests --cov=. --cov-report=xml --cov-report=term-missing  # Backend coverage report for Python
-      #   env:
-      #      DATABASE_URL: "sqlite:///:memory:"
+      - name: Create .env file
+        run: |
+          echo "DATABASE_URL=postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}" > backend/.env
+          echo "HUGGINGFACE_API_KEY=${{ secrets.HUGGINGFACE_API_KEY }}" >> backend/.env
+          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> backend/.env
+          echo "ALGORITHM=${{ secrets.ALGORITHM }}" >> backend/.env
+        shell: bash
+
+      - name: Run tests with coverage
+        run: |
+          pytest tests --cov=. --cov-report=xml --cov-report=term-missing
+
       # Run SonarCloud scan with coverage report
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
