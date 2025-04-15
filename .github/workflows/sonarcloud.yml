@@ -28,6 +28,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch all history
+
+      - name: Fetch main branch
+        run: git fetch origin main
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -39,14 +44,16 @@ jobs:
           cd backend
           pip install -r requirements.txt
           pip install pytest pytest-cov python-dotenv
-          # Create .env file for backend to load DATABASE_URL and HUGGINGFACE_API_KEY
+          # Create .env file
           echo "DATABASE_URL=postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}" > .env
           echo "HUGGINGFACE_API_KEY=${{ secrets.HUGGINGFACE_API_KEY }}" >> .env
           echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
           echo "ALGORITHM=${{ secrets.ALGORITHM }}" >> .env
-          pytest tests --cov=. --cov-report=xml:coverage.xml --cov-report=term-missing
-          # Debug: Verify coverage file
+          # Run tests with correct coverage paths
+          pytest tests --cov=backend --cov-report=xml:coverage.xml --cov-report=term-missing
+          # Debug: Inspect coverage file
           ls -l coverage.xml
+          head -n 20 coverage.xml
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
