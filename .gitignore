@@ -75,7 +75,6 @@ backend/coverage_html/
 # Test and coverage
 backend/.coverage
 backend/coverage/
-backend/coverage.xml
 
 # Pytest cache
 backend/.pytest_cache/
