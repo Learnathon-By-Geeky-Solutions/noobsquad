@@ -41,19 +41,19 @@ jobs:
 
       - name: Install Python dependencies and run backend tests
         run: |
-          cd backend
-          pip install -r requirements.txt
+          pip install -r backend/requirements.txt
           pip install pytest pytest-cov python-dotenv
-          # Create .env file
-          echo "DATABASE_URL=postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}" > .env
-          echo "HUGGINGFACE_API_KEY=${{ secrets.HUGGINGFACE_API_KEY }}" >> .env
-          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
-          echo "ALGORITHM=${{ secrets.ALGORITHM }}" >> .env
-          # Run tests with correct coverage paths
-          pytest tests --cov=. --cov-report=xml:coverage.xml --cov-report=term-missing
+          # Create .env file in backend/
+          echo "DATABASE_URL=postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}" > backend/.env
+          echo "HUGGINGFACE_API_KEY=${{ secrets.HUGGINGFACE_API_KEY }}" >> backend/.env
+          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> backend/.env
+          echo "ALGORITHM=${{ secrets.ALGORITHM }}" >> backend/.env
+
+          # Run pytest from root for correct paths
+          pytest backend/tests --cov=backend --cov-report=xml:backend/coverage.xml --cov-report=term-missing
           # Debug: Inspect coverage file
-          ls -l coverage.xml
-          head -n 20 coverage.xml
+          ls -l backend/coverage.xml
+          head -n 20 backend/coverage.xml
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
