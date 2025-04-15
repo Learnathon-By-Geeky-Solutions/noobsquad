@@ -62,12 +62,12 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          pytest backend/tests 
+          pytest backend/tests --cov=backend --cov-config=.coveragerc --cov-report=xml:backend/coverage.xml --cov-report=term-missing
 
       - name: Show coverage.xml contents
         run: |
-          ls -l coverage.xml
-          head -n 30 coverage.xml || true
+          ls -l backend/coverage.xml
+          head -n 30 backend/coverage.xml || true
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
