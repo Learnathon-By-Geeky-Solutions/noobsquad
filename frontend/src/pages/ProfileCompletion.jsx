@@ -99,11 +99,62 @@ const ProfileCompletion = () => {
     }
   };
 
+  const generateAvatarImage = (initial) => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 100;
+      canvas.height = 100;
+      const ctx = canvas.getContext("2d");
   
+      // Background color (based on first letter)
+      const colors = ["#F87171", "#34D399", "#60A5FA", "#FBBF24", "#A78BFA"];
+      const bgColor = colors[initial.charCodeAt(0) % colors.length];
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+      // Text (initial of username)
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 50px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(initial, canvas.width / 2, canvas.height / 2);
+  
+      // Convert canvas to Blob (for file upload)
+      canvas.toBlob((blob) => resolve(blob), "image/png");
+    });
+  };
 
-  const handleSkip = () => {
-    login(localStorage.getItem("token"));
-    navigate("/dashboard");
+  const handleSkip = async () => {
+    const username = localStorage.getItem("username");
+    console.log(username)
+    // Generate the default avatar image (based on the username's first letter)
+    const initial = username.charAt(0).toUpperCase();
+    const avatarBlob = await generateAvatarImage(initial);  // Generate the avatar
+  
+    const fakeFile = new File([avatarBlob], "avatar.png", { type: "image/png" });
+  
+    const formDataToSend = new FormData();
+    formDataToSend.append("file", fakeFile);
+  
+    // Send to backend as if it was a regular uploaded file
+    try {
+      const response = await fetch(`${API_URL}/profile/upload_picture`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`
+        },
+        body: formDataToSend,
+      });
+  
+      if (response.ok) {
+        login(localStorage.getItem("token"));
+        navigate("/dashboard");
+      } else {
+        console.error("Profile picture upload failed");
+      }
+    } catch (error) {
+      console.error("Error submitting profile picture:", error);
+    }
   };
 
   const handleSubmit = async () => {
