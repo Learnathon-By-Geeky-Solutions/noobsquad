@@ -52,10 +52,14 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          cd backend
-          pytest tests --cov=. --cov-report=xml:coverage.xml --cov-report=term-missing
+        
+          pytest backend/tests --cov=backend --cov-report=xml:backend/coverage.xml --cov-config=backend/.coveragerc --cov-report=term-missing
 
-      
+      - name: Debug coverage report
+        run: |
+            cat backend/coverage.xml | grep -A 5 "<source>"
+            cat backend/coverage.xml | grep "<class "
+        
 
       # Run SonarCloud scan with coverage report
       - name: SonarCloud Scan
