@@ -1,18 +1,21 @@
-name: SonarCloud CI
+name: SonarCloud Analysis
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
-    types: [opened, synchronize, reopened]
+    branches:
+      - main
 
 jobs:
-  sonarcloud:
+  build:
+    name: Run Tests and Analyze with SonarCloud
     runs-on: ubuntu-latest
 
     services:
       postgres:
-        image: postgres:latest
+        image: postgres:14
         env:
           POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
@@ -31,33 +34,46 @@ jobs:
         with:
           fetch-depth: 0  # Fetch all history
 
-      - name: Fetch main branch
-        run: git fetch origin main
-
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.12.4
+          python-version: '3.12.4'
 
-      - name: Install Python dependencies and run backend tests
+      - name: Install dependencies
         run: |
+          python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
           pip install pytest pytest-cov python-dotenv
-          # Create .env file in backend/
-          echo "DATABASE_URL=postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}" > backend/.env
-          echo "HUGGINGFACE_API_KEY=${{ secrets.HUGGINGFACE_API_KEY }}" >> backend/.env
-          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> backend/.env
-          echo "ALGORITHM=${{ secrets.ALGORITHM }}" >> backend/.env
 
-          # Run pytest from root for correct paths
+      - name: Create .env file
+        run: |
+          {
+            echo "DATABASE_URL=postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}"
+            echo "HUGGINGFACE_API_KEY=${{ secrets.HUGGINGFACE_API_KEY }}"
+            echo "SECRET_KEY=${{ secrets.SECRET_KEY }}"
+            echo "ALGORITHM=${{ secrets.ALGORITHM }}"
+
+          } > backend/.env
+        shell: bash
+
+      - name: Remove existing coverage.xml
+        run: |
+          rm -f backend/coverage.xml
+
+      - name: Run tests with coverage
+        run: |
           pytest backend/tests --cov=backend --cov-report=xml:backend/coverage.xml --cov-report=term-missing
-          # Debug: Inspect coverage file
-          ls -l backend/coverage.xml
-          head -n 20 backend/coverage.xml
+
+      - name: Show first lines of coverage.xml
+        run: |
+          head -n 20 backend/coverage.xml || true
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
         with:
           projectBaseDir: .
+          args: >
+            -Dsonar.sources=backend
+            -Dsonar.python.coverage.reportPaths=backend/coverage.xml
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
