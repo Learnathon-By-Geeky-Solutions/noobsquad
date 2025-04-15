@@ -72,9 +72,7 @@ jobs:
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
         with:
-          projectBaseDir: .
-          args: >
-            -Dsonar.sources=backend
-            -Dsonar.python.coverage.reportPaths=backend/coverage.xml
+          projectBaseDir: backend
+
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
