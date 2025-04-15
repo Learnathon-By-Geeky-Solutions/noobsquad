@@ -51,6 +51,8 @@ jobs:
             echo "DATABASE_URL=postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}"
             echo "HUGGINGFACE_API_KEY=${{ secrets.HUGGINGFACE_API_KEY }}"
             echo "SECRET_KEY=${{ secrets.SECRET_KEY }}"
+            echo "ALGORITHM=${{ secrets.ALGORITHM }}"
+
           } > backend/.env
         shell: bash
 
