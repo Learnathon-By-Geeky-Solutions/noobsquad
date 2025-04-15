@@ -66,8 +66,8 @@ jobs:
 
       - name: Show coverage.xml contents
         run: |
-          ls -l backend/coverage.xml
-          head -n 30 backend/coverage.xml || true
+          ls -l coverage.xml
+          head -n 30 coverage.xml || true
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
