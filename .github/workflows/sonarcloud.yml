@@ -39,9 +39,12 @@ jobs:
           cd backend
           pip install -r requirements.txt
           pip install pytest pytest-cov python-dotenv
-          # Create .env file for backend to load DATABASE_URL
+          # Create .env file for backend to load DATABASE_URL and HUGGINGFACE_API_KEY
           echo "DATABASE_URL=postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}" > .env
+          echo "HUGGINGFACE_API_KEY=${{ secrets.HUGGINGFACE_API_KEY }}" >> .env
           pytest tests --cov=. --cov-report=xml:coverage.xml --cov-report=term-missing
+          # Debug: Verify coverage file
+          ls -l coverage.xml
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
