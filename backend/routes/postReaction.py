@@ -25,207 +25,180 @@ def get_db():
     finally:
         db.close()
 
-def update_like_count(like_data, db: Session, action: str):
-    if like_data.post_id:
-        post = db.query(Post).filter(Post.id == like_data.post_id).first()
-        if post:
-            post.like_count = max(0, post.like_count + (1 if action == 'add' else -1))
-    
-    if like_data.comment_id:
-        comment = db.query(Comment).filter(Comment.id == like_data.comment_id).first()
-        if comment:
-            comment.like_count = max(0, comment.like_count + (1 if action == 'add' else -1))
-    
-    db.commit()
 
-# Helper function to remove like
+# Helper: notify user if not the actor
+
+def notify_if_not_self(db, actor_id, recipient_id, notif_type, post_id):
+    if actor_id != recipient_id:
+        create_notification(db, recipient_id, actor_id, notif_type, post_id)
+
+# Helper: like handling
+
+def update_like_count(like_data, db: Session, action: str):
+    model = Post if like_data.post_id else Comment
+    obj_id = like_data.post_id if like_data.post_id else like_data.comment_id
+    instance = db.query(model).filter(model.id == obj_id).first()
+    if instance:
+        delta = 1 if action == "add" else -1
+        instance.like_count = max(0, instance.like_count + delta)
+        db.commit()
+
+
 def remove_like(existing_like, db: Session, like_data: LikeCreate):
     db.delete(existing_like)
-    update_like_count(like_data, db, 'remove')
+    update_like_count(like_data, db, "remove")
 
-# Helper function to add new like
+
 def add_like(like_data: LikeCreate, db: Session, current_user: User):
     created_at = datetime.now(ZoneInfo("UTC"))
     new_like = Like(user_id=current_user.id, post_id=like_data.post_id, comment_id=like_data.comment_id, created_at=created_at)
     db.add(new_like)
-    update_like_count(like_data, db, 'add')
+    update_like_count(like_data, db, "add")
     db.commit()
     db.refresh(new_like)
     return new_like
 
 @router.post("/like", response_model=LikeResponse)
-def like_action(like_data: LikeCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def like_action(
+    like_data: LikeCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     if not like_data.post_id and not like_data.comment_id:
         raise HTTPException(status_code=400, detail="Either post_id or comment_id must be provided.")
-    
-    # Check if the like already exists
+
     existing_like = db.query(Like).filter(
         Like.user_id == current_user.id,
         Like.post_id == like_data.post_id,
         Like.comment_id == like_data.comment_id
     ).first()
 
+    total_likes = get_like_count(db, like_data)
+
     if existing_like:
-        remove_like(existing_like, db, like_data)
-        return {
+        response = {
             "id": existing_like.id,
             "user_id": existing_like.user_id,
             "post_id": existing_like.post_id,
             "comment_id": existing_like.comment_id,
             "created_at": existing_like.created_at,
-            "total_likes": db.query(Post if like_data.post_id else Comment).filter(
-                Post.id == like_data.post_id if like_data.post_id else Comment.id == like_data.comment_id
-            ).first().like_count,
+            "total_likes": max(0, total_likes - 1),
             "user_liked": False,
             "message": "Like removed"
         }
+        remove_like(existing_like, db, like_data)
+        return response
 
     new_like = add_like(like_data, db, current_user)
 
     if like_data.post_id:
         post = db.query(Post).filter(Post.id == like_data.post_id).first()
-        if post and post.user_id != current_user.id:  # Don't notify if liking own post
+        if post:
+            notify_if_not_self(db, current_user.id, post.user_id, "like", post.id)
 
-            create_notification(
-                db=db,
-                recipient_id=post.user_id,  # The owner of the post being liked
-                actor_id=current_user.id,  # The user who liked the post
-                notif_type="like",
-                post_id=post.id  # The post that was liked
-            )
-    
+    total_likes = get_like_count(db, like_data)
+
     return {
         "id": new_like.id,
         "user_id": new_like.user_id,
         "post_id": new_like.post_id,
         "comment_id": new_like.comment_id,
         "created_at": new_like.created_at,
-        "total_likes": db.query(Post if like_data.post_id else Comment).filter(
-            Post.id == like_data.post_id if like_data.post_id else Comment.id == like_data.comment_id
-        ).first().like_count,
+        "total_likes": total_likes,
         "user_liked": True,
         "message": "Like added successfully"
     }
 
-# ✅ Comment on a Post
+def get_like_count(db: Session, like_data: LikeCreate):
+    model = Post if like_data.post_id else Comment
+    obj_id = like_data.post_id if like_data.post_id else like_data.comment_id
+    return db.query(model).filter(model.id == obj_id).first().like_count
+
 @router.post("/{post_id}/comment", response_model=CommentNestedResponse)
 def comment_post(comment_data: CommentCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if comment_data.parent_id is not None:
+    if comment_data.parent_id:
         raise HTTPException(status_code=400, detail="Root comment cannot have a parent_id.")
 
-    created_at = datetime.now(ZoneInfo("UTC"))
     new_comment = Comment(
         user_id=current_user.id,
         post_id=comment_data.post_id,
         content=comment_data.content,
         parent_id=None,
-        created_at = created_at
+        created_at=datetime.now(ZoneInfo("UTC"))
     )
     db.add(new_comment)
     db.commit()
     db.refresh(new_comment)
-    post_owner = db.query(User).filter(User.id == new_comment.post.user_id).first()
-    if post_owner and post_owner.id != current_user.id:
-        create_notification(db, recipient_id=post_owner.id, actor_id=current_user.id, notif_type="comment", post_id=new_comment.post_id)
+    notify_if_not_self(db, current_user.id, new_comment.post.user_id, "comment", new_comment.post_id)
     return new_comment
 
-
-# ✅ Reply to a Comment (Max Depth = 2)
 @router.post("/{post_id}/comment/{parent_comment_id}/reply", response_model=CommentNestedResponse)
 def reply_comment(comment_data: CommentCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    parent_comment = db.query(Comment).filter(Comment.id == comment_data.parent_id).first()
-    
-    if not parent_comment:
+    parent = db.query(Comment).filter(Comment.id == comment_data.parent_id).first()
+    if not parent:
         raise HTTPException(status_code=404, detail="Parent comment not found.")
-
-    # Enforce max depth of 2
-    if parent_comment.parent_id is not None:
+    if parent.parent_id:
         raise HTTPException(status_code=400, detail="Cannot reply to a reply. Max depth reached.")
-    
-    created_at = datetime.now(ZoneInfo("UTC"))
-    new_reply = Comment(
+
+    reply = Comment(
         user_id=current_user.id,
-        post_id=parent_comment.post_id,
+        post_id=parent.post_id,
         content=comment_data.content,
         parent_id=comment_data.parent_id,
-        created_at=created_at
+        created_at=datetime.now(ZoneInfo("UTC"))
     )
-    db.add(new_reply)
+    db.add(reply)
     db.commit()
-    db.refresh(new_reply)
-    # 🔔 Send Notification to Comment Owner
-    comment_owner = db.query(User).filter(User.id == parent_comment.user_id).first()
-    if comment_owner and comment_owner.id != current_user.id:
-        create_notification(db, recipient_id=comment_owner.id, actor_id=current_user.id, notif_type="reply", post_id=new_reply.post_id)
-    return new_reply
+    db.refresh(reply)
+    notify_if_not_self(db, current_user.id, parent.user_id, "reply", reply.post_id)
+    return reply
 
 
 @router.get("/{post_id}/comments")
 def get_comments(post_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """
-    ✅ Fetch comments for a specific post.
-    """
-    
-    # Fetch parent comments (comments with parent_id=None)
-    parent_comments = db.query(Comment).filter(Comment.post_id == post_id, Comment.parent_id == None).all()
-
-    comment_list = []
-    for comment in parent_comments:
-        # Fetch replies for this parent comment (comments with parent_id equal to the parent comment's id)
-        replies = db.query(Comment).filter(Comment.parent_id == comment.id).all()
-
-        # Building comment data
-        comment_data = {
-            "id": comment.id,
-            "content": comment.content,
-            "created_at": comment.created_at,
-            "user": {
-                "id": comment.user.id,
-                "username": comment.user.username,
-                "profile_picture": f"http://127.0.0.1:8000/uploads/profile_pictures/{comment.user.profile_picture}"
-            },
-            "total_likes": len(comment.likes),
-            "user_liked": any(like.user_id == current_user.id for like in comment.likes),
-            "replies": [
-                {
-                    "id": reply.id,
-                    "content": reply.content,
-                    "created_at": reply.created_at,
-                    "user": {
-                        "id": reply.user.id,
-                        "username": reply.user.username,
-                        "profile_picture": f"http://127.0.0.1:8000/uploads/profile_pictures/{reply.user.profile_picture}"
-                    },
-                    "total_likes": len(reply.likes),
-                    "user_liked": any(like.user_id == current_user.id for like in reply.likes),
-                }
-                for reply in replies
-            ]
-        }
-
-        comment_list.append(comment_data)
-
-    return {"comments": comment_list}
+    parents = db.query(Comment).filter(Comment.post_id == post_id, Comment.parent_id == None).all()
+    return {"comments": [build_comment_response(c, db, current_user) for c in parents]}
 
 
+def build_comment_response(comment, db: Session, user: User):
+    replies = db.query(Comment).filter(Comment.parent_id == comment.id).all()
+    return {
+        "id": comment.id,
+        "content": comment.content,
+        "created_at": comment.created_at,
+        "user": serialize_user(comment.user),
+        "total_likes": len(comment.likes),
+        "user_liked": any(l.user_id == user.id for l in comment.likes),
+        "replies": [build_reply_response(r, user) for r in replies]
+    }
 
-#delete the comment
+
+def build_reply_response(reply, user: User):
+    return {
+        "id": reply.id,
+        "content": reply.content,
+        "created_at": reply.created_at,
+        "user": serialize_user(reply.user),
+        "total_likes": len(reply.likes),
+        "user_liked": any(l.user_id == user.id for l in reply.likes)
+    }
+
+
+def serialize_user(user: User):
+    return {
+        "id": user.id,
+        "username": user.username,
+        "profile_picture": f"http://127.0.0.1:8000/uploads/profile_pictures/{user.profile_picture}"
+    }
+
 @router.delete("/comment/{comment_id}")
 def delete_comment(comment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    # Get the comment by ID
     comment = db.query(Comment).filter(Comment.id == comment_id).first()
-
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found.")
-    
-    # Get the post associated with the comment
     post = db.query(Post).filter(Post.id == comment.post_id).first()
-
-    # Check if the current user is the comment owner or the post owner
     if comment.user_id != current_user.id and post.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="You do not have permission to delete this comment.")
-
-    # Delete the comment if the user has permission
+        raise HTTPException(status_code=403, detail="Not authorized to delete this comment.")
     db.delete(comment)
     db.commit()
     return {"message": "Comment deleted successfully"}
