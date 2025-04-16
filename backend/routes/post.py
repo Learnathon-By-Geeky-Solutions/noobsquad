@@ -29,11 +29,15 @@ def get_db():
         db.close()
 
 MEDIA_DIR = "uploads/media/"
-os.makedirs(MEDIA_DIR, exist_ok=True)  # Ensure upload directory exists
 DOCUMENT_DIR = "uploads/document/"
-os.makedirs(DOCUMENT_DIR, exist_ok=True) 
-STATUS_404_ERROR= "Post not found"
+EVENT_UPLOAD_DIR = "uploads/event_images"
+os.makedirs(MEDIA_DIR, exist_ok=True)
+os.makedirs(DOCUMENT_DIR, exist_ok=True)
+os.makedirs(EVENT_UPLOAD_DIR, exist_ok=True)
 
+STATUS_404_ERROR = "Post not found"
+ALLOWED_MEDIA = {".jpg", ".jpeg", ".jfif", ".png", ".gif", ".webp", ".mp4", ".mov"}
+ALLOWED_DOCS = {".pdf", ".docx", ".txt"}
 
 
 
@@ -74,6 +78,59 @@ def get_post_additional_data(post: Post, db: Session):
             }
 
     return post_data
+
+def validate_file_extension(filename: str, allowed_extensions: set):
+    ext = Path(filename).suffix.lower()
+    if ext not in allowed_extensions:
+        raise HTTPException(status_code=400, detail="Invalid file format.")
+    return ext
+
+
+def save_upload_file(upload_file: UploadFile, destination_dir: str, filename: str) -> str:
+    file_path = os.path.join(destination_dir, filename)
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(upload_file.file, buffer)
+    return file_path
+
+
+def generate_secure_filename(user_id: int, file_ext: str) -> str:
+    return f"{user_id}_{secrets.token_hex(8)}{file_ext}"
+
+
+def create_post_entry(db: Session, user_id: int, content: Optional[str], post_type: str) -> Post:
+    post = Post(content=content, user_id=user_id, post_type=post_type)
+    db.add(post)
+    db.commit()
+    db.refresh(post)
+    return post
+
+
+def send_post_notifications(db: Session, user: User, post: Post):
+    friends = get_connections(db, user.id)
+    for friend in friends:
+        friend_id = friend["friend_id"] if friend["user_id"] == user.id else friend["user_id"]
+        create_notification(db=db, recipient_id=friend_id, actor_id=user.id, notif_type="new_post", post_id=post.id)
+    db.commit()
+
+def get_post_by_id(db: Session, post_id: int, user_id: int = None):
+    query = db.query(Post).filter(Post.id == post_id)
+    if user_id is not None:
+        query = query.filter(Post.user_id == user_id)
+    post = query.first()
+    if not post:
+        raise HTTPException(status_code=404, detail=STATUS_404_ERROR)
+    return post
+
+
+def update_post_content(post: Post, content: Optional[str]):
+    if content is not None:
+        post.content = content
+
+
+def remove_old_file_if_exists(file_path: str):
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
 
 # Main function refactor
 @router.get("/")
@@ -179,28 +236,6 @@ def get_single_post(
     return post_data
 
 
-@router.post("/create_text_post/", response_model=PostResponse)
-async def create_text_post(
-    content: str = Form(...),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    # Check if the content is inappropriate using the AI-based moderation function
-    if moderate_text(content):
-        raise HTTPException(status_code=400, detail="Inappropriate content detected, Please revise your content")
-    
-    new_post = Post(content=content, user_id=current_user.id, post_type="text")
-    db.add(new_post)
-    db.commit()
-    db.refresh(new_post)
-    send_post_notifications(db, current_user, new_post)
-
-    # Add required fields dynamically
-    new_post.comment_count = 0
-    new_post.user_liked = False
-    return new_post  # Returns as PostResponse schema
-
-
 @router.post("/create_media_post/", response_model=MediaPostResponse)
 async def create_media_post(
     content: Optional[str] = Form(None),
@@ -208,36 +243,18 @@ async def create_media_post(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    if not media_file:
-        raise HTTPException(status_code=400, detail="No media file received")  # ✅ Debugging
+    ext = validate_file_extension(media_file.filename, ALLOWED_MEDIA)
+    filename = generate_secure_filename(current_user.id, ext)
+    save_upload_file(media_file, MEDIA_DIR, filename)
 
-    allowed_media = {".jpg", jpeg, ".jfif", ".png", ".gif", webp, ".mp4", ".mov"}
-    media_ext = Path(media_file.filename).suffix.lower()
-    if media_ext not in allowed_media:
-        raise HTTPException(status_code=400, detail="Invalid media format.")
-    
-
-    # Save media to local storage
-    media_filename = f"{current_user.id}_{secrets.token_hex(8)}{media_ext}"
-    media_path = os.path.join(MEDIA_DIR, media_filename)
-    with open(media_path, "wb") as buffer:
-        shutil.copyfileobj(media_file.file, buffer)
-
-    # Create Post Entry
-    new_post = Post(content=content, user_id=current_user.id, post_type="media")
-    db.add(new_post)
+    post = create_post_entry(db, current_user.id, content, "media")
+    media_entry = PostMedia(post_id=post.id, media_url=filename, media_type=ext)
+    db.add(media_entry)
     db.commit()
-    db.refresh(new_post)
+    db.refresh(media_entry)
 
-    # Add Media Entry
-    new_media = PostMedia(post_id=new_post.id, media_url=media_filename, media_type=media_ext)
-    db.add(new_media)
-    db.commit()
-    db.refresh(new_media)
-    send_post_notifications(db, current_user, new_post)
-
-    return new_media  # Returns as MediaPostResponse schema
-
+    send_post_notifications(db, current_user, post)
+    return media_entry
 
 
 @router.post("/create_document_post/", response_model=DocumentPostResponse)
@@ -247,120 +264,79 @@ async def create_document_post(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    allowed_docs = {".pdf", ".docx", ".txt"}
-    doc_ext = Path(document_file.filename).suffix.lower()
-    if doc_ext not in allowed_docs:
-        raise HTTPException(status_code=400, detail="Invalid document format.")
+    ext = validate_file_extension(document_file.filename, ALLOWED_DOCS)
+    filename = generate_secure_filename(current_user.id, ext)
+    save_upload_file(document_file, DOCUMENT_DIR, filename)
 
-    # Save document to local storage
-    doc_filename = f"{current_user.id}_{secrets.token_hex(8)}{doc_ext}"
-    document_path = os.path.join(DOCUMENT_DIR, doc_filename)
-    with open(document_path, "wb") as buffer:
-        buffer.write(document_file.file.read())
-
-    # Create Post Entry
-    new_post = Post(content=content, user_id=current_user.id, post_type="document")
-    db.add(new_post)
+    post = create_post_entry(db, current_user.id, content, "document")
+    doc_entry = PostDocument(post_id=post.id, document_url=filename, document_type=ext)
+    db.add(doc_entry)
     db.commit()
-    db.refresh(new_post)
+    db.refresh(doc_entry)
 
-    # Add Document Entry
-    new_document = PostDocument(post_id=new_post.id, document_url=doc_filename, document_type=doc_ext)
-    db.add(new_document)
-    db.commit()
-    db.refresh(new_document)
-    send_post_notifications(db, current_user, new_post)
+    send_post_notifications(db, current_user, post)
+    return doc_entry
 
 
+@router.post("/create_text_post/", response_model=PostResponse)
+async def create_text_post(
+    content: str = Form(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if moderate_text(content):
+        raise HTTPException(status_code=400, detail="Inappropriate content detected")
 
-    return new_document  # Returns as DocumentPostResponse schema
+    post = create_post_entry(db, current_user.id, content, "text")
+    send_post_notifications(db, current_user, post)
 
-# Define upload directory as a constant
-EVENT_UPLOAD_DIR = "uploads/event_images"
-os.makedirs(EVENT_UPLOAD_DIR, exist_ok=True)
-#Constant
-jpeg = ".jpeg"
-webp =".webp"
+    post.comment_count = 0
+    post.user_liked = False
+    return post
+
 
 @router.post("/create_event_post/", response_model=EventResponse)
 async def create_event_post(
     content: Optional[str] = Form(None),
     event_title: str = Form(...),
     event_description: str = Form(...),
-    event_date: str = Form(...),   # Accepts date in "YYYY-MM-DD"
-    event_time: str = Form(...),   # Accepts time in "HH:MM"
-    user_timezone: str = Form("Asia/Dhaka"),  # User’s timezone (e.g., "Asia/Dhaka")
+    event_date: str = Form(...),
+    event_time: str = Form(...),
+    user_timezone: str = Form("Asia/Dhaka"),
     location: Optional[str] = Form(None),
     event_image: Optional[UploadFile] = File(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     try:
-        # Combine Date & Time
-        local_datetime = datetime.strptime(f"{event_date} {event_time}", "%Y-%m-%d %H:%M")
-
-        # Convert to UTC
-        local_tz = ZoneInfo(user_timezone)
-        local_dt_with_tz = local_datetime.replace(tzinfo=local_tz)
-        event_datetime_utc = local_dt_with_tz.astimezone(ZoneInfo("UTC"))
-
+        dt_local = datetime.strptime(f"{event_date} {event_time}", "%Y-%m-%d %H:%M")
+        dt_utc = dt_local.replace(tzinfo=ZoneInfo(user_timezone)).astimezone(ZoneInfo("UTC"))
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid date/time format: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Invalid date/time: {str(e)}")
 
-    # Handle image upload securely
     image_url = None
     if event_image:
-        try:
-            # Validate file extension
-            ALLOWED_EXTENSIONS = {".jpg", jpeg, ".png", ".gif", webp}
-            file_extension = Path(event_image.filename).suffix.lower()
-            if file_extension not in ALLOWED_EXTENSIONS:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Invalid file type"
-                )
+        ext = validate_file_extension(event_image.filename, {".jpg", ".jpeg", ".png", ".gif", ".webp"})
+        filename = generate_secure_filename(current_user.id, ext)
+        save_upload_file(event_image, EVENT_UPLOAD_DIR, filename)
+        image_url = f"http://127.0.0.1:8000/uploads/event_images/{filename}"
 
-            # Generate a secure filename
-            secure_filename = f"{current_user.id}_{secrets.token_hex(8)}{file_extension}"
-            file_location = os.path.abspath(os.path.join(EVENT_UPLOAD_DIR, secure_filename))
-
-            # Prevent directory traversal
-            if not file_location.startswith(os.path.abspath(EVENT_UPLOAD_DIR)):
-                raise HTTPException(status_code=400, detail="Invalid file path detected.")
-
-            # Save the uploaded image to the server
-            with open(file_location, "wb") as buffer:
-                buffer.write(event_image.file.read())
-
-            # Construct the image URL using the mounted static path
-            image_url = f"http://127.0.0.1:8000/uploads/event_images/{secure_filename}"
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to save image: {str(e)}")
-
-    # Create Post Entry
-    new_post = Post(content=content, user_id=current_user.id, post_type="event")
-    db.add(new_post)
-    db.commit()
-    db.refresh(new_post)
-
-    # Add Event Entry with UTC time
-    new_event = Event(
-        post_id=new_post.id,
+    post = create_post_entry(db, current_user.id, content, "event")
+    event = Event(
+        post_id=post.id,
         user_id=current_user.id,
         title=event_title,
         description=event_description,
-        event_datetime=event_datetime_utc,
+        event_datetime=dt_utc,
         location=location,
         image_url=image_url
     )
-    db.add(new_event)
+    db.add(event)
     db.commit()
-    db.refresh(new_event)
+    db.refresh(event)
+    send_post_notifications(db, current_user, post)
 
-    # Notify users about the new event
-    send_post_notifications(db, current_user, new_post)
-
-    return new_event
+    return event
 
 @router.get("/posts/")
 def get_posts(user_id: Optional[int] = None, db: Session = Depends(get_db)):
@@ -378,73 +354,44 @@ async def update_text_post(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    post = db.query(Post).filter(Post.id == post_id, Post.user_id == current_user.id).first()
-    if not post:
-        raise HTTPException(status_code=404, detail=STATUS_404_ERROR)
-
-    if update_data.content is not None:
-        post.content = update_data.content
-
+    post = get_post_by_id(db, post_id, current_user.id)
+    update_post_content(post, update_data.content)
     db.commit()
     db.refresh(post)
     return post
 
 
+
 @router.put("/update_media_post/{post_id}")
 async def update_media_post(
     post_id: int,
-    content: Optional[str] = Form(None),  
-    media_file: Optional[UploadFile] = File(None),  # ✅ Optional to allow skipping media update
+    content: Optional[str] = Form(None),
+    media_file: Optional[UploadFile] = File(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # Find the post
-    post = db.query(Post).filter(Post.id == post_id, Post.user_id == current_user.id).first()
-    if not post:
-        raise HTTPException(status_code=404, detail=STATUS_404_ERROR)
-    
-    # ✅ Only update content if it's provided
-    if content is not None:
-        post.content = content  
+    post = get_post_by_id(db, post_id, current_user.id)
+    update_post_content(post, content)
 
-    # ✅ If a new media file is uploaded, replace the old one
-    if media_file and media_file.filename:  
-        allowed_media = {".jpg", ".jpeg", ".jfif", ".png", ".gif", ".webp", ".mp4", ".mov"}
-        media_ext = Path(media_file.filename).suffix.lower()
-        if media_ext not in allowed_media:
-            raise HTTPException(status_code=400, detail="Invalid media format.")
+    if media_file and media_file.filename:
+        ext = validate_file_extension(media_file.filename, ALLOWED_MEDIA)
+        filename = generate_secure_filename(current_user.id, ext)
+        save_upload_file(media_file, MEDIA_DIR, filename)
 
-        media_filename = f"{current_user.id}_{secrets.token_hex(8)}{media_ext}"
-        media_path = os.path.join(MEDIA_DIR, media_filename)
-
-        # ✅ Save the new file safely
-        with open(media_path, "wb") as buffer:
-            shutil.copyfileobj(media_file.file, buffer)
-
-        # ✅ Find existing media
         media_entry = db.query(PostMedia).filter(PostMedia.post_id == post.id).first()
         if media_entry:
-            # ✅ Remove old file safely
-            old_media_path = os.path.join(MEDIA_DIR, media_entry.media_url)
-            if os.path.exists(old_media_path):
-                os.remove(old_media_path)
-
-            # ✅ Update media entry
-            media_entry.media_url = media_filename  
-            media_entry.media_type = media_ext
-            db.commit()  # ✅ Save changes
+            remove_old_file_if_exists(os.path.join(MEDIA_DIR, media_entry.media_url))
+            media_entry.media_url = filename
+            media_entry.media_type = ext
         else:
-            new_media = PostMedia(post_id=post.id, media_url=media_filename, media_type=media_ext)
-            db.add(new_media)
-            db.commit()  # ✅ Save changes
+            media_entry = PostMedia(post_id=post.id, media_url=filename, media_type=ext)
+            db.add(media_entry)
 
-    db.commit()
+        db.commit()
+
     db.refresh(post)
+    media_url = db.query(PostMedia).filter(PostMedia.post_id == post.id).first().media_url
 
-    # ✅ Fetch updated media entry
-    media_entry = db.query(PostMedia).filter(PostMedia.post_id == post.id).first()
-    media_url = media_entry.media_url if media_entry else None
-    
     return {
         "message": "Media post updated successfully",
         "updated_post": {
@@ -457,60 +404,35 @@ async def update_media_post(
         },
     }
 
-
-
-
-
-
 @router.put("/update_document_post/{post_id}")
 async def update_document_post(
     post_id: int,
-    content: Optional[str] = Form(None),  
-    document_file: Optional[UploadFile] = File(None),  
+    content: Optional[str] = Form(None),
+    document_file: Optional[UploadFile] = File(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    post = db.query(Post).filter(Post.id == post_id, Post.user_id == current_user.id).first()
-    if not post:
-        raise HTTPException(status_code=404, detail=STATUS_404_ERROR)
+    post = get_post_by_id(db, post_id, current_user.id)
+    update_post_content(post, content)
 
-    if content is not None:
-        post.content = content  
+    if document_file and document_file.filename:
+        ext = validate_file_extension(document_file.filename, ALLOWED_DOCS)
+        filename = generate_secure_filename(current_user.id, ext)
+        save_upload_file(document_file, DOCUMENT_DIR, filename)
 
-    allowed_docs = {".pdf", ".docx", ".txt"}
-
-    # Handle document file replacement
-    if document_file is not None and document_file.filename != "":  
-        doc_ext = Path(document_file.filename).suffix.lower()
-        if doc_ext not in allowed_docs:
-            raise HTTPException(status_code=400, detail="Invalid document format.")
-
-        doc_filename = f"{current_user.id}_{secrets.token_hex(8)}{doc_ext}"
-        document_path = os.path.join(DOCUMENT_DIR, doc_filename)
-
-        # Save the new document file
-        with open(document_path, "wb") as buffer:
-            buffer.write(document_file.file.read())
-
-        # Check if the post already has an associated document
         doc_entry = db.query(PostDocument).filter(PostDocument.post_id == post.id).first()
         if doc_entry:
-            old_doc_path = doc_entry.document_url
-            if old_doc_path and os.path.exists(old_doc_path):
-                os.remove(old_doc_path)  # Safely remove old file
-
-            doc_entry.document_url = doc_filename
-            doc_entry.document_type = doc_ext
+            remove_old_file_if_exists(os.path.join(DOCUMENT_DIR, doc_entry.document_url))
+            doc_entry.document_url = filename
+            doc_entry.document_type = ext
         else:
-            new_media = PostDocument(post_id=post.id, document_url=doc_filename, document_type=doc_ext)
-            db.add(new_media)
+            doc_entry = PostDocument(post_id=post.id, document_url=filename, document_type=ext)
+            db.add(doc_entry)
 
-    db.commit()
+        db.commit()
+
     db.refresh(post)
-
-    # Fetch updated document entry
-    doc_entry = db.query(PostDocument).filter(PostDocument.post_id == post.id).first()
-    document_url = doc_entry.document_url if doc_entry else ""
+    document_url = db.query(PostDocument).filter(PostDocument.post_id == post.id).first().document_url
 
     return {
         "message": "Document post updated successfully",
@@ -520,9 +442,10 @@ async def update_document_post(
             "content": post.content,
             "post_type": post.post_type,
             "created_at": post.created_at,
-            "document_url": document_url,  # Ensure document URL is always returned
+            "document_url": document_url,
         },
     }
+
 
 # Helper function to get post and associated event
 def get_post_and_event(post_id: int, user_id: int, db: Session):
@@ -608,21 +531,15 @@ async def update_event_post(
     return {"message": "No changes detected"}
 
 
-@router.delete("/delete_post/{post_id}/")
+@router.delete("/delete_post/{post_id}")
 async def delete_post(
     post_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Find the post
-    post = db.query(Post).filter(Post.id == post_id, Post.user_id == current_user.id).first()
-    if not post:
-        raise HTTPException(status_code=404, detail="Post not found or unauthorized")
-
-    # Delete the post
+    post = get_post_by_id(db, post_id, current_user.id)
     db.delete(post)
     db.commit()
-
     return {"message": "Post deleted successfully"}
 
 @router.get("/events/", response_model=Union[List[EventResponse], EventResponse])
