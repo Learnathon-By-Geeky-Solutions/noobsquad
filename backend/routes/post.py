@@ -59,25 +59,39 @@ def get_comments_for_post(post_id: int, db: Session):
 
 # Helper function to get additional data based on the post type (media, document, event)
 def get_post_additional_data(post: Post, db: Session):
-    post_data = {}
+    handlers = {
+        "media": get_media_post_data,
+        "document": get_document_post_data,
+        "event": get_event_post_data,
+    }
+    handler = handlers.get(post.post_type)
+    return handler(post, db) if handler else {}
+    
 
-    if post.post_type == "media":
-        media = db.query(PostMedia).filter(PostMedia.post_id == post.id).first()
-        post_data["media_url"] = f"http://127.0.0.1:8000/uploads/media/{media.media_url}" if media else None
-    elif post.post_type == "document":
-        document = db.query(PostDocument).filter(PostDocument.post_id == post.id).first()
-        post_data["document_url"] = f"http://127.0.0.1:8000/uploads/document/{document.document_url}" if document else None
-    elif post.post_type == "event":
-        event = db.query(Event).filter(Event.post_id == post.id).first()
-        if event:
-            post_data["event"] = {
-                "title": event.title,
-                "description": event.description,
-                "event_datetime": event.event_datetime,
-                "location": event.location
-            }
+def get_media_post_data(post: Post, db: Session):
+    media = db.query(PostMedia).filter(PostMedia.post_id == post.id).first()
+    return {
+        "media_url": f"http://127.0.0.1:8000/uploads/media/{media.media_url}" if media else None
+    }
 
-    return post_data
+def get_document_post_data(post: Post, db: Session):
+    document = db.query(PostDocument).filter(PostDocument.post_id == post.id).first()
+    return {
+        "document_url": f"http://127.0.0.1:8000/uploads/document/{document.document_url}" if document else None
+    }
+
+def get_event_post_data(post: Post, db: Session):
+    event = db.query(Event).filter(Event.post_id == post.id).first()
+    if not event:
+        return {}
+    return {
+        "event": {
+            "title": event.title,
+            "description": event.description,
+            "event_datetime": event.event_datetime,
+            "location": event.location
+        }
+    }
 
 def validate_file_extension(filename: str, allowed_extensions: set):
     ext = Path(filename).suffix.lower()
@@ -130,6 +144,39 @@ def update_post_content(post: Post, content: Optional[str]):
 def remove_old_file_if_exists(file_path: str):
     if os.path.exists(file_path):
         os.remove(file_path)
+
+def try_convert_datetime(date: str, time: str, tz: str, fallback: datetime) -> datetime:
+    if date and time and tz:
+        return convert_to_utc(date, time, tz)
+    return fallback
+
+
+def update_post_and_event(
+    db: Session,
+    post,
+    event,
+    post_data: dict,
+    event_data: dict
+) -> bool:
+    updated = False
+    updated |= update_fields(post_data, post, db)
+    updated |= update_fields(event_data, event, db)
+    return updated
+
+
+def format_updated_event_response(post, event):
+    return {
+        "message": "Event post updated successfully",
+        "updated_post": {
+            "id": post.id,
+            "content": post.content,
+            "title": event.title,
+            "description": event.description,
+            "event_datetime": event.event_datetime,
+            "location": event.location
+        }
+    }
+
 
 
 # Main function refactor
@@ -494,39 +541,25 @@ async def update_event_post(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # Fetch the post and associated event
     post, event = get_post_and_event(post_id, current_user.id, db)
-
-    # Convert event date & time to UTC if provided
-    event_datetime_utc = None
-    if event_date and event_time and user_timezone:
-        event_datetime_utc = convert_to_utc(event_date, event_time, user_timezone)
-
-    # Prepare fields to update for post and event
-    post_fields = {"content": content}
-    event_fields = {
-        "title": event_title,
-        "description": event_description,
-        "event_datetime": event_datetime_utc if event_datetime_utc else event.event_datetime,
-        "location": location,
-    }
-
-    # Update post and event fields
-    updated_post = False
-    updated_post |= update_fields(post_fields, post, db)
-    updated_post |= update_fields(event_fields, event, db)
-
-    # Return the response based on whether anything was updated
-    if updated_post:
-        updated_post_data = {
-            "id": post.id,
-            "content": post.content,
-            "title": event.title,
-            "description": event.description,
-            "event_datetime": event.event_datetime,
-            "location": event.location
+    
+    event_datetime_utc = try_convert_datetime(event_date, event_time, user_timezone, fallback=event.event_datetime)
+    
+    post_updated = update_post_and_event(
+        db=db,
+        post=post,
+        event=event,
+        post_data={"content": content},
+        event_data={
+            "title": event_title,
+            "description": event_description,
+            "event_datetime": event_datetime_utc,
+            "location": location
         }
-        return {"message": "Event post updated successfully", "updated_post": updated_post_data}
+    )
+    
+    if post_updated:
+        return format_updated_event_response(post, event)
 
     return {"message": "No changes detected"}
 
