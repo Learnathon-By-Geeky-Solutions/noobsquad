@@ -10,7 +10,6 @@ import Home from "./Newsfeed";
 import UserProfile from "../components/AboutMe/AboutMe";
 import CreateEventForm from "../components/Events/CreateEventForm";
 import EventPosts from "../components/Events/EventList";
-import PostAndEventLayout from "../components/Homepage/PostAndEventLayout";
 import SearchResults from "../components/Search/SearchResults";
 import EventDetails from "../components/Events/EventDetails";
 
@@ -60,8 +59,7 @@ const Dashboard = () => {
         <Route path="posts/*" element={<Home />} />
         <Route path="AboutMe/*" element={<UserProfile />} /> 
         <Route path="events" element={<CreateEventForm />} /> 
-        <Route path="eventposts" element={<EventPosts />} /> 
-        <Route path="home" element={<PostAndEventLayout />} /> 
+        <Route path="eventposts" element={<EventPosts />} />  
         <Route path="search-results" element={<SearchResults />} />
         <Route path="events/:eventId" element={<EventDetails />} />
       </Routes>

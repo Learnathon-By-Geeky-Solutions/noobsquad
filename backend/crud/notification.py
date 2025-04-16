@@ -83,11 +83,3 @@ def mark_notification_as_read(db: Session, notif_id: int):
         }
     return None
 
-def mark_notification_as_read_or_404(db: Session, notif_id: int):
-    notification = db.query(Notification).filter(Notification.id == notif_id).first()
-    if not notification:
-        raise HTTPException(status_code=404, detail="Notification not found")
-    notification.read = True
-    db.commit()
-    db.refresh(notification)
-    return notification
