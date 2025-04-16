@@ -37,11 +37,9 @@ const Navbar = () => {
 
   const handleHomeClick = (e) => {
     e.preventDefault();
-    if (location.pathname === "/dashboard/home") {
-      window.location.reload();
-    } else {
-      navigate("/dashboard/home");
-    }
+    navigate("/dashboard/posts");
+    window.location.reload();
+  
   };
 
   // Fetch unread messages (unchanged)
@@ -89,7 +87,7 @@ const Navbar = () => {
     <nav className="fixed top-0 left-0 w-full z-50 bg-white shadow-md flex justify-between items-center px-6 py-4">
       {/* Left Section: Logo and Search */}
       <div className="flex items-center gap-6">
-        <Link to={user ? "/dashboard" : "/"} className="flex items-center gap-2">
+        <Link to={user ? "/dashboard/posts" : "/"} className="flex items-center gap-2">
           <img src="/logo.png" alt="UHub Logo" className="h-10 cursor-pointer" />
         </Link>
 
@@ -114,7 +112,7 @@ const Navbar = () => {
         {user ? (
           <>
             <Link
-              to="/dashboard/home"
+              to="/dashboard/posts"
               onClick={handleHomeClick}
               className="flex items-center gap-1 text-gray-700 hover:text-blue-600 transition"
             >

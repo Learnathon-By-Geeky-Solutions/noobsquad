@@ -97,7 +97,7 @@ const NotificationDropdown = ({ userId, onRead }) => {
             key={notif.id}
             onClick={() => handleNotificationClick(notif.post_id, notif.id)}
             type="button"
-            className={`flex items-center gap-3 p-3 border-b cursor-pointer transition-all relative hover:bg-gray-50 ${
+            className={`flex w-full items-center gap-3 p-3 border-b cursor-pointer transition-all relative hover:bg-gray-50 ${
               notif.is_read ? 'bg-white text-gray-600' : 'bg-blue-50 text-gray-800'
             }`}
             aria-label={`Notification about post ${notif.post_id}`}

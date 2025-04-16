@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from crud.notification import create_notification, get_unread_notifications, get_all_notifications, mark_notification_as_read, mark_notification_as_read_or_404
+from crud.notification import get_unread_notifications, get_all_notifications, mark_notification_as_read
 from schemas.notification import NotificationResponse
 from database.session import SessionLocal
 
@@ -28,4 +28,7 @@ def fetch_all_notifications(user_id: int, db: Session = Depends(get_db)):
 # Mark a notification as read
 @router.put("/{notif_id}/read", response_model=NotificationResponse)
 def read_notification(notif_id: int, db: Session = Depends(get_db)):
-    return mark_notification_as_read_or_404(db, notif_id)
+    notification = mark_notification_as_read(db, notif_id)
+    if not notification:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    return notification
