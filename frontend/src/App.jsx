@@ -10,6 +10,7 @@ import ChatWindows from "./components/ChatWindows";
 import SharedPost from "./pages/SharedPost";
 import PrivateRoute from "./components/PrivateRoute"; // ✅ import this
 import ChatBox from "./components/AIChat";
+import UniversityPage from "./components/University/University";
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function AppContent() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/complete-profile" element={<CompleteProfile />} />
         <Route path="/chat" element={<ChatBox />} />
+        <Route path="/university/:universityName" element={<UniversityPage />} />
         <Route
           path="/dashboard/*"
           element={
