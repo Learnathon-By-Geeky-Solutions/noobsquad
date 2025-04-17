@@ -40,7 +40,7 @@ const Newsfeed = () => {
         </aside>
 
         {/* Middle Section: Post Component */}
-        <main className="w-1/2 shadow-md rounded-lg p-6 mt-10"> {/* Added mt-10 for top margin */}
+        <main className="w-1/2  rounded-lg p-6 mt-10"> {/* Added mt-10 for top margin */}
         <div className="-mt-30 md:-mt-24"><div className="max-w-2xl mx-auto p-4">  
 
 {/* ✅ Create Post Section */}

@@ -9,6 +9,7 @@ import CreatePost from "../CreatePost";
 
 const UserProfile = () => {
   const [user, setUser] = useState(null);
+  
   const [activeTab, setActiveTab] = useState("posts");
   const [error, setError] = useState("");
 
@@ -35,6 +36,7 @@ const UserProfile = () => {
   if (!user) return <p className="text-center text-gray-500 mt-10">Loading...</p>;
 
   return (
+    
       <div className="flex flex-col md:flex-row justify-left px-4 -mt-4 ">
         {/* Left Sidebar */}
         <div className="w-full md:w-1/4 space-y-4 mt-20 md:mt-24">

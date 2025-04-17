@@ -57,11 +57,11 @@ const Dashboard = () => {
         <Route path="suggested-users" element={<SuggestedUsers />} />
         <Route path="research/*" element={<Research />} />
         <Route path="posts/*" element={<Home />} />
-        <Route path="AboutMe/*" element={<UserProfile />} /> 
         <Route path="events" element={<CreateEventForm />} /> 
         <Route path="eventposts" element={<EventPosts />} />  
         <Route path="search-results" element={<SearchResults />} />
         <Route path="events/:eventId" element={<EventDetails />} />
+        <Route path=":username/about" element={<UserProfile />} />
       </Routes>
     </div>
   );
