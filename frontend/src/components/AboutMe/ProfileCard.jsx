@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState} from "react";
 import axios from "axios";
 import {
   Mail, University, User, Camera
@@ -12,6 +12,7 @@ const ProfileCard = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [previewURL, setPreviewURL] = useState(null);
   const fileInputRef = useRef();
+  
 
   useEffect(() => {
     const token = localStorage.getItem("token");

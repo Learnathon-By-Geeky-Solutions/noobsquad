@@ -11,6 +11,8 @@ import SharedPost from "./pages/SharedPost";
 import PrivateRoute from "./components/PrivateRoute"; // ✅ import this
 import ChatBox from "./components/AIChat";
 import UniversityPage from "./components/University/University";
+import UserProfile from "./components/AboutMe/AboutMe";
+import { User } from "lucide-react";
 
 function App() {
   return (
@@ -40,6 +42,7 @@ function AppContent() {
         <Route path="/complete-profile" element={<CompleteProfile />} />
         <Route path="/chat" element={<ChatBox />} />
         <Route path="/university/:universityName" element={<UniversityPage />} />
+        
         <Route
           path="/dashboard/*"
           element={

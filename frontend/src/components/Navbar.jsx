@@ -157,7 +157,7 @@ const Navbar = () => {
               {user && <NotificationBell userId={user.id} />}
             </div>
             <Link
-              to="/dashboard/AboutMe"
+              to={`/dashboard/${user.username}/about`}
               className="flex items-center gap-1 text-gray-700 font-medium cursor-pointer"
             >
               <UserCircle className="w-5 h-5" />

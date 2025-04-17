@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import ShareBox from "./ShareBox"; // Import the ShareBox component
 import PropTypes from "prop-types";
 import { TimeAgo } from "../utils/TimeUtils";
+import UsernameLink from "./AboutMe/UsernameLink";
 
 
 const Post =  React.forwardRef(({ post, onUpdate, onDelete, id }, ref) => {
@@ -15,7 +16,6 @@ const Post =  React.forwardRef(({ post, onUpdate, onDelete, id }, ref) => {
   useEffect(() => {
     fetchComments();
     const handleClickOutside = (event) => {
-      // eslint-disable-next-line react/prop-types
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setMenuOpen(false);
       }
@@ -271,7 +271,7 @@ return (
           className="w-10 h-10 rounded-full mr-3"
         />
         <div>
-          <h3 className="font-semibold">{postUser.username}</h3>
+          <h3 className="font-semibold"><UsernameLink username={postUser.username} /></h3>
           <p className="text-xs text-gray-500">{timeAgo}</p>
         </div>
       </div>

@@ -15,6 +15,7 @@ from models.post import Post, PostMedia, PostDocument, Event, Like, Comment
 from zoneinfo import ZoneInfo
 from crud.notification import create_notification
 from schemas.notification import NotificationCreate
+from services.reaction import *
 
 router = APIRouter()
 
@@ -24,39 +25,6 @@ def get_db():
         yield db
     finally:
         db.close()
-
-
-# Helper: notify user if not the actor
-
-def notify_if_not_self(db, actor_id, recipient_id, notif_type, post_id):
-    if actor_id != recipient_id:
-        create_notification(db, recipient_id, actor_id, notif_type, post_id)
-
-# Helper: like handling
-
-def update_like_count(like_data, db: Session, action: str):
-    model = Post if like_data.post_id else Comment
-    obj_id = like_data.post_id if like_data.post_id else like_data.comment_id
-    instance = db.query(model).filter(model.id == obj_id).first()
-    if instance:
-        delta = 1 if action == "add" else -1
-        instance.like_count = max(0, instance.like_count + delta)
-        db.commit()
-
-
-def remove_like(existing_like, db: Session, like_data: LikeCreate):
-    db.delete(existing_like)
-    update_like_count(like_data, db, "remove")
-
-
-def add_like(like_data: LikeCreate, db: Session, current_user: User):
-    created_at = datetime.now(ZoneInfo("UTC"))
-    new_like = Like(user_id=current_user.id, post_id=like_data.post_id, comment_id=like_data.comment_id, created_at=created_at)
-    db.add(new_like)
-    update_like_count(like_data, db, "add")
-    db.commit()
-    db.refresh(new_like)
-    return new_like
 
 @router.post("/like", response_model=LikeResponse)
 def like_action(
@@ -109,11 +77,6 @@ def like_action(
         "message": "Like added successfully"
     }
 
-def get_like_count(db: Session, like_data: LikeCreate):
-    model = Post if like_data.post_id else Comment
-    obj_id = like_data.post_id if like_data.post_id else like_data.comment_id
-    return db.query(model).filter(model.id == obj_id).first().like_count
-
 @router.post("/{post_id}/comment", response_model=CommentNestedResponse)
 def comment_post(comment_data: CommentCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if comment_data.parent_id:
@@ -159,38 +122,6 @@ def get_comments(post_id: int, db: Session = Depends(get_db), current_user: User
     parents = db.query(Comment).filter(Comment.post_id == post_id, Comment.parent_id == None).all()
     return {"comments": [build_comment_response(c, db, current_user) for c in parents]}
 
-
-def build_comment_response(comment, db: Session, user: User):
-    replies = db.query(Comment).filter(Comment.parent_id == comment.id).all()
-    return {
-        "id": comment.id,
-        "content": comment.content,
-        "created_at": comment.created_at,
-        "user": serialize_user(comment.user),
-        "total_likes": len(comment.likes),
-        "user_liked": any(l.user_id == user.id for l in comment.likes),
-        "replies": [build_reply_response(r, user) for r in replies]
-    }
-
-
-def build_reply_response(reply, user: User):
-    return {
-        "id": reply.id,
-        "content": reply.content,
-        "created_at": reply.created_at,
-        "user": serialize_user(reply.user),
-        "total_likes": len(reply.likes),
-        "user_liked": any(l.user_id == user.id for l in reply.likes)
-    }
-
-
-def serialize_user(user: User):
-    return {
-        "id": user.id,
-        "username": user.username,
-        "profile_picture": f"http://127.0.0.1:8000/uploads/profile_pictures/{user.profile_picture}"
-    }
-
 @router.delete("/comment/{comment_id}")
 def delete_comment(comment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     comment = db.query(Comment).filter(Comment.id == comment_id).first()
@@ -202,8 +133,6 @@ def delete_comment(comment_id: int, db: Session = Depends(get_db), current_user:
     db.delete(comment)
     db.commit()
     return {"message": "Comment deleted successfully"}
-
-
 
 # ✅ Share a Post with a Unique Link (Stored)
 @router.post("/{post_id}/share", response_model=ShareResponse)
@@ -287,11 +216,7 @@ def get_shared_post(share_token: str, db: Session = Depends(get_db),current_user
                 "event_datetime": event.event_datetime,
                 "location": event.location
             }
-
-
-    
     return post_data  # ✅ This returns all fields defined in the Post model
-
 
 
 # ✅ RSVP for an event
