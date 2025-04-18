@@ -5,15 +5,12 @@ from models.user import User
 from models.post import Post
 from schemas.university import UniversityPage, Member, UniversityPost
 from database.session import SessionLocal
+from core.dependencies import get_db
+
 
 router = APIRouter()
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+
 
 @router.get("/{university_name}", response_model=UniversityPage)
 def get_university_info(university_name: str, db: Session = Depends(get_db)):
