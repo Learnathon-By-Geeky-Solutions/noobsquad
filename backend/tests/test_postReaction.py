@@ -586,76 +586,94 @@ def test_get_shared_post_invalid_token(override_dependencies):
     assert response.json()["detail"] == "Invalid or expired share link"
 
 # # Test for RSVPing to an event
-# def test_rsvp_event(override_dependencies):
-#     mock_session, mock_notify_if_not_self, mock_create_notification = override_dependencies
+def test_rsvp_event(override_dependencies):
+    mock_session, mock_notify_if_not_self, mock_create_notification = override_dependencies
 
-#     # Mock Event and EventAttendee queries
-#     mock_event_query = MagicMock()
-#     mock_event_query.filter.return_value.first.return_value = fake_event
-#     mock_attendee_query = MagicMock()
-#     mock_attendee_query.filter.return_value.first.return_value = None
-#     mock_session.query.side_effect = lambda model: (
-#         mock_event_query if model == Event else
-#         mock_attendee_query if model == EventAttendee else
-#         MagicMock()
-#     )
+    # Mock Event and EventAttendee queries
+    mock_event_query = MagicMock()
+    mock_event_query.filter.return_value.first.return_value = fake_event
+    mock_attendee_query = MagicMock()
+    mock_attendee_query.filter.return_value.first.return_value = None
+    mock_session.query.side_effect = lambda model: (
+        mock_event_query if model == Event else
+        mock_attendee_query if model == EventAttendee else
+        MagicMock()
+    )
 
-#     # Send request to RSVP
-#     response = client.post("/interactions/event/1/rsvp", json={"status": "going"})
-    
-#     assert response.status_code == 200
-#     data = response.json()
-#     assert data["id"] == 1
-#     assert data["event_id"] == 1
-#     assert data["user_id"] == fake_user.id
-#     assert data["status"] == "going"
+    # Send request to RSVP
+    response = client.post("/interactions/event/1/rsvp", json={"event_id": 1,"status": "going"})
 
-#     # Ensure database operations are called
-#     mock_session.add.assert_called()
-#     mock_session.commit.assert_called()
+    # Debugging output
+    print(f"Response Status Code: {response.status_code}")
+    print(f"Response Content: {response.text}")  # This will print the body of the response, which may include error details
+
+    # You can also print the request data to make sure it was correctly sent
+    print(f"Request JSON: {{'status': 'going'}}")
+
+    # Check if there are validation issues with the input data (response.json() may contain error details)
+    try:
+        response_data = response.json()
+        print(f"Response JSON: {response_data}")
+    except Exception as e:
+        print(f"Error parsing response JSON: {e}")
+
+    # Proceed with assertions if the response is correct
+    assert response.status_code == 200, f"Expected 200, but got {response.status_code} instead."
+
+    # Assuming the response is valid, perform additional assertions
+    data = response.json()
+    assert data["id"] == 1
+    assert data["event_id"] == 1
+    assert data["user_id"] == fake_user.id
+    assert data["status"] == "going"
+
+    # Ensure database operations are called
+    mock_session.add.assert_called()
+    mock_session.commit.assert_called()
+
 
 # Test for updating an existing RSVP
-# def test_rsvp_event_update(override_dependencies):
-#     mock_session, mock_notify_if_not_self, mock_create_notification = override_dependencies
+def test_rsvp_event_update(override_dependencies):
+    mock_session, mock_notify_if_not_self, mock_create_notification = override_dependencies
 
-#     # Mock Event and EventAttendee queries
-#     mock_event_query = MagicMock()
-#     mock_event_query.filter.return_value.first.return_value = fake_event
-#     mock_attendee_query = MagicMock()
-#     mock_attendee_query.filter.return_value.first.return_value = fake_attendee
-#     mock_session.query.side_effect = lambda model: (
-#         mock_event_query if model == Event else
-#         mock_attendee_query if model == EventAttendee else
-#         MagicMock()
-#     )
+    # Mock Event and EventAttendee queries
+    mock_event_query = MagicMock()
+    mock_event_query.filter.return_value.first.return_value = fake_event
+    mock_attendee_query = MagicMock()
+    mock_attendee_query.filter.return_value.first.return_value = fake_attendee
+    mock_session.query.side_effect = lambda model: (
+        mock_event_query if model == Event else
+        mock_attendee_query if model == EventAttendee else
+        MagicMock()
+    )
 
-#     # Send request to update RSVP
-#     response = client.post("/interactions/event/1/rsvp", json={"status": "maybe"})
+    # Send request to update RSVP
+    response = client.post("/interactions/event/1/rsvp", json={"event_id": 1,"status": "interested"})
     
-#     assert response.status_code == 200
-#     data = response.json()
-#     assert data["id"] == fake_attendee.id
-#     assert data["status"] == "maybe"
-#     # Ensure no add, but commit is called
-#     mock_session.add.assert_not_called()
-#     mock_session.commit.assert_called()
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == fake_attendee.id
+    assert data["status"] == "interested"
+    # Ensure no add, but commit is called
+    mock_session.add.assert_not_called()
+    mock_session.commit.assert_called()
 
 # Test for RSVPing to a non-existent event
-# def test_rsvp_event_not_found(override_dependencies):
-#     mock_session, mock_notify_if_not_self, mock_create_notification = override_dependencies
+def test_rsvp_event_not_found(override_dependencies):
+    mock_session, mock_notify_if_not_self, mock_create_notification = override_dependencies
 
-#     # Mock Event query to return None
-#     mock_event_query = MagicMock()
-#     mock_event_query.filter.return_value.first.return_value = None
-#     mock_session.query.side_effect = lambda model: mock_event_query if model == Event else MagicMock()
+    # Mock Event query to return None
+    mock_event_query = MagicMock()
+    mock_event_query.filter.return_value.first.return_value = None
+    mock_session.query.side_effect = lambda model: mock_event_query if model == Event else MagicMock()
 
-#     # Send request to RSVP
-#     response = client.post("/interactions/event/999/rsvp", json={"status": "going"})
+    # Send request to RSVP
+    response = client.post("/interactions/event/999/rsvp", json={"event_id": 999,"status": "going"})
     
-#     assert response.status_code == 404
-#     assert response.json()["detail"] == "Event not found"
-#     mock_session.add.assert_not_called()
-#     mock_session.commit.assert_not_called()
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Event not found."
+    mock_session.add.assert_not_called()
+    mock_session.commit.assert_not_called()
 
 # Test for getting event attendees
 def test_get_event_attendees(override_dependencies):

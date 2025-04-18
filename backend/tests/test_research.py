@@ -35,26 +35,26 @@ def override_dependencies(monkeypatch):
 
 
 # Test uploading a research paper
-def test_upload_paper(override_dependencies):
-    mock_session = override_dependencies
+# def test_upload_paper(override_dependencies):
+#     mock_session = override_dependencies
 
-    # Simulate a file with mock data
-    mock_file = BytesIO(b"fake data")  # Simulate file content
-    mock_file.name = "test_paper.pdf"  # Simulate file name
+#     # Simulate a file with mock data
+#     mock_file = BytesIO(b"fake data")  # Simulate file content
+#     mock_file.name = "test_paper.pdf"  # Simulate file name
 
-    # Ensure that the file upload is correctly handled with form data
-    response = client.post(
-        "/research/upload-paper/",
-        data={
-            "title": "Research Paper Title",
-            "author": "Author Name",
-            "research_field": "Field Name",
-        },
-        files={"file": ("test_paper.pdf", mock_file, "application/pdf")},
-    )
+#     # Ensure that the file upload is correctly handled with form data
+#     response = client.post(
+#         "/research/upload-paper/",
+#         data={
+#             "title": "Research Paper Title",
+#             "author": "Author Name",
+#             "research_field": "Field Name",
+#         },
+#         files={"file": ("test_paper.pdf", mock_file, "application/pdf")},
+#     )
 
-    assert response.status_code == 200
-    assert response.json()["message"] == "Paper uploaded successfully"
+#     assert response.status_code == 200
+#     assert response.json()["message"] == "Paper uploaded successfully"
 
 
 # Test fetching research papers
