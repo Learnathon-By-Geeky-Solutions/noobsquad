@@ -14,6 +14,7 @@ app.mount("/uploads/profile_pictures", StaticFiles(directory="uploads/profile_pi
 app.mount("/uploads/media", StaticFiles(directory="uploads/media"), name="media")
 app.mount("/uploads/document", StaticFiles(directory="uploads/document"), name="document")
 app.mount("/uploads/event_images", StaticFiles(directory="uploads/event_images"), name="event_images") 
+app.mount("/uploads/research_papers", StaticFiles(directory="uploads/research_papers"), name="research_papers")
 
 
 # ✅ Add CORS middleware
