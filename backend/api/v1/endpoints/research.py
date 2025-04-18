@@ -15,6 +15,8 @@ from models.research_collaboration import research_collaborators
 from werkzeug.utils import secure_filename
 import uuid
 from pathlib import Path
+from datetime import datetime
+from services.services import *
 
 router = APIRouter()
 
@@ -22,6 +24,7 @@ give_error = "Internal Server Error"
 # Directory for storing research papers
 UPLOAD_DIR = Path("uploads/research_papers")  # ✅ Ensure UPLOAD_DIR is a Path object
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)  # ✅ Create directory if it doesn't exist
+ALLOWED_DOCS = [".pdf", ".doc", ".docx"]
 
 @router.post("/upload-paper/")
 async def upload_paper(
@@ -33,30 +36,28 @@ async def upload_paper(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Securely upload a research paper with metadata.
+    Upload a research paper (PDF/DOC) with metadata.
+    Stores file with secure filename and only keeps filename in DB.
     """
     try:
-        # ✅ Generate a secure unique filename
-        file_ext = Path(file.filename).suffix  # Extract file extension safely
-        safe_filename = f"{uuid.uuid4().hex}{file_ext}"  # Unique file name
-        sanitized_filename = secure_filename(safe_filename)  # ✅ Sanitize filename
+        # ✅ Validate extension
+        ext = validate_file_extension(file.filename, ALLOWED_DOCS)
 
-        # ✅ Construct safe path & validate against path traversal
-        file_path = UPLOAD_DIR / sanitized_filename
-        if file_path.resolve().parent != UPLOAD_DIR.resolve():
-            raise HTTPException(status_code=400, detail="Invalid file path")
+        # ✅ Generate and sanitize secure filename
+        filename = generate_secure_filename(current_user.id, ext)  # e.g., user123_abcd1234.pdf
+        safe_filename = secure_filename(filename)
 
-        # ✅ Write file securely
-        with file_path.open("wb") as f:
-            f.write(await file.read())
+        # ✅ Save file to disk
+        save_upload_file(file, UPLOAD_DIR, safe_filename)
 
-        # ✅ Save paper metadata to PostgreSQL
+        # ✅ Save metadata to DB
         new_paper = ResearchPaper(
             title=title,
             author=author,
             research_field=research_field,
-            file_path=str(file_path),  # Store path as string
-            uploader_id=current_user.id
+            file_path=safe_filename,  # Only the filename
+            uploader_id=current_user.id,
+            created_at=datetime.utcnow()
         )
         db.add(new_paper)
         db.commit()
@@ -65,11 +66,11 @@ async def upload_paper(
         return {
             "message": "Paper uploaded successfully",
             "paper_id": new_paper.id,
-            "file_path": str(file_path),
+            "file_name": safe_filename,
         }
 
     except Exception as e:
-        logging.error(f"Error uploading paper: {str(e)}")
+        logging.error(f"Upload error: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @router.get("/papers/")
@@ -92,6 +93,7 @@ def get_papers(db: Session = Depends(get_db), current_user: User = Depends(get_c
     except Exception as e:
         logging.error(f"Error fetching papers: {str(e)}")
         raise HTTPException(status_code=500, detail=give_error)
+
 
 @router.get("/papers/search/")
 def search_papers(

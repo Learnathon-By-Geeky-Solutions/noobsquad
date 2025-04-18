@@ -13,6 +13,7 @@ export const sanitizeUrl = (url) => {
   let parsedUrl;
   try {
     parsedUrl = new URL(trimmedUrl);
+
   } catch (e) {
     console.error('Malformed URL:', e);
     // If the URL is malformed, return the default
@@ -20,16 +21,17 @@ export const sanitizeUrl = (url) => {
   }
 
   // Whitelist: Allow only http and https schemes
-  const allowedSchemes = ['http:', 'https:'];
+  const allowedSchemes = ['http:', 'https:', 'blob:'];
+
   if (!allowedSchemes.includes(parsedUrl.protocol)) {
     return '/default-avatar.png';
   }
 
   // Ensure the URL has a valid hostname (not empty, not just localhost)
-  const hostname = parsedUrl.hostname;
-  if (!hostname || hostname === 'localhost' || !hostname.includes('.')) {
-    return '/default-avatar.png';
-  }
+  // const hostname = parsedUrl.hostname;
+  // if (!hostname || hostname === 'localhost' || !hostname.includes('.')) {
+  //   return '/default-avatar.png';
+  // }
 
   // If all checks pass, return the original URL
   return trimmedUrl;

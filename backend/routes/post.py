@@ -20,6 +20,7 @@ from crud.notification import create_notification
 from AI.moderation import moderate_text
 from services.services import *
 
+
 router = APIRouter()
 
 def get_db():
