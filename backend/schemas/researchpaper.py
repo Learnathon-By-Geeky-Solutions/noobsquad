@@ -11,6 +11,7 @@ class ResearchPaperOut(BaseModel):
     file_path: str  # This can be renamed to something like `file_url` if needed
     created_at: datetime
     uploader_id: int
+    original_filename: str
 
     class Config:
         from_attributes = True  # ORM compatibility
