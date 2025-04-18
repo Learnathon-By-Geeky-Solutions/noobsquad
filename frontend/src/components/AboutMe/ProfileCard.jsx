@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState} from "react";
+import { useParams } from "react-router-dom";
 import axios from "axios";
 import {
   Mail, University, User, Camera
@@ -6,12 +7,16 @@ import {
 import { sanitizeUrl } from "../../utils/SanitizeUrl";
 
 const ProfileCard = () => {
+  const { username } = useParams();
   const [user, setUser] = useState(null);
   const [error, setError] = useState("");
   const [showEditPopup, setShowEditPopup] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [previewURL, setPreviewURL] = useState(null);
   const fileInputRef = useRef();
+  const [authUser, setAuthUser] = useState(null);           // Full logged-in user
+  const [profileUserId, setProfileUserId] = useState(null); // Just the user ID from /user/username
+  const isOwner = authUser && profileUserId && authUser.id === profileUserId;
   
 
   useEffect(() => {
@@ -20,16 +25,43 @@ const ProfileCard = () => {
       setError("No token found. Please log in.");
       return;
     }
-
-    axios
-      .get("http://localhost:8000/auth/users/me/", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((response) => setUser(response.data))
-      .catch((err) => {
-        setError(err.response?.data?.detail || "Failed to connect to server");
-      });
-  }, []);
+  
+    const fetchData = async () => {
+      try {
+        // 1. Get logged-in user
+        const authRes = await axios.get("http://localhost:8000/auth/users/me/", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setAuthUser(authRes.data);
+        console.log("authRes.data:", authRes.data);
+  
+        // 2. Get profile user ID
+        const profileRes = await axios.get(
+          `http://localhost:8000/user/username/${username}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        const profileId = profileRes.data;
+        setProfileUserId(profileId);
+        console.log("profileRes.data:", profileId);
+  
+        // ✅ 3. Get full profile data for that user ID
+        const userRes = await axios.get(
+          `http://localhost:8000/user/profile/${profileId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        setUser(userRes.data);
+        console.log("user profile:", userRes.data);
+      } catch (err) {
+        setError(err.response?.data?.detail || "Failed to load data");
+      }
+    };
+  
+    fetchData();
+  }, [username]);
 
 
   const triggerFileInput = () => {
@@ -101,13 +133,16 @@ const ProfileCard = () => {
           />
 
         {/* Hover Overlay - only shows over the image */}
-        <button
-          className="absolute inset-0 rounded-full bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition duration-300 cursor-pointer"
-          onClick={triggerFileInput}
-          aria-label="Change profile picture" // Describes the action for screen readers
-        >
-          <Camera className="text-white w-6 h-6" />
-        </button>
+        {isOwner && (
+          <button
+            className="absolute inset-0 rounded-full bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition duration-300 cursor-pointer"
+            onClick={triggerFileInput}
+            aria-label="Change profile picture"
+          >
+            <Camera className="text-white w-6 h-6" />
+          </button>
+        )}
+        
 
         <input
           type="file"
@@ -119,7 +154,7 @@ const ProfileCard = () => {
         </div>
 
         {/* Popup to confirm new image */}
-        {showEditPopup && previewURL && (
+        {isOwner && showEditPopup && previewURL && (
           <div className="absolute top-28 w-60 bg-white border border-gray-300 rounded-xl shadow-lg p-4 z-10 flex flex-col items-center">
             <img
               src={sanitizeUrl(previewURL)}

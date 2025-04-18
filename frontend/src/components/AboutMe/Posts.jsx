@@ -1,27 +1,42 @@
 import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import PropTypes from "prop-types";
-import api from "../../api/axios"; // Ensure the correct import path
+import api from "../../api/axios"; // your API wrapper
 import Post from "../Post";
 
-const Posts = ({ userId }) => {
+const Posts = ({ token }) => {
+  const { username } = useParams();
   const [posts, setPosts] = useState([]);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchPosts = async () => {
+    const fetchUserAndPosts = async () => {
       try {
-        const url = userId ? `/posts?user_id=${userId}` : "/posts"; // Adjusted endpoint
+        let userId = null;
+        const profile = await api.get(`/user/username/${username}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        userId = profile.data;
+        console.log("Fetched user ID:", userId);
+
+
+        const url = userId ? `/posts?user_id=${userId}` : "/posts";
+        console.log("url:", url)
         const response = await api.get(url);
-        setPosts(response.data.posts); // Ensure accessing `posts` array
-      } catch (error) {
-        console.error("Failed to fetch posts:", error);
+        setPosts(response.data.posts);
+      } catch (err) {
+        console.error("Error fetching posts:", err);
         setError("Failed to load posts.");
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchPosts();
-  }, [userId]);
+    fetchUserAndPosts();
+  }, [username, token]);
 
+  if (loading) return <p className="text-gray-400">Loading posts...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
   if (!posts.length) return <p className="text-gray-500">No posts available</p>;
 
@@ -33,8 +48,10 @@ const Posts = ({ userId }) => {
     </div>
   );
 };
+
 Posts.propTypes = {
-  userId: PropTypes.string, // Adjust the type based on your actual data type
+  username: PropTypes.string, // Username passed as prop
+  token: PropTypes.string.isRequired, // Token required for authenticated call
 };
 
 export default Posts;
