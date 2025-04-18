@@ -10,7 +10,7 @@ from models.user import User
 from models.research_collaboration import ResearchCollaboration
 from models.collaboration_request import CollaborationRequest
 from fastapi import Query
-from sqlalchemy import and_, func
+from sqlalchemy import and_, func, or_
 from models.research_collaboration import research_collaborators
 from werkzeug.utils import secure_filename
 import uuid
@@ -122,9 +122,11 @@ def search_papers(
 ):
     """
     Search research papers by title containing a specific keyword.
+
     """
     try:
-        papers = db.query(ResearchPaper).filter(ResearchPaper.title.ilike(f"%{keyword}%")).all()
+        key_word = f"%{keyword}%"
+        papers = db.query(ResearchPaper).filter(or_(ResearchPaper.original_filename.ilike(key_word),ResearchPaper.author.ilike(key_word))).all()
 
         if not papers:
             raise HTTPException(status_code=404, detail="No papers found")
@@ -138,7 +140,10 @@ def search_papers(
                 "file_path": f"http://127.0.0.1:8000/uploads/research_papers/{paper.file_path}",
                 "uploader_id": paper.uploader_id,
                 "download_url": f"/papers/download/{paper.id}/",
-                "request_id": f"/request-collaboration/{paper.id}/"
+                "request_id": f"/request-collaboration/{paper.id}/",
+                "original_filename": paper.original_filename
+                
+
             }
             for paper in papers
         ]
