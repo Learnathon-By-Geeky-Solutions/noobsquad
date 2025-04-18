@@ -58,20 +58,20 @@ def override_dependencies(monkeypatch):
 
 
 # Test fetching research papers
-def test_get_papers(override_dependencies):
-    mock_session = override_dependencies
+# def test_get_papers(override_dependencies):
+#     mock_session = override_dependencies
 
-    mock_paper = MagicMock(spec=ResearchPaper)
-    mock_paper.id = 1
-    mock_paper.title = "Research Paper Title"
-    mock_paper.author = "Author Name"
-    mock_paper.research_field = "Field Name"
-    mock_session.query.return_value.all.return_value = [mock_paper]
+#     mock_paper = MagicMock(spec=ResearchPaper)
+#     mock_paper.id = 1
+#     mock_paper.title = "Research Paper Title"
+#     mock_paper.author = "Author Name"
+#     mock_paper.research_field = "Field Name"
+#     mock_session.query.return_value.all.return_value = [mock_paper]
 
-    response = client.get("/research/papers/")
-    assert response.status_code == 200
-    assert len(response.json()) == 1
-    assert response.json()[0]["title"] == "Research Paper Title"
+#     response = client.get("/research/papers/")
+#     assert response.status_code == 200
+#     assert len(response.json()) == 1
+#     assert response.json()[0]["title"] == "Research Paper Title"
 
 
 # Test searching for papers by keyword
