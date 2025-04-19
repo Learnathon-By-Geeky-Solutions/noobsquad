@@ -29,7 +29,7 @@ const Signup = () => {
       navigate("/login");
     } catch (error) {
       console.error("Signup error:", error);
-      setError("Signup failed. Please try again.");
+      setError("Please enter your institutional e-mail address");
     } finally {
       setLoading(false);
     }
