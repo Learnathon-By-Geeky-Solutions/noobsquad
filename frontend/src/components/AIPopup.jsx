@@ -1,7 +1,7 @@
 import ChatBox from "./AIChat";
 import PropTypes from "prop-types";
 
-const ChatPopupWrapper = ({ onClose }) => {
+const ChatPopupWrapper = ({ onClose, fileToSend }) => {
   return (
     <div className="fixed bottom-4 right-4 z-50 w-full max-w-96">
       
@@ -14,7 +14,7 @@ const ChatPopupWrapper = ({ onClose }) => {
             Close
           </button>
         </div>
-        <ChatBox />
+        <ChatBox initialFile={fileToSend}/>
         
       </div>
     </div>
@@ -22,6 +22,7 @@ const ChatPopupWrapper = ({ onClose }) => {
 };
 ChatPopupWrapper.propTypes = {
   onClose: PropTypes.func.isRequired,
+  fileToSend: PropTypes.object, // file object
 };
 
 export default ChatPopupWrapper;
