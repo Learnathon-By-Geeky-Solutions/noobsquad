@@ -4,13 +4,20 @@ from database.session import SessionLocal
 import models.user as models
 from schemas.auth import Token
 from schemas.user import UserCreate, ProfileCompletionRequest
-from core.security import hash_password, verify_password, create_access_token
+from core.security import hash_password, verify_password, create_access_token, generate_otp, store_otp
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 import jwt
 import os
 from dotenv import load_dotenv
 from core.dependencies import get_db
 import re
+from core.email import send_email
+from datetime import datetime, timezone
+
+from schemas.auth import OTPVerificationRequest
+from models.user import User
+
+
 
 load_dotenv()
 
@@ -40,11 +47,19 @@ async def signup(user: UserCreate, db: Session = Depends(get_db)):
         username=user.username,
         email=user.email,
         hashed_password=hashed_password,
-        profile_completed=False  # ✅ Profile completion starts separately
+        profile_completed=False,  # ✅ Profile completion starts separately
+        is_verified=False  # ✅ Email verification status
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+    #Generate and send OTP
+    otp = generate_otp()
+    store_otp(db, new_user, otp)
+    subject = "Verify Your Email"
+    body = f"Your OTP is {otp}. It is valid for 10 minutes."
+    await send_email(new_user.email, subject, body)  # Send OTP to user's email
+
     return {"message": "User created successfully. Please log in."}
 
 # ✅ Login Route
@@ -53,6 +68,8 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     user = db.query(models.User).filter(models.User.username == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
+    if not user.is_verified:
+        raise HTTPException(status_code=403, detail="Please verify your email")
     
     token = create_access_token({"sub": user.username})
     return {"access_token": token, "token_type": "bearer"}
@@ -72,7 +89,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         
         user = db.query(models.User).filter(models.User.username == username).first()
         if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise HTTPException(status_code=404, detail=" User not found")
         
         return user
     
@@ -83,4 +100,48 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
+@router.post("/verify-otp/")
+async def verify_otp(request: OTPVerificationRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == request.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if user.is_verified:
+        raise HTTPException(status_code=400, detail="Email already verified")
+    
+    if user.otp_expiry < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="OTP expired")
+    
+    if user.otp != request.otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+    
+    # Mark as verified
+    user.is_verified = True
+    user.otp = None
+    user.otp_expiry = None
+    db.commit()
+    db.refresh(user)
+    
+    # Return token
+    token = create_access_token({"sub": user.username})
+    return {"access_token": token, "token_type": "bearer", "message": "Email verified"}
 
+
+#Request a new OTP
+@router.post("/resend-otp/")
+async def resend_otp(request: OTPVerificationRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == request.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if user.is_verified:
+        raise HTTPException(status_code=400, detail="Email already verified")
+    
+    # Generate new OTP
+    otp = generate_otp()
+    store_otp(db, user, otp)
+    subject = "New Verification OTP"
+    body = f"Your new OTP is: {otp}. It expires in 10 minutes."
+    await send_email(user.email, subject, body)
+    
+    return {"message": "New OTP sent to your email"}
