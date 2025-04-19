@@ -9,7 +9,6 @@ const Signup = () => {
     email: "",
     password: "",
   });
-
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -24,12 +23,14 @@ const Signup = () => {
     setError("");
 
     try {
-      const response = await signup(formData);
-      console.log("Signup successful:", response.data);
-      navigate("/login");
+      await signup(formData);
+      alert("Signup successful! Please check your email for verification.");
+      navigate("/verify-email", { state: { email: formData.email } });
     } catch (error) {
-      console.error("Signup error:", error);
-      setError("Please enter your institutional e-mail address");
+      setError(
+        error.response?.data?.detail ||
+        "Signup failed. Please check your details and try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -60,7 +61,7 @@ const Signup = () => {
             <input
               type="email"
               name="email"
-              placeholder="Email"
+              placeholder="Institutional Email"
               value={formData.email}
               onChange={handleChange}
               required

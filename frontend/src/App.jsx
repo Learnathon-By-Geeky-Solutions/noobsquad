@@ -13,6 +13,7 @@ import ChatBox from "./components/AIChat";
 import UniversityPage from "./components/University/University";
 import UserProfile from "./components/AboutMe/AboutMe";
 import { User } from "lucide-react";
+import VerifyEmail from "./pages/VerifyEmail";
 
 function App() {
   return (
@@ -39,6 +40,7 @@ function AppContent() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/complete-profile" element={<CompleteProfile />} />
         <Route path="/chat" element={<ChatBox />} />
         <Route path="/university/:universityName" element={<UniversityPage />} />

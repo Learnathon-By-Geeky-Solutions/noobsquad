@@ -13,6 +13,7 @@ import EventPosts from "../components/Events/EventList";
 import SearchResults from "../components/Search/SearchResults";
 import EventDetails from "../components/Events/EventDetails";
 
+
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -62,6 +63,7 @@ const Dashboard = () => {
         <Route path="search-results" element={<SearchResults />} />
         <Route path="events/:eventId" element={<EventDetails />} />
         <Route path=":username/about" element={<UserProfile />} />
+        
       </Routes>
     </div>
   );
