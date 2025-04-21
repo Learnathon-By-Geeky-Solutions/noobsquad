@@ -29,3 +29,13 @@ export const fetchUser = () => api.get('/auth/users/me/');
 export const verifyOtp = (data) => api.post('/auth/verify-otp/', data);
 
 export const resendOtp = (data) => api.post('/auth/resend-otp/', data);
+
+export const forgotPassword = (data) => {
+  console.log("Forgot password payload:", data);
+  return api.post('/auth/forgot-password/', data);
+};
+
+export const resetPassword = (data) => {
+  console.log("Reset password payload:", data);
+  return api.post('/auth/reset-password/', data);
+};
