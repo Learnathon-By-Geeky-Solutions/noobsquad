@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from database.session import SessionLocal
 import models.user as models
-from schemas.auth import Token
+from schemas.auth import ResetPasswordRequest, Token, ForgotPasswordRequest
 from schemas.user import UserCreate, ProfileCompletionRequest
 from core.security import hash_password, verify_password, create_access_token, generate_otp, store_otp
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -16,6 +16,8 @@ from datetime import datetime, timezone
 
 from schemas.auth import OTPVerificationRequest
 from models.user import User
+import logging
+
 
 
 
@@ -30,6 +32,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 # Router
 router = APIRouter()
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 allowed_keywords = ["stud", "edu", "university", "college", "ac", "edu", "institution"]
 # ✅ Signup Route
@@ -145,3 +149,41 @@ async def resend_otp(request: OTPVerificationRequest, db: Session = Depends(get_
     await send_email(user.email, subject, body)
     
     return {"message": "New OTP sent to your email"}
+
+# ✅ Forgot Password Route
+@router.post("/forgot-password/")
+async def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    logger.info(f"Password reset requested for email: {request.email}")
+    user = db.query(User).filter(User.email == request.email).first()
+    if not user:
+        logger.error(f"No user found for email: {request.email}")
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    otp = generate_otp()
+    store_otp(db, user, otp)
+    await send_email(request.email, "Password Reset OTP", f"Your OTP for password reset is {otp}. It expires in 10 minutes.")
+    logger.info(f"Password reset OTP sent to: {request.email}")
+    return {"message": "Password reset OTP sent to your email"}
+
+# ✅ Reset Password Route
+@router.post("/reset-password/")
+async def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+    logger.info(f"Password reset attempt for email: {request.email}")
+    user = db.query(User).filter(User.email == request.email).first()
+    if not user:
+        logger.error(f"No user found for email: {request.email}")
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.otp_expiry < datetime.utcnow():
+        logger.error(f"OTP expired for email: {request.email}")
+        raise HTTPException(status_code=400, detail="OTP expired")
+    if user.otp != request.otp:
+        logger.error(f"Invalid OTP for email: {request.email}")
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+    
+    user.hashed_password = hash_password(request.new_password)
+    user.otp = None
+    user.otp_expiry = None
+    db.commit()
+    db.refresh(user)
+    logger.info(f"Password reset successful for email: {request.email}")
+    return {"message": "Password reset successfully"}
