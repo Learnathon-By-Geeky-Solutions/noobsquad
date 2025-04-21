@@ -29,9 +29,8 @@ const VerifyEmail = () => {
 
     try {
       const { data } = await verifyOtp(formData);
-      localStorage.setItem("token", data.access_token);
       alert("Email verified successfully!");
-      navigate("/login", { state: { email: formData.email } });
+      navigate("/login");
     } catch (error) {
       setError(error.response?.data?.detail || "Verification failed");
     } finally {
@@ -45,7 +44,7 @@ const VerifyEmail = () => {
     setError("");
 
     try {
-      await resendOtp({ email: formData.email });
+      await resendOtp({ email: formData.email, otp: "" });
       setResendMessage("New OTP sent to your email");
     } catch (error) {
       setError(error.response?.data?.detail || "Failed to resend OTP");
