@@ -49,7 +49,7 @@ const Login = () => {
       const userId = userResponse.data.id; // Adjust if id field is different
       localStorage.setItem("user_id", userId);
 
-      await authLogin(data.access_token, formData.username.includes("@") ? formData.username : null);
+      await authLogin(data.access_token, formData.username);
     } catch (error) {
       if (error.message === "Please verify your email") {
         setError(

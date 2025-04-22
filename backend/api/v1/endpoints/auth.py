@@ -70,13 +70,13 @@ async def signup(user: UserCreate, db: Session = Depends(get_db)):
 # ✅ Login Route
 @router.post("/token", response_model=Token)
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.username == form_data.username).first()
+    user = db.query(models.User).filter((models.User.username == form_data.username) | (models.User.email == form_data.username)).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if not user.is_verified:
         raise HTTPException(status_code=403, detail="Please verify your email")
     
-    token = create_access_token({"sub": user.username})
+    token = create_access_token({"sub": user.username if user.username else user.email})
     return {"access_token": token, "token_type": "bearer"}
 
 # ✅ Get Current User (Check Profile Status)
