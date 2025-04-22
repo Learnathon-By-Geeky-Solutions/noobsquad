@@ -35,7 +35,14 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
     return () => clearInterval(interval);
   }, [user?.id, refreshConversations, token]);
 
-  // Conditional auto-scroll to latest message
+  // Scroll to the bottom when chat popup opens (after initial fetch)
+  useEffect(() => {
+    if (messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages.length]); // Trigger when the number of messages changes (initial load)
+
+  // Conditional auto-scroll to latest message during updates
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
@@ -47,7 +54,7 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
     if (isNearBottom) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages]);
+  }, [messages]); // Trigger on every message update
 
   // Handle WebSocket messages
   useEffect(() => {
