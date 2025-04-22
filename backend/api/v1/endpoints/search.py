@@ -4,6 +4,7 @@ from database.session import SessionLocal
 from typing import List
 from pydantic import BaseModel
 from models.post import Post
+from models.university import University
 from core.dependencies import get_db
 import logging
 from models.user import User

@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom"; // 👈 import useParams
 import DepartmentSection from "./DepartmentSection";
 import UniversityPostFeed from "./PostFeed";
 
-const UniversityGroup = ({ universityName }) => {
+const UniversityGroup = () => {
+  const { universityName } = useParams(); // 👈 extract from URL
   const [universityData, setUniversityData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -14,6 +16,7 @@ const UniversityGroup = ({ universityName }) => {
         );
         const data = await res.json();
         console.log(data)
+        console.log("data:",data.post_ids)
         setUniversityData(data);
       } catch (err) {
         console.error("Error fetching university data:", err);

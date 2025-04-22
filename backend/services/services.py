@@ -211,3 +211,8 @@ def update_fields(fields, model_instance, db: Session) -> bool:
         db.commit()
         db.refresh(model_instance)
     return updated
+
+import re
+
+def extract_hashtags(text: str) -> list[str]:
+    return [tag.strip("#") for tag in re.findall(r"#\w+", text)]
