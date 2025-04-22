@@ -39,6 +39,7 @@ const Login = () => {
 
       // Store token in localStorage
       localStorage.setItem("token", data.access_token);
+      console.log("Token stored:", data.access_token);
 
       // Fetch user data with explicit token
       const userResponse = await axios.get("http://localhost:8000/auth/users/me/", {
@@ -46,11 +47,32 @@ const Login = () => {
           Authorization: `Bearer ${data.access_token}`,
         },
       });
-      const userId = userResponse.data.id; // Adjust if id field is different
-      localStorage.setItem("user_id", userId);
+      console.log("User response:", userResponse);
+      console.log("User data:", userResponse.data);
+
+      // Check if the expected fields exist
+      if (!userResponse.data.id || !userResponse.data.email || !userResponse.data.username) {
+        throw new Error("User data is missing required fields (id, email, username)");
+      }
+
+      const userId = userResponse.data.id ?? "";
+      const userEmail = userResponse.data.email ?? "";
+      const userName = userResponse.data.username ?? "";
+      console.log("Extracted user data:", { userId, userEmail, userName });
+
+      // Store in localStorage with type conversion to string
+      localStorage.setItem("user_id", String(userId));
+      localStorage.setItem("user_email", String(userEmail));
+      localStorage.setItem("username", String(userName));
+      console.log("localStorage after setting:", {
+        user_id: localStorage.getItem("user_id"),
+        user_email: localStorage.getItem("user_email"),
+        username: localStorage.getItem("username"),
+      });
 
       await authLogin(data.access_token, formData.username);
     } catch (error) {
+      console.error("Login error:", error);
       if (error.message === "Please verify your email") {
         setError(
           <>
