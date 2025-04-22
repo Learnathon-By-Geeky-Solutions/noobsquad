@@ -10,6 +10,7 @@ from api.v1.endpoints.chatbot import huggingface
 
 
 app = FastAPI()
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.mount("/uploads/profile_pictures", StaticFiles(directory="uploads/profile_pictures"), name="uploads")
 app.mount("/uploads/media", StaticFiles(directory="uploads/media"), name="media")
 app.mount("/uploads/document", StaticFiles(directory="uploads/document"), name="document")

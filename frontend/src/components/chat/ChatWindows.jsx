@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import { ChatContext } from "../context/ChatContext";
+import { ChatContext } from "../../context/ChatContext";
 import ChatPopup from "./ChatPopup";
 
 const ChatWindows = () => {
@@ -13,17 +13,8 @@ const ChatWindows = () => {
       const ws = new WebSocket(`ws://localhost:8000/chat/ws/${userId}`);
 
       ws.onopen = () => {
-        console.log("✅ WebSocket attempting to connect...");
-
-        // Wait 100ms and check status
-        setTimeout(() => {
-          if (ws.readyState === WebSocket.OPEN) {
-            console.log("✅ WebSocket connection is stable");
-            setSocket(ws);
-          } else {
-            console.warn("❌ WebSocket was closed during handshake");
-          }
-        }, 100);
+        console.log("✅ WebSocket connection established");
+        setSocket(ws);
       };
 
       ws.onerror = (e) => {
@@ -32,17 +23,19 @@ const ChatWindows = () => {
 
       ws.onclose = () => {
         console.warn("🔌 WebSocket closed");
+        setSocket(null);
       };
 
       return () => {
-        ws.close(); // cleanup on unmount
+        ws.close();
+        console.log("🧹 WebSocket cleanup performed");
       };
     } else {
       console.warn("⚠️ No user_id found in localStorage.");
     }
   }, []);
 
-  if (!socket) return null; // Don't render chat popups until socket is ready
+  if (!socket) return null;
 
   return (
     <>

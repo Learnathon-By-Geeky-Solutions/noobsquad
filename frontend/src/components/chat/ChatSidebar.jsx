@@ -1,12 +1,12 @@
 import { useEffect, useState, useContext } from "react";
 import axios from "axios";
-import { ChatContext } from "../context/ChatContext";
+import { ChatContext } from "../../context/ChatContext";
 
 const ChatSidebar = () => {
   const [conversations, setConversations] = useState([]);
   const { openChat } = useContext(ChatContext);
 
-  // ✅ Fetch conversations from backend
+  // Fetch conversations from backend
   const fetchConversations = async () => {
     const token = localStorage.getItem("token");
     try {
@@ -20,17 +20,31 @@ const ChatSidebar = () => {
     }
   };
 
-  // ✅ Auto-refresh every second
+  // Auto-refresh every second
   useEffect(() => {
-    fetchConversations(); // Initial fetch
+    fetchConversations();
     const interval = setInterval(fetchConversations, 1000);
-    return () => clearInterval(interval); // Cleanup
+    return () => clearInterval(interval);
   }, []);
 
-  // ✅ Format time string
+  // Format time string
   const formatTime = (isoTime) => {
     const date = new Date(isoTime);
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
+  // Format last message based on message_type
+  const formatLastMessage = (conversation) => {
+    if (conversation.message_type === "text" || conversation.message_type === "link") {
+      return conversation.last_message || "";
+    }
+    if (conversation.message_type === "image") {
+      return "Image";
+    }
+    if (conversation.message_type === "file") {
+      return "File";
+    }
+    return "";
   };
 
   return (
@@ -48,7 +62,7 @@ const ChatSidebar = () => {
           };
 
           const profileImage = c.avatar
-            ? `http://127.0.0.1:8000/uploads/profile_pictures/${c.avatar}`
+            ? `http://localhost:8000/uploads/profile_pictures/${c.avatar}`
             : "/default-avatar.png";
 
           console.log("Rendering user:", normalizedUser);
@@ -79,7 +93,7 @@ const ChatSidebar = () => {
                 <div className="flex justify-between items-center">
                   <p className="text-sm text-gray-600 truncate w-full">
                     {c.is_sender ? "You: " : ""}
-                    {c.last_message}
+                    {formatLastMessage(c)}
                   </p>
                   {c.unread_count > 0 && (
                     <span className="ml-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">

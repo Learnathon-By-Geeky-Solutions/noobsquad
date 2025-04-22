@@ -6,7 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import CompleteProfile from "./pages/ProfileCompletion";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ChatProvider } from "./context/ChatContext";
-import ChatWindows from "./components/ChatWindows";
+import ChatWindows from "./components/chat/ChatWindows";
 import SharedPost from "./pages/SharedPost";
 import PrivateRoute from "./components/PrivateRoute"; // ✅ import this
 import ChatBox from "./components/AIChat";

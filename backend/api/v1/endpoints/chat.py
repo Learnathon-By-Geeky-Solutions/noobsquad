@@ -1,4 +1,7 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
+import os
+from urllib.parse import urlparse
+from fastapi import APIRouter, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect, Depends
+from fastapi.responses import JSONResponse
 from sqlalchemy import desc, func, or_
 from sqlalchemy.orm import Session
 from models.chat import Message
@@ -8,10 +11,18 @@ from datetime import datetime,timezone
 from pydantic import BaseModel
 from typing import List
 from api.v1.endpoints.auth import get_current_user
+from schemas.chat import MessageOut, ConversationOut, MessageType
 
 router = APIRouter()
 clients = {}
 
+def is_valid_url(url: str) -> bool:
+    try:
+        result = urlparse(url)
+        return all([result.scheme, result.netloc])  # Must have scheme (http/https) and domain
+    except:
+        return False
+    
 @router.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
     await websocket.accept()
@@ -27,15 +38,26 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
                 message_data = json.loads(data)
                 receiver_id = int(message_data.get("receiver_id"))
                 content = message_data.get("content")
+                file_url = message_data.get("file_url")  # Optional
+                message_type = message_data.get("message_type", "text").lower() # Default to text
 
-                print(f"📨 {user_id} ➡ {receiver_id}: {content}")
+                                # Validate message type
+                if message_type not in [mt.value for mt in MessageType]:
+                    print(f"❌ Invalid message type: {message_type}")
+                    continue
+
+                # Validate link if message_type is link
+                if message_type == "link" and content and not is_valid_url(content):
+                    print(f"❌ Invalid URL: {content}")
 
                 # ✅ Save message to database
                 db_message = Message(
                     sender_id=user_id,
                     receiver_id=receiver_id,
                     content=content,
-                    timestamp=datetime.now(timezone.utc)  # Add if your model includes timestamp
+                    file_url=file_url,
+                    message_type=message_type,
+                    timestamp=datetime.now(timezone.utc)
                 )
                 db.add(db_message)
                 db.commit()
@@ -45,6 +67,9 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
                     "sender_id": user_id,
                     "receiver_id": receiver_id,
                     "content": content,
+                    "file_url": file_url,
+                    "message_type": message_type,
+                    "timestamp": db_message.timestamp.isoformat()
                 })
 
                 # ✅ Send to both sender and receiver
@@ -61,28 +86,6 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
         clients.pop(user_id, None)
         print(f"🔌 WebSocket disconnected: user {user_id}")
 
-
-# ✅ Response schema
-class MessageOut(BaseModel):
-    id: int
-    sender_id: int
-    receiver_id: int
-    content: str
-    timestamp: datetime
-
-    class Config:
-        from_attributes = True
-
-class ConversationOut(BaseModel):
-    user_id: int
-    username: str
-    avatar: str | None = None
-    last_message: str
-    timestamp: datetime
-    is_sender: bool
-    unread_count: int
-    class Config:
-        from_attributes = True
         
 @router.get("/chat/history/{friend_id}", response_model=List[MessageOut])
 def get_chat_history(friend_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
@@ -144,15 +147,52 @@ def get_conversations(db: Session = Depends(get_db), current_user=Depends(get_cu
             Message.receiver_id == user_id,
             Message.is_read == False
         ).scalar()
-
+        # Normalize message_type to lowercase for consistency
+        message_type = msg.message_type.lower() if isinstance(msg.message_type, str) else msg.message_type.value.lower()
         results.append({
             "user_id": friend.id,
             "username": friend.username,
             "avatar": friend.profile_picture,
             "last_message": msg.content,
+            "file_url": msg.file_url,
+            "message_type": message_type,
             "timestamp": msg.timestamp,
             "is_sender": msg.sender_id == user_id,
             "unread_count": unread_count,
         })
 
     return results
+
+@router.post("/upload")
+async def upload_file(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    try:
+        # Validate file type
+        allowed_extensions = {".jpg", ".jpeg", ".png", ".gif", ".pdf", ".docx"}
+        file_ext = os.path.splitext(file.filename)[1].lower()
+        if file_ext not in allowed_extensions:
+            raise HTTPException(status_code=400, detail="Unsupported file type")
+
+        # Create uploads/chat directory if it doesn't exist
+        upload_dir = "uploads/chat"
+        os.makedirs(upload_dir, exist_ok=True)
+
+        # Generate unique filename
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+        file_name = f"{current_user.id}_{timestamp}{file_ext}"
+        file_path = os.path.join(upload_dir, file_name)
+
+        # Save file
+        with open(file_path, "wb") as f:
+            f.write(await file.read())
+
+        # Generate file URL (relative path)
+        file_url = f"/{upload_dir}/{file_name}"
+
+        return JSONResponse(content={"file_url": file_url})
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
