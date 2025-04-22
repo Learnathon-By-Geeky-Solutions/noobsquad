@@ -106,11 +106,14 @@ const SearchPapers = () => {
 
   const handleAskU = async (paper) => {
     try {
-      const response = await fetch(paper.file_type);
+      console.log("inside paper:",paper)
+      console.log("file_type_url:",paper.file_path)
+      const response = await fetch(paper.file_path);
       const blob = await response.blob();
   
       const filename = paper.original_filename || "paper.pdf"; // fallback name
       const file = new File([blob], filename, { type: blob.type });
+      console.log("file:",file)
   
       setFileToSend(file);
       setShowChat(true);
@@ -199,7 +202,9 @@ const SearchPapers = () => {
               </button>
 
               <button
-                onClick={() => handleAskU(paper)}
+                onClick={() => {
+                  console.log("paper:",paper)
+                  handleAskU(paper)}}
                 className="relative inline-flex items-center gap-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 px-4 py-2 rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition-transform duration-200"
               >
                 <Bot className="w-4 h-4 animate-pulse" />

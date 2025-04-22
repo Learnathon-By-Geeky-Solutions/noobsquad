@@ -17,8 +17,9 @@ const UniversityPostFeed = ({ postIds }) => {
               headers: {
                 Authorization: `Bearer ${token}`,
               },
+              
             });
-  
+            console.log("res error:",res.json)
             if (!res.ok) {
               throw new Error(`Failed to fetch post ${id}`);
             }
@@ -26,7 +27,7 @@ const UniversityPostFeed = ({ postIds }) => {
             return res.json();
           })
         );
-  
+        console.log("result:",results)
         setPosts(results);
       } catch (err) {
         console.error(err);

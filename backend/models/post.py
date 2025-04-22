@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import enum
 from sqlalchemy.sql import func
 from zoneinfo import ZoneInfo
+from models.hashtag import post_hashtags
 
 
 USER_ID_FOREIGN_KEY = "users.id"
@@ -39,6 +40,7 @@ class Post(Base):
     shares = relationship("Share", back_populates="post", cascade=CASCADE_DELETE_ORPHAN)
 
     notifications = relationship("Notification", back_populates="post", cascade="all, delete-orphan")
+    hashtags = relationship("Hashtag", secondary=post_hashtags, back_populates="posts")
    
 class PostMedia(Base):
     __tablename__ = "post_media"

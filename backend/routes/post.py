@@ -19,6 +19,8 @@ from core.connection_crud import get_connections
 from crud.notification import create_notification
 from AI.moderation import moderate_text
 from services.services import *
+from models.hashtag import Hashtag
+from models.university import University
 
 
 router = APIRouter()
@@ -185,6 +187,22 @@ async def create_text_post(
         raise HTTPException(status_code=400, detail="Inappropriate content detected")
 
     post = create_post_entry(db, current_user.id, content, "text")
+    hashtags = extract_hashtags(post.content)
+    
+    # Fetch all university names
+    universities = db.query(University.name).all()
+    university_names = {name.lower() for (name,) in universities}
+
+    for tag in hashtags:
+        if tag.lower() in university_names:
+            existing_hashtag = db.query(Hashtag).filter_by(name=tag.lower()).first()
+            if existing_hashtag:
+                existing_hashtag.usage_count += 1
+            else:
+                existing_hashtag = Hashtag(name=tag.lower(), usage_count=1)
+                db.add(existing_hashtag)
+
+            post.hashtags.append(existing_hashtag)
     send_post_notifications(db, current_user, post)
 
     post.comment_count = 0

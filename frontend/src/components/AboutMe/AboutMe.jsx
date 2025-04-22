@@ -58,7 +58,7 @@ const UserProfile = () => {
         {/* Left Sidebar */}
         <div className="w-full md:w-1/4 space-y-4 mt-20 md:mt-24">
           <ProfileCard user={user}  isOwner={isOwner}/>
-          <ProfileFriends userId={user.id} />
+          {isOwner && <ProfileFriends userId={user.id} />}
         </div>
       
       {/* Middle Section */}
