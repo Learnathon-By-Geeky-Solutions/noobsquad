@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { login } from "../api/auth";
+import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/Navbar";
 
@@ -35,6 +36,18 @@ const Login = () => {
       form.append("password", formData.password);
       const { data } = await login(form);
       if (!data?.access_token) throw new Error("Login failed");
+
+      // Store token in localStorage
+      localStorage.setItem("token", data.access_token);
+
+      // Fetch user data with explicit token
+      const userResponse = await axios.get("http://localhost:8000/auth/users/me/", {
+        headers: {
+          Authorization: `Bearer ${data.access_token}`,
+        },
+      });
+      const userId = userResponse.data.id; // Adjust if id field is different
+      localStorage.setItem("user_id", userId);
 
       await authLogin(data.access_token, formData.username.includes("@") ? formData.username : null);
     } catch (error) {

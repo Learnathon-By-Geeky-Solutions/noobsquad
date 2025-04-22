@@ -36,6 +36,7 @@ export const AuthProvider = ({ children }) => {
       const { data } = await fetchUser(); // Token is included in headers via api/auth.js
       setUser(data);
       setProfileCompleted(data.profile_completed);
+
     } catch (error) {
       if (error.response?.status === 401 || error.response?.status === 403) {
         localStorage.removeItem("token");

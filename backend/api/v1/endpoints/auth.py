@@ -35,13 +35,14 @@ router = APIRouter()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-allowed_keywords = ["stud", "edu", "university", "college", "ac", "edu", "institution"]
+# allowed_keywords = ["stud", "edu", "university", "college", "ac", "edu", "institution"]
+
 # ✅ Signup Route
 @router.post("/signup/")
 async def signup(user: UserCreate, db: Session = Depends(get_db)):
     # Check if the email domain contains any of the educational keywords
-    if not any(keyword in user.email.lower() for keyword in allowed_keywords):
-        raise HTTPException(status_code=400, detail="This is not an educational email address.")
+    # if not any(keyword in user.email.lower() for keyword in allowed_keywords):
+    #     raise HTTPException(status_code=400, detail="This is not an educational email address.")
     db_user = db.query(models.User).filter(models.User.username == user.username).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Username already taken")
