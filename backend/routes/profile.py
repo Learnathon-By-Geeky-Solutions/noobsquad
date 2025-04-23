@@ -29,18 +29,23 @@ def get_or_create_university(db: Session, uni_name: str, dept_name: str):
     uni = db.query(University).filter(University.name == uni_name).first()
 
     if not uni:
-        # University not found, create new
-        new_uni = University(name=uni_name, departments=[dept_name])
+        # University not found — create new with the department
+        new_uni = University(name=uni_name, departments=[dept_name], total_members=1)
         db.add(new_uni)
         db.commit()
         db.refresh(new_uni)
         return new_uni
 
-    # If university exists, check if department is in list
-    if dept_name not in uni.departments:
+    # University exists — add department if not already present
+    if not uni.departments:
+        uni.departments = [dept_name]
+    elif dept_name not in uni.departments:
         uni.departments.append(dept_name)
-        db.commit()
 
+    # Optionally: Don't update total_members here, it's safer in profile step
+    db.add(uni)
+    db.commit()
+    db.refresh(uni)
     return uni
     
 @router.post("/step1", response_model=UserResponse)

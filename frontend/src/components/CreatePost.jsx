@@ -128,7 +128,7 @@ const CreatePost = ({ userProfile }) => {
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="What's on your mind?"
+          placeholder="Post your thoughts, notes, or nerdy rants!"
           className="border p-2 rounded w-full"
         ></textarea>
       </div>
