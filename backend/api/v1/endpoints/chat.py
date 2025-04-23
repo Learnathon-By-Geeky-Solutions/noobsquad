@@ -3,7 +3,7 @@ import uuid
 import secrets
 from urllib.parse import urlparse
 from fastapi import APIRouter, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect, Depends
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from sqlalchemy import desc, func, or_
 from sqlalchemy.orm import Session
 from models.chat import Message
@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from typing import List
 from api.v1.endpoints.auth import get_current_user
 from schemas.chat import MessageOut, ConversationOut, MessageType
-import pathlib
+from fastapi.staticfiles import StaticFiles
 
 router = APIRouter()
 clients = {}
