@@ -10,3 +10,4 @@ class University(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
     departments = Column(ARRAY(String))  # Stores list of departments
+    total_members = Column(Integer, default=0)

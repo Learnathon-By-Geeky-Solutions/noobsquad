@@ -42,8 +42,6 @@ function AppContent() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/complete-profile" element={<CompleteProfile />} />
         <Route path="/chat" element={<ChatBox />} />
-        <Route path="/university/:universityName" element={<UniversityPage />} />
-        <Route path="/university" element={<UniversityExplorePage />} />
         
         <Route
           path="/dashboard/*"
