@@ -1,5 +1,6 @@
 import os
 import uuid
+import secrets
 from urllib.parse import urlparse
 from fastapi import APIRouter, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect, Depends
 from fastapi.responses import JSONResponse
@@ -165,21 +166,8 @@ def get_conversations(db: Session = Depends(get_db), current_user=Depends(get_cu
 
     return results
 
-def safe_join(base, filename):
-    """
-    Safely join base directory and filename, preventing path traversal attacks.
-    Returns None if the resulting path would be outside the base directory.
-    """
-    # Convert to absolute path 
-    base_dir = os.path.abspath(base)
-    # Use pathlib for safe path joining and resolving
-    try:
-        # Create a safe path by joining and resolving
-        safe_path = os.path.normpath(os.path.join(base_dir, filename))
-        # Verify the path is within the base directory
-        return safe_path if safe_path.startswith(base_dir) else None
-    except (ValueError, TypeError):
-        return None
+# Set of allowed extensions
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".pdf", ".docx"}
 
 @router.post("/upload")
 async def upload_file(
@@ -188,41 +176,43 @@ async def upload_file(
     current_user=Depends(get_current_user)
 ):
     try:
-        # Validate file type
-        allowed_extensions = {".jpg", ".jpeg", ".png", ".gif", ".pdf", ".docx"}
-        # Get original extension but don't trust it for the actual path construction
-        original_ext = os.path.splitext(file.filename)[1].lower()
-        if original_ext not in allowed_extensions:
+        # Validate the extension
+        _, ext = os.path.splitext(file.filename)
+        ext = ext.lower()
+        
+        if ext not in ALLOWED_EXTENSIONS:
             raise HTTPException(status_code=400, detail="Unsupported file type")
 
-        # Define the absolute base upload directory
-        base_upload_dir = os.path.abspath("uploads/chat")
+        # Set up base directory (do not use user-controlled data)
+        upload_dir = os.path.abspath("uploads/chat")
+        os.makedirs(upload_dir, exist_ok=True)
         
-        # Create uploads/chat directory if it doesn't exist
-        os.makedirs(base_upload_dir, exist_ok=True)
-
-        # Generate a secure random filename with the validated extension
-        unique_filename = f"{uuid.uuid4().hex}{original_ext}"
+        # Generate completely random filename that has no user-controlled components
+        # Use secrets module for cryptographically strong random data
+        random_filename = f"{secrets.token_hex(16)}{ext}"
         
-        # Safely join the base directory and the filename
-        file_path = safe_join(base_upload_dir, unique_filename)
+        # Define the destination file path
+        # We control both 'upload_dir' and 'random_filename' - no user input is used
+        destination = os.path.join(upload_dir, random_filename)
         
-        # If safe_join returned None, the path is invalid
-        if file_path is None:
-            raise HTTPException(status_code=400, detail="Invalid file path")
+        # Final safety check - this should never fail with our implementation
+        if not os.path.abspath(destination).startswith(upload_dir):
+            raise HTTPException(status_code=500, detail="Security check failed")
+        
+        # Write the file content directly
+        contents = await file.read()
+        with open(destination, "wb") as f:
+            f.write(contents)
             
-        # Double-check the path is within the base directory
-        if not os.path.commonpath([base_upload_dir]) == os.path.commonpath([base_upload_dir, file_path]):
-            raise HTTPException(status_code=400, detail="File path is outside upload directory")
-
-        # Save file
-        with open(file_path, "wb") as f:
-            f.write(await file.read())
-
-        # Generate file URL (relative path)
-        file_url = f"/uploads/chat/{unique_filename}"
-
+        # Return the URL path (not os path)
+        file_url = f"/uploads/chat/{random_filename}"
+        
         return JSONResponse(content={"file_url": file_url})
-
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
+        # Log the actual error but don't expose details to the client
+        print(f"File upload error: {str(e)}")
+        raise HTTPException(status_code=500, detail="File upload failed")
