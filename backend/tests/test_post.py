@@ -1,537 +1,584 @@
-# import sys
-# from pathlib import Path
-# import pytest
-# from fastapi.testclient import TestClient
-# from sqlalchemy import create_engine
-# from sqlalchemy.orm import sessionmaker
-# from unittest.mock import MagicMock, patch
-# sys.path.append(str(Path(__file__).resolve().parents[1])) 
-# from main import app
-# from database.session import Base, SessionLocal, engine
-# from core.dependencies import get_db
-# from models.user import User
-# from models.post import Post, PostMedia, PostDocument, Event
-# from core.security import hash_password
-# import os
-# import shutil
-# from datetime import datetime
-# from zoneinfo import ZoneInfo
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+from datetime import datetime
+from unittest.mock import MagicMock, patch
+from pathlib import Path
+import sys
+from zoneinfo import ZoneInfo
 
-# # Add backend directory to sys.path for imports
-# sys.path.append(str(Path(__file__).resolve().parents[1]))
+# Mock HuggingFaceEndpoint before importing main
+with patch("langchain_huggingface.HuggingFaceEndpoint", MagicMock()) as mock_hf_endpoint:
+    mock_hf_endpoint.return_value = MagicMock()
+    mock_hf_endpoint.return_value.predict.return_value = "mocked response"
+    sys.path.append(str(Path(__file__).resolve().parents[1]))
+    from main import app
+    from models.post import Post, PostMedia, PostDocument, Event, Like, Comment
+    from models.user import User
+    from models.university import University
+    from routes import post
 
+client = TestClient(app)
 
-# # Ensure tables exist before testing
-# Base.metadata.create_all(bind=engine)
+# Test data setup
+def generate_mock_filename(user_id: int, ext: str) -> str:
+    return f"{user_id}_mock{ext}"
 
-# # Override dependency for testing
-# def override_get_db():
-#     try:
-#         db = SessionLocal()
-#         yield db
-#     finally:
-#         db.close()
+fake_user = User(
+    id=1,
+    username="testuser",
+    email="test@example.com",
+    profile_picture="user.jpg"
+)
 
-# app.dependency_overrides[get_db] = override_get_db
+fake_text_post = Post(
+    id=1,
+    user_id=1,
+    content="This is a test post",
+    post_type="text",
+    created_at=datetime.now(ZoneInfo("UTC")),
+    like_count=5,
+    user=fake_user
+)
 
-# # Initialize FastAPI test client
-# client = TestClient(app)
+fake_media_post = Post(
+    id=2,
+    user_id=1,
+    content="Test media post",
+    post_type="media",
+    created_at=datetime.now(ZoneInfo("UTC")),
+    like_count=0,
+    user=fake_user
+)
 
-# # ----------------------
-# # 🔧 Fixture for setup and teardown
-# # ----------------------
-# @pytest.fixture(autouse=True)
-# def setup_and_teardown():
-#     # Setup: Create tables and clear upload directories
-#     Base.metadata.create_all(bind=engine)
-#     for dir_path in ["uploads/media", "uploads/document", "uploads/event_images"]:
-#         if os.path.exists(dir_path):
-#             shutil.rmtree(dir_path)
-#         os.makedirs(dir_path, exist_ok=True)
-    
-#     yield
-    
-#     # Teardown: Drop tables and remove upload directories
-#     Base.metadata.drop_all(bind=engine)
-#     for dir_path in ["uploads/media", "uploads/document", "uploads/event_images"]:
-#         if os.path.exists(dir_path):
-#             shutil.rmtree(dir_path)
+fake_document_post = Post(
+    id=3,
+    user_id=1,
+    content="Test document post",
+    post_type="document",
+    created_at=datetime.now(ZoneInfo("UTC")),
+    like_count=0,
+    user=fake_user
+)
 
-# # ----------------------
-# # 🔧 Fixture for test user
-# # ----------------------
-# @pytest.fixture
-# def test_user():
-#     db = SessionLocal()
-#     user = db.query(User).filter(User.email == "test@example.com").first()
-#     if not user:
-#         user = User(
-#             id=1,
-#             username="testuser",
-#             email="test@example.com",
-#             hashed_password=hash_password("testpass"),
-#             is_active=True,
-#         )
-#         db.add(user)
-#         db.commit()
-#         db.refresh(user)
-#     db.close()
-#     return user
+fake_event_post = Post(
+    id=4,
+    user_id=1,
+    content="Test event post",
+    post_type="event",
+    created_at=datetime.now(ZoneInfo("UTC")),
+    like_count=0,
+    user=fake_user
+)
 
-# # ----------------------
-# # 🔧 Fixture for auth headers
-# # ----------------------
-# @pytest.fixture
-# def auth_headers(test_user):
-#     response = client.post(
-#         "/auth/token",
-#         data={
-#             "username": "testuser",
-#             "password": "testpass"
-#         }
-#     )
-#     assert response.status_code == 200, "Failed to obtain token"
-#     token = response.json()["access_token"]
-#     return {"Authorization": f"Bearer {token}"}
+fake_media = PostMedia(
+    id=1,
+    post_id=1,  # Updated to match consistent ID
+    media_url="1_mock.jpg",  # Use consistent mock filename
+    media_type=".jpg"
+)
 
-# # ... (previous imports and setup remain unchanged)
+fake_document = PostDocument(
+    id=1,
+    post_id=1,  # Updated to match consistent ID
+    document_url="1_mock.pdf",  # Use consistent mock filename
+    document_type=".pdf"
+)
 
-# # ----------------------
-# # ✅ Test get_posts
-# # ----------------------
-# @patch("services.services.get_newer_posts")
-# @patch("services.services.get_user_like_status")
-# @patch("services.services.get_post_additional_data")
-# def test_get_posts_success(mock_additional_data, mock_like_status, mock_newer_posts, auth_headers, test_user):
-#     # Mock service functions
-#     mock_post = Post(id=1, user_id=test_user.id, content="Test post", post_type="text", created_at=datetime.now(), like_count=0)
-#     mock_post.user = test_user
-#     mock_query = mock_newer_posts.return_value.order_by.return_value.offset.return_value.limit.return_value
-#     mock_query.all.return_value = [mock_post]
-    
-#     mock_like_status.return_value = False
-#     mock_additional_data.return_value = {}
+fake_event = Event(
+    id=1,
+    post_id=1,  # Updated to match consistent ID
+    user_id=1,
+    title="Test Event",
+    description="Test event description",
+    event_datetime=datetime.now(ZoneInfo("UTC")),
+    location="Test Location",
+    image_url=None
+)
 
-#     # Fallback: Add post to database
-#     db = SessionLocal()
-#     db_post = Post(id=1, user_id=test_user.id, content="Test post", post_type="text", created_at=datetime.now(), like_count=0)
-#     db.add(db_post)
-#     db.commit()
-#     db.close()
+@pytest.fixture
+def override_dependencies(monkeypatch):
+    mock_session = MagicMock(spec=Session)
 
-#     response = client.get(
-#         "/posts",
-#         params={"limit": 10, "offset": 0},
-#         headers=auth_headers
-#     )
-    
-#     print(f"Response: {response.json()}")
+    # Mock database operations
+    def mock_add(obj):
+        if isinstance(obj, Post):
+            obj.id = 1
+            obj.user_id = fake_user.id
+            obj.created_at = datetime.now(ZoneInfo("UTC"))
+        elif isinstance(obj, PostMedia):
+            obj.id = 1
+            obj.post_id = 1
+            obj.media_url = "1_mock.jpg"
+            obj.media_type = ".jpg"
+        elif isinstance(obj, PostDocument):
+            obj.id = 1
+            obj.post_id = 1
+            obj.document_url = "1_mock.pdf"
+            obj.document_type = ".pdf"
+        elif isinstance(obj, Event):
+            obj.id = 1
+            obj.post_id = 1
+            obj.user_id = fake_user.id
+        return None
 
-#     assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.json()}"
-#     data = response.json()
-#     assert data["count"] == 1, f"Expected count 1, got {data['count']}"
-#     assert data["posts"][0]["content"] == "Test post"
-#     assert data["posts"][0]["user"]["username"] == "testuser"
+    mock_session.add.side_effect = mock_add
+    mock_session.delete.return_value = None
+    mock_session.commit.return_value = None
+    mock_session.refresh.side_effect = lambda x: None
 
-# # ----------------------
-# # ✅ Test create_media_post
-# # ----------------------
-# @patch("services.services.create_post_entry")
-# @patch("services.services.send_post_notifications")
-# def test_create_media_post_success(mock_notifications, mock_create_post, auth_headers, test_user, tmp_path):
-#     mock_post = Post(id=1, user_id=test_user.id, content="Media post", post_type="media")
-#     mock_create_post.return_value = mock_post
+    # Mock queries
+    def mock_post_filter(*args, **kwargs):
+        mock = MagicMock()
+        mock.first.return_value = fake_text_post
+        mock.all.return_value = [fake_text_post]
+        return mock
 
-#     image_path = tmp_path / "test_image.jpg"
-#     with open(image_path, "wb") as f:
-#         f.write(b"\xFF\xD8\xFF\xE0\x00\x10JFIF\x00")
+    mock_post_query = MagicMock()
+    mock_post_query.filter.side_effect = mock_post_filter
+    mock_post_query.filter_by.side_effect = mock_post_filter
+    mock_post_query.order_by.return_value = mock_post_query
+    mock_post_query.offset.return_value = mock_post_query
+    mock_post_query.limit.return_value = mock_post_query
+    mock_post_query.all.return_value = [fake_text_post]
 
-#     with open(image_path, "rb") as f:
-#         response = client.post(
-#             "/posts/create_media_post/",  # Updated URL
-#             files={"media_file": ("test_image.jpg", f, "image/jpeg")},
-#             data={"content": "Media post"},
-#             headers=auth_headers
-#         )
-    
-#     assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.json()}"
-#     data = response.json()
-#     assert data["post_id"] == 1
-#     assert data["media_type"] == ".jpg"
-#     assert os.path.exists(os.path.join("uploads/media", data["media_url"]))
-    
+    # Mock media, document and event queries
+    mock_media_query = MagicMock()
+    mock_media_query.filter.return_value.first.return_value = fake_media
 
+    mock_document_query = MagicMock()
+    mock_document_query.filter.return_value.first.return_value = fake_document
 
- 
-# # ----------------------
-# # ✅ Test get_single_post
-# # ----------------------
-# @patch("services.services.get_user_like_status")
-# @patch("services.services.get_post_additional_data")
-# def test_get_single_post_success(mock_additional_data, mock_like_status, auth_headers, test_user):
-#     db = SessionLocal()
-#     post = Post(id=1, user_id=test_user.id, content="Test post", post_type="text", created_at=datetime.now(), like_count=0)
-#     db.add(post)
-#     db.commit()
-#     db.close()
+    mock_event_query = MagicMock()
+    mock_event_query.filter.return_value.first.return_value = fake_event
+    mock_event_query.all.return_value = [fake_event]
 
-#     mock_like_status.return_value = False
-#     mock_additional_data.return_value = {}
+    # Configure query side effects
+    def get_query_mock(model):
+        if isinstance(model, type) and model == Post:
+            return mock_post_query
+        elif isinstance(model, type) and model == PostMedia:
+            return mock_media_query
+        elif isinstance(model, type) and model == PostDocument:
+            return mock_document_query
+        elif isinstance(model, type) and model == Event:
+            return mock_event_query
+        elif isinstance(model, type) and model == University:
+            return MagicMock()
+        return MagicMock()
 
-#     response = client.get("/posts/1", headers=auth_headers)
-    
-#     assert response.status_code == 200
-#     data = response.json()
-#     assert data["id"] == 1
-#     assert data["content"] == "Test post"
-# # ----------------------
-# # ✅ Test create_document_post
-# # ----------------------
-# @patch("services.services.create_post_entry")
-# @patch("services.services.send_post_notifications")
-# def test_create_document_post_success(mock_notifications, mock_create_post, auth_headers, test_user, tmp_path):
-#     mock_post = Post(id=1, user_id=test_user.id, content="Doc post", post_type="document")
-#     mock_create_post.return_value = mock_post
+    mock_session.query.side_effect = get_query_mock
 
-#     doc_path = tmp_path / "test_doc.pdf"
-#     with open(doc_path, "wb") as f:
-#         f.write(b"%PDF-1.4")
+    # Mock moderate_text
+    mock_moderate_text = MagicMock()
+    mock_moderate_text.return_value = False
+    monkeypatch.setattr(post, "moderate_text", mock_moderate_text)
 
-#     with open(doc_path, "rb") as f:
-#         response = client.post(
-#             "/posts/create_document_post/",
-#             files={"document_file": ("test_doc.pdf", f, "application/pdf")},
-#             data={"content": "Doc post"},
-#             headers=auth_headers
-#         )
-    
-#     assert response.status_code == 200
-#     data = response.json()
-#     assert data["post_id"] == 1
-#     assert data["document_type"] == ".pdf"
-#     assert os.path.exists(os.path.join("uploads/document", data["document_url"]))
+    def _get_db_override():
+        return mock_session
 
-# # ----------------------
-# # ✅ Test create_text_post
-# # ----------------------
+    def _get_current_user_override():
+        return fake_user
 
-# @patch("services.services.create_post_entry")
-# @patch("services.services.send_post_notifications")
-# @patch("AI.moderation.moderate_text")
-# def test_create_text_post_success(mock_moderate, mock_notifications, mock_create_post, auth_headers, test_user):
-#     mock_post = Post(id=1, user_id=test_user.id, content="I love you", post_type="text")
-#     mock_create_post.return_value = mock_post
-#     mock_moderate.return_value = False
+    app.dependency_overrides[post.get_db] = _get_db_override
+    app.dependency_overrides[post.get_current_user] = _get_current_user_override
 
-#     headers = auth_headers.copy()
-#     headers["Content-Type"] = "application/x-www-form-urlencoded"
+    yield mock_session, mock_moderate_text
 
+    app.dependency_overrides.clear()
+
+# def test_create_text_post(override_dependencies):
+#     session, _ = override_dependencies
+
+#     # Test data
+#     test_content = "Test post content"
+
+#     # Send request to create text post
 #     response = client.post(
 #         "/posts/create_text_post/",
-#         data={"content": "I love you"},
-#         headers=headers
+#         data={"content": test_content}
 #     )
-
-#     print("RESPONSE STATUS:", response.status_code)
-#     print("RESPONSE TEXT:", response.text)
 
 #     assert response.status_code == 200
 #     data = response.json()
 #     assert data["id"] == 1
-#     assert data["content"] == "I love you"
+#     assert data["user_id"] == fake_user.id
+#     assert data["content"] == test_content
+#     assert data["post_type"] == "text"
+#     assert "created_at" in data
+#     assert data["comment_count"] == 0
+#     assert data["user_liked"] is False
 
-# # ----------------------
-# # ✅ Test create_event_post
-# # ----------------------
-# @patch("services.services.create_post_entry")
-# @patch("services.services.send_post_notifications")
-# def test_create_event_post_success(mock_notifications, mock_create_post, auth_headers, test_user, tmp_path):
-#     mock_post = Post(id=1, user_id=test_user.id, content="Event post", post_type="event")
-#     mock_create_post.return_value = mock_post
+#     # Ensure database operations are called
+#     session.add.assert_called()
+#     session.commit.assert_called()
+#     session.refresh.assert_called()
 
-#     image_path = tmp_path / "event_image.jpg"
-#     with open(image_path, "wb") as f:
-#         f.write(b"\xFF\xD8\xFF\xE0\x00\x10JFIF\x00")
+def test_create_text_post_with_inappropriate_content(override_dependencies):
+    session, mock_moderate_text = override_dependencies
+    mock_moderate_text.return_value = True  # Simulate inappropriate content detection
 
-#     with open(image_path, "rb") as f:
-#         response = client.post(
-#             "/posts/create_event_post/",
-#             files={"event_image": ("event_image.jpg", f, "image/jpeg")},
-#             data={
-#                 "content": "Event post",
-#                 "event_title": "Test Event",
-#                 "event_description": "Event description",
-#                 "event_date": "2025-04-20",
-#                 "event_time": "14:00",
-#                 "user_timezone": "Asia/Dhaka",
-#                 "location": "Dhaka"
-#             },
-#             headers=auth_headers
-#         )
-    
+    # Send request with inappropriate content
+    response = client.post(
+        "/posts/create_text_post/",
+        data={"content": "Inappropriate content"}
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Inappropriate content detected"
+    session.add.assert_not_called()
+    session.commit.assert_not_called()
+
+# def test_get_posts(override_dependencies):
+#     session, _ = override_dependencies
+
+#     # Send request to get posts
+#     response = client.get("/posts/")
+
 #     assert response.status_code == 200
 #     data = response.json()
-#     assert data["post_id"] == 1
-#     assert data["title"] == "Test Event"
-#     assert os.path.exists(Path(data["image_url"].replace("http://127.0.0.1:8000/", "")))
+#     assert "posts" in data
+#     assert len(data["posts"]) == 1
+#     assert "count" in data
+#     assert data["count"] == 1
 
-# # ----------------------
-# # ✅ Test get_posts_by_user
-# # ----------------------
-# def test_get_posts_by_user_success(auth_headers, test_user):
-#     db = SessionLocal()
-#     post = Post(id=1, user_id=test_user.id, content="User post", post_type="text", created_at=datetime.now())
-#     db.add(post)
-#     db.commit()
-#     db.close()
+#     post = data["posts"][0]
+#     assert post["id"] == fake_text_post.id
+#     assert post["user_id"] == fake_text_post.user_id
+#     assert post["content"] == fake_text_post.content
+#     assert post["post_type"] == fake_text_post.post_type
+#     assert "created_at" in post
+#     assert post["total_likes"] == fake_text_post.like_count
+#     assert "user" in post
+#     assert post["user"]["id"] == fake_user.id
+#     assert post["user"]["username"] == fake_user.username
+#     assert post["user"]["profile_picture"] == f"http://127.0.0.1:8000/uploads/profile_pictures/{fake_user.profile_picture}"
 
-#     response = client.get("/posts/posts/", params={"user_id": test_user.id})
-    
+# def test_get_single_post(override_dependencies):
+#     session, _ = override_dependencies
+
+#     # Send request to get a single post
+#     response = client.get("/posts/1")
+
 #     assert response.status_code == 200
 #     data = response.json()
-#     assert len(data) == 1
-#     assert data[0]["content"] == "User post"
+#     assert data["id"] == fake_text_post.id
+#     assert data["user_id"] == fake_text_post.user_id
+#     assert data["content"] == fake_text_post.content
+#     assert data["post_type"] == fake_text_post.post_type
+#     assert "created_at" in data
+#     assert data["total_likes"] == fake_text_post.like_count
+#     assert "user" in data
+#     assert data["user"]["id"] == fake_user.id
+#     assert data["user"]["username"] == fake_user.username
+#     assert data["user"]["profile_picture"] == f"http://127.0.0.1:8000/uploads/profile_pictures/{fake_user.profile_picture}"
 
-# # ----------------------
-# # ✅ Test update_text_post
-# # ----------------------
-
-
-# @patch("services.services.get_post_by_id")
-# @patch("services.services.update_post_content")
-# def test_update_text_post_success(mock_update_content, mock_get_post, auth_headers, test_user):
-#     mock_post = Post(id=3, user_id=test_user.id, content="I love you", post_type="text")
-#     mock_get_post.return_value = mock_post
-
-#     headers = auth_headers.copy()
-#     headers["Content-Type"] = "application/json"
-#     response = client.put(
-#         "/posts/update_text_post/3",
-#         data={"content": "I love you too"},
-#         headers=auth_headers
-#     )
+def test_get_single_post_not_found(override_dependencies):
+    session, _ = override_dependencies
     
-#     assert response.status_code == 422, f"Expected 422, got {response.status_code}: {response.json()}"
-#     # data = response.json()
-#     # assert data["content"] == "I love you too"
-# # ----------------------
-# # ✅ Test update_media_post
-# # ----------------------
-# @patch("services.services.get_post_by_id")
-# @patch("services.services.update_post_content")
-# @patch("services.services.remove_old_file_if_exists")
-# def test_update_media_post_success(mock_remove_file, mock_update_content, mock_get_post, auth_headers, test_user, tmp_path):
-#     # Create test directories
-#     os.makedirs("uploads/media", exist_ok=True)
-    
-#     # Create a mock post with media
-#     mock_post = Post(id=1, user_id=test_user.id, content="Old content", post_type="media")
-#     mock_media = PostMedia(post_id=1, media_url="old_media.jpg", media_type="image")
-#     mock_post.media = mock_media
+    # Mock post query to return None
+    mock_post_query = MagicMock()
+    mock_post_query.filter.return_value.first.return_value = None
+    session.query.side_effect = lambda model: mock_post_query if model == Post else MagicMock()
 
-#     # Mock get_post_by_id to return our mock post
-#     mock_get_post.return_value = mock_post
-#     mock_update_content.return_value = True
+    # Send request to get a non-existent post
+    response = client.get("/posts/999")
 
-#     # Create a test file
-#     test_file = tmp_path / "test_image.jpg"
-#     test_file.write_bytes(b"test content")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Post not found"
 
-#     with open(test_file, "rb") as f:
-#         response = client.put(
-#             "/posts/update_media_post/1",
-#             data={
-#                 "content": "Updated content"
-#             },
-#             files={
-#                 "media_file": ("test_image.jpg", f, "image/jpeg")
-#             },
-#             headers=auth_headers
-#         )
-    
-#     assert response.status_code == 200
-#     data = response.json()
-#     assert data["message"] == "Media post updated successfully"
-#     assert "updated_post" in data
-# #     assert os.path.exists(os.path.join("uploads/media", data["updated_post"]["media_url"]))
+# Media post tests
+# def test_create_media_post(override_dependencies):
+#     session, _ = override_dependencies
 
-# # ----------------------
-# # ✅ Test update_document_post
-# # ----------------------
-# @patch("services.services.get_post_by_id")
-# @patch("services.services.update_post_content")
-# @patch("services.services.remove_old_file_if_exists")
-# def test_update_document_post_success(mock_remove_file, mock_update_content, mock_get_post, auth_headers, test_user, tmp_path):
-#     # Create test directories
-#     os.makedirs("uploads/document", exist_ok=True)
-    
-#     # Create a mock post with document
-#     mock_post = Post(id=1, user_id=test_user.id, content="Old content", post_type="document")
-#     mock_doc = PostDocument(post_id=1, document_url="old_doc.pdf", document_type="pdf")
-#     mock_post.document = mock_doc
-
-#     # Mock get_post_by_id to return our mock post
-#     mock_get_post.return_value = mock_post
-#     mock_update_content.return_value = True
-
-#     # Create a test file
-#     test_file = tmp_path / "test_doc.pdf"
-#     test_file.write_bytes(b"test content")
-
-#     with open(test_file, "rb") as f:
-#         response = client.put(
-#             "/posts/update_document_post/1",
-#             data={
-#                 "content": "Updated content"
-#             },
-#             files={
-#                 "document_file": ("test_doc.pdf", f, "application/pdf")
-#             },
-#             headers=auth_headers
-#         )
-    
-#     assert response.status_code == 200
-#     data = response.json()
-#     assert data["message"] == "Document post updated successfully"
-#     assert "updated_post" in data
-# #     assert os.path.exists(os.path.join("uploads/document", data["updated_post"]["document_url"]))
-
-# # ----------------------
-# # ✅ Test update_event_post
-# # ----------------------
-# @patch("services.services.get_post_and_event")
-# @patch("services.services.update_post_and_event")
-# @patch("services.services.format_updated_event_response")
-# def test_update_event_post_success(mock_format_response, mock_update, mock_get, auth_headers, test_user):
-#     # Create mock post and event
-#     mock_post = Post(id=1, user_id=test_user.id, content="Old content", post_type="event")
-#     mock_event = Event(
-#         post_id=1,
-#         user_id=test_user.id,
-#         title="Old title",
-#         description="Old description",
-#         event_datetime=datetime.now(tz=ZoneInfo("UTC")),
-#         location="Old location"
-#     )
-    
-#     # Setup mocks
-#     mock_get.return_value = (mock_post, mock_event)
-#     mock_update.return_value = True
-#     mock_format_response.return_value = {
-#         "id": 1,
-#         "content": "New content",
-#         "title": "New title",
-#         "description": "New description",
-#         "event_datetime": "2025-04-20T04:00:00+00:00",
-#         "location": "Dhaka"
+#     # Create test file content
+#     test_content = "Test media post content"
+#     test_file = {
+#         "content": (None, test_content),
+#         "media_file": ("test.jpg", b"test image content", "image/jpeg")
 #     }
 
+#     # Send request to create media post
+#     response = client.post(
+#         "/posts/create_media_post/",
+#         files=test_file
+#     )
+
+#     assert response.status_code == 200
+#     data = response.json()
+#     assert data["id"] == 1
+#     assert data["post_id"] == 1
+#     assert data["media_url"] == fake_media.media_url
+#     assert data["media_type"] == fake_media.media_type
+
+#     # Ensure database operations are called
+#     session.add.assert_called()
+#     session.commit.assert_called()
+#     session.refresh.assert_called()
+
+# def test_create_media_post_invalid_type(override_dependencies):
+#     session, _ = override_dependencies
+
+#     # Create test file with invalid type
+#     test_file = {
+#         "content": (None, "Test content"),
+#         "media_file": ("test.xyz", b"invalid content", "application/octet-stream")
+#     }
+
+#     # Send request with invalid file type
+#     response = client.post(
+#         "/posts/create_media_post/",
+#         files=test_file
+#     )
+
+#     assert response.status_code == 400
+#     assert "Invalid file type" in response.json()["detail"]
+#     session.add.assert_not_called()
+#     session.commit.assert_not_called()
+
+# def test_update_media_post(override_dependencies):
+#     session, _ = override_dependencies
+
+#     # Test data
+#     updated_content = "Updated media post content"
+#     test_file = {
+#         "content": (None, updated_content),
+#         "media_file": ("updated.jpg", b"updated image content", "image/jpeg")
+#     }
+
+#     # Send request to update media post
 #     response = client.put(
-#         "/posts/update_event_post/1",
-#         data={
-#             "content": "New content",
-#             "event_title": "New title",
-#             "event_description": "New description",
-#             "event_date": "2025-04-20",
-#             "event_time": "4:00",
-#             "user_timezone": "Asia/Dhaka",
-#             "location": "Dhaka"
-#         },
-#         headers=auth_headers
+#         "/posts/update_media_post/1",
+#         files=test_file
 #     )
-    
+
 #     assert response.status_code == 200
 #     data = response.json()
-#     assert "id" in data
-#     assert "content" in data
-#     assert "title" in data
+#     assert "message" in data
+#     assert data["message"] == "Media post updated successfully"
+#     assert "updated_post" in data
+#     updated_post = data["updated_post"]
+#     assert updated_post["id"] == fake_media_post.id
+#     assert updated_post["user_id"] == fake_media_post.user_id
+#     assert updated_post["content"] == updated_content
+#     assert updated_post["post_type"] == "media"
+#     assert "created_at" in updated_post
+#     assert "media_url" in updated_post
 
-# # ----------------------
-# # ✅ Test delete_post
-# # ----------------------
-# @patch("services.services.get_post_by_id")
-# def test_delete_post_success(mock_get_post, auth_headers, test_user):
-#     # Create a mock post
-#     mock_post = Post(
-#         id=1,
-#         user_id=test_user.id,
-#         content="Test post",
-#         post_type="text",
-#         created_at=datetime.now(),
-#         like_count=0
+# Document post tests
+# def test_create_document_post(override_dependencies):
+#     session, _ = override_dependencies
+
+#     # Create test file content
+#     test_content = "Test document post content"
+#     test_file = {
+#         "content": (None, test_content),
+#         "document_file": ("test.pdf", b"test document content", "application/pdf")
+#     }
+
+#     # Send request to create document post
+#     response = client.post(
+#         "/posts/create_document_post/",
+#         files=test_file
 #     )
-    
-#     # Mock get_post_by_id to return our mock post
-#     mock_get_post.return_value = mock_post
 
-#     response = client.delete("/posts/delete_post/1", headers=auth_headers)
-    
-#     assert response.status_code == 200
-#     assert response.json()["message"] == "Post deleted successfully"
-
-
-# def test_get_events_success(auth_headers, test_user):
-#     db = SessionLocal()
-
-#     # Create and insert a post record with post_id = 100
-#     post = Post(id=100, user_id=test_user.id, content="Test Post")
-#     db.add(post)
-#     db.commit()
-
-#     # Now create the event with post_id = 100 (which should now exist in the posts table)
-#     event = Event(
-#         id=100,
-#         post_id=100,  # Valid post_id
-#         user_id=test_user.id,
-#         title="Test Event",
-#         description="Event description",
-#         event_datetime=datetime.now(tz=ZoneInfo("UTC")),
-#         location="Dhaka"
-#     )
-#     db.add(event)
-#     db.commit()
-#     db.close()
-
-#     response = client.get("/posts/events/", headers=auth_headers)
-    
 #     assert response.status_code == 200
 #     data = response.json()
-#     assert len(data) == 1
-#     assert data[0]["title"] == "Test Event"
+#     assert data["id"] == 1
+#     assert data["post_id"] == 1
+#     assert data["document_url"] == fake_document.document_url
+#     assert data["document_type"] == fake_document.document_type
 
-# def test_get_single_event_success(auth_headers, test_user):
-#     db = SessionLocal()
+#     # Ensure database operations are called
+#     session.add.assert_called()
+#     session.commit.assert_called()
+#     session.refresh.assert_called()
 
-#     # Create and insert a post record with post_id = 25
-#     post = Post(id=25, user_id=test_user.id, content="Test Post")
-#     db.add(post)
-#     db.commit()
+def test_create_document_post_invalid_type(override_dependencies):
+    session, _ = override_dependencies
 
-#     # Now create the event with post_id = 25 (which should now exist in the posts table)
-#     event = Event(
-#         id=25,
-#         post_id=25,  # Valid post_id
-#         user_id=test_user.id,
-#         title="Test Event",
-#         description="Event description",
-#         event_datetime=datetime.now(tz=ZoneInfo("UTC")),
-#         location="Dhaka"
+    # Create test file with invalid type
+    test_file = {
+        "content": (None, "Test content"),
+        "document_file": ("test.xyz", b"invalid content", "application/octet-stream")
+    }
+
+    # Send request with invalid file type
+    response = client.post(
+        "/posts/create_document_post/",
+        files=test_file
+    )
+
+    assert response.status_code == 400
+    assert "Invalid file format" in response.json()["detail"]
+    session.add.assert_not_called()
+    session.commit.assert_not_called()
+
+# def test_update_document_post(override_dependencies):
+#     session, _ = override_dependencies
+
+#     # Test data
+#     updated_content = "Updated document post content"
+#     test_file = {
+#         "content": (None, updated_content),
+#         "document_file": ("updated.pdf", b"updated document content", "application/pdf")
+#     }
+
+#     # Send request to update document post
+#     response = client.put(
+#         "/posts/update_document_post/1",
+#         files=test_file
 #     )
-#     db.add(event)
-#     db.commit()
-#     db.close()
 
-#     response = client.get("/posts/events/", params={"event_id": 25}, headers=auth_headers)
-    
 #     assert response.status_code == 200
 #     data = response.json()
-#     assert data["id"] == 25
-#     assert data["title"] == "Test Event"
+#     assert "message" in data
+#     assert data["message"] == "Document post updated successfully"
+#     assert "updated_post" in data
+#     updated_post = data["updated_post"]
+#     assert updated_post["id"] == fake_document_post.id
+#     assert updated_post["user_id"] == fake_document_post.user_id
+#     assert updated_post["content"] == updated_content
+#     assert updated_post["post_type"] == "document"
+#     assert "created_at" in updated_post
+#     assert "document_url" in updated_post
 
-# # ----------------------
-# # ✅ Test unauthorized access
-# # ----------------------
-# def test_get_posts_unauthorized():
-#     response = client.get("/posts/")
-#     assert response.status_code == 401
-#     assert response.json()["detail"] == "Not authenticated"
+# Event post tests
+def test_create_event_post(override_dependencies):
+    session, _ = override_dependencies
+
+    # Test data
+    test_data = {
+        "content": "Test event post content",
+        "event_title": "Test Event",
+        "event_description": "Test event description",
+        "event_date": "2025-04-23",
+        "event_time": "14:00",
+        "user_timezone": "UTC",
+        "location": "Test Location"
+    }
+
+    # Send request to create event post
+    response = client.post(
+        "/posts/create_event_post/",
+        data=test_data
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == 1
+    assert data["post_id"] == 1
+    assert data["user_id"] == fake_user.id
+    assert data["title"] == test_data["event_title"]
+    assert data["description"] == test_data["event_description"]
+    assert data["location"] == test_data["location"]
+    assert "event_datetime" in data
+    assert data["image_url"] is None
+
+    # Ensure database operations are called
+    session.add.assert_called()
+    session.commit.assert_called()
+    session.refresh.assert_called()
+
+def test_update_event_post(override_dependencies):
+    session, _ = override_dependencies
+
+    # Test data
+    update_data = {
+        "content": "Updated event content",
+        "event_title": "Updated Event",
+        "event_description": "Updated description",
+        "event_date": "2025-04-24",
+        "event_time": "15:00",
+        "user_timezone": "UTC",
+        "location": "Updated Location"
+    }
+
+    # Send request to update event post
+    response = client.put(
+        "/posts/update_event_post/1",
+        data=update_data
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "message" in data
+    updated_post = data["updated_post"]
+    assert updated_post["title"] == update_data["event_title"]
+    assert updated_post["description"] == update_data["event_description"]
+    assert updated_post["location"] == update_data["location"]
+    assert "event_datetime" in updated_post
+
+def test_delete_post(override_dependencies):
+    session, _ = override_dependencies
+
+    # Send request to delete post
+    response = client.delete("/posts/delete_post/1")
+
+    assert response.status_code == 200
+    assert response.json()["message"] == "Post deleted successfully"
+    session.delete.assert_called()
+    session.commit.assert_called()
+
+# def test_delete_post_not_found(override_dependencies):
+#     session, _ = override_dependencies
+
+#     # Mock post query to return None
+#     mock_post_query = MagicMock()
+#     mock_post_query.filter.return_value.first.return_value = None
+#     session.query.side_effect = lambda model: mock_post_query if model == Post else MagicMock()
+
+#     # Send request to delete non-existent post
+#     response = client.delete("/posts/delete_post/999")
+
+#     assert response.status_code == 404
+#     assert response.json()["detail"] == "Post not found"
+
+def test_get_events(override_dependencies):
+    session, _ = override_dependencies
+
+    # Send request to get all events
+    response = client.get("/posts/events/")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) >= 1
+    event = data[0]
+    assert event["id"] == fake_event.id
+    assert event["post_id"] == fake_event.post_id
+    assert event["user_id"] == fake_event.user_id
+    assert event["title"] == fake_event.title
+    assert event["description"] == fake_event.description
+    assert event["location"] == fake_event.location
+    assert "event_datetime" in event
+
+def test_get_single_event(override_dependencies):
+    session, _ = override_dependencies
+
+    # Send request to get a specific event
+    response = client.get("/posts/events/?event_id=1")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == fake_event.id
+    assert data["post_id"] == fake_event.post_id
+    assert data["user_id"] == fake_event.user_id
+    assert data["title"] == fake_event.title
+    assert data["description"] == fake_event.description
+    assert data["location"] == fake_event.location
+    assert "event_datetime" in data
+
+def test_get_event_not_found(override_dependencies):
+    session, _ = override_dependencies
+
+    # Mock event query to return None
+    mock_event_query = MagicMock()
+    mock_event_query.filter.return_value.first.return_value = None
+    session.query.side_effect = lambda model: mock_event_query if model == Event else MagicMock()
+
+    # Send request to get non-existent event
+    response = client.get("/posts/events/?event_id=999")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Event not found"
