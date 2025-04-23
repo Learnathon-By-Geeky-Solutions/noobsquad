@@ -25,43 +25,56 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  const loadUser = useCallback(async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { data } = await fetchUser(); // Token is included in headers via api/auth.js
+      setUser(data);
+      setProfileCompleted(data.profile_completed);
+
+    } catch (error) {
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user_id");
+        localStorage.removeItem("username");
+        setUser(null);
+        setProfileCompleted(false);
+        navigate("/login");
+      } else {
+        console.error("Failed to fetch user:", error.response?.data?.detail || error.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
+
   useEffect(() => {
-    const loadUser = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        console.warn("No token found");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const userData = await fetchUser(token);
-        setUser(userData);
-        setProfileCompleted(userData.profile_completed);
-      } catch (error) {
-        console.error("Failed to fetch user:", error);
-        logout();
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadUser();
-  }, []);
+  }, [loadUser]);
 
   const login = useCallback(
-    async (token) => {
+    async (token, email = null) => {
       localStorage.setItem("token", token);
       try {
-        const response = await fetchUser(token);
-        const userData = response.data || response;
-
-        setUser(userData);
-        setProfileCompleted(userData.profile_completed);
-
-        navigate(userData.profile_completed ? "/dashboard/posts" : "/complete-profile");
+        const { data } = await fetchUser();
+        setUser(data);
+        setProfileCompleted(data.profile_completed);
+        navigate(data.profile_completed ? "/dashboard/posts" : "/complete-profile");
       } catch (error) {
-        console.error("Failed to fetch user after login:", error);
+        localStorage.removeItem("token");
+        if (error.response?.status === 403) {
+          navigate("/verify-email", { state: { email } });
+          throw new Error("Please verify your email");
+        } else {
+          console.error("Failed to fetch user after login:", error.response?.data?.detail || error.message);
+          navigate("/login");
+          throw new Error("Login failed");
+        }
       }
     },
     [navigate]
@@ -69,6 +82,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback(() => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user_id");
+    localStorage.removeItem("username");
     setUser(null);
     setProfileCompleted(false);
     navigate("/login");
@@ -86,12 +101,10 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// ✅ Add PropTypes validation
 AuthProvider.propTypes = {
   children: PropTypes.node.isRequired,
 };
 
-// Custom hook
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

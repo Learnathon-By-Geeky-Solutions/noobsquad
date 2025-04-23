@@ -6,7 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import CompleteProfile from "./pages/ProfileCompletion";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ChatProvider } from "./context/ChatContext";
-import ChatWindows from "./components/ChatWindows";
+import ChatWindows from "./components/chat/ChatWindows";
 import SharedPost from "./pages/SharedPost";
 import PrivateRoute from "./components/PrivateRoute"; // ✅ import this
 import ChatBox from "./components/AIChat";
@@ -14,6 +14,9 @@ import UniversityPage from "./components/University/University";
 import UserProfile from "./components/AboutMe/AboutMe";
 import { User } from "lucide-react";
 import UniversityExplorePage from "./pages/MainUniPage";
+import VerifyEmail from "./pages/VerifyEmail";
+import ResetPassword from "./pages/ResetPassword";
+import ForgotPassword from "./pages/ForgotPassword";
 
 function App() {
   return (
@@ -40,6 +43,9 @@ function AppContent() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/complete-profile" element={<CompleteProfile />} />
         <Route path="/chat" element={<ChatBox />} />
         

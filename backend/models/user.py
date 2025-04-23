@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy import Column, DateTime, Integer, String, Boolean
 from database.session import Base
 from sqlalchemy.orm import relationship
 
@@ -12,6 +12,9 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
+    is_verified = Column(Boolean, default=False)  # Tracks email verification status
+    otp = Column(String, nullable=True)  # Stores the OTP temporarily
+    otp_expiry = Column(DateTime, nullable=True)  # OTP expiry time
 
     # ✅ Merged fields from UserProfile
     profile_picture = Column(String, nullable=True)  # Image URL
