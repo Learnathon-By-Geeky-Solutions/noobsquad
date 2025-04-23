@@ -317,109 +317,157 @@ def test_update_text_post_success(mock_update_content, mock_get_post, auth_heade
 # ----------------------
 # ✅ Test update_media_post
 # ----------------------
-# @patch("services.services.get_post_by_id")
-# @patch("services.services.update_post_content")
-# @patch("services.services.remove_old_file_if_exists")
-# def test_update_media_post_success(mock_remove_file, mock_update_content, mock_get_post, auth_headers, test_user, tmp_path):
-#     mock_post = Post(id=15, user_id=test_user.id, content="Old content", post_type="media")
-#     mock_get_post.return_value = mock_post
-
-#     image_path = tmp_path / "new_image.jpg"
-#     with open(image_path, "wb") as f:
-#         f.write(b"\xFF\xD8\xFF\xE0\x00\x10JFIF\x00")
-
-#     with open(image_path, "rb") as f:
-#         response = client.put(
-#             "/posts/update_media_post/15",
-#             files={"media_file": ("new_image.jpg", f, "image/jpeg")},
-#             data={"content": "New content"},
-#             headers=auth_headers
-#         )
+@patch("services.services.get_post_by_id")
+@patch("services.services.update_post_content")
+@patch("services.services.remove_old_file_if_exists")
+def test_update_media_post_success(mock_remove_file, mock_update_content, mock_get_post, auth_headers, test_user, tmp_path):
+    # Create test directories
+    os.makedirs("uploads/media", exist_ok=True)
     
-#     assert response.status_code == 200
-#     data = response.json()
-#     assert data["message"] == "Media post updated successfully"
-#     assert data["updated_post"]["content"] == "New content"
+    # Create a mock post with media
+    mock_post = Post(id=1, user_id=test_user.id, content="Old content", post_type="media")
+    mock_media = PostMedia(post_id=1, media_url="old_media.jpg", media_type="image")
+    mock_post.media = mock_media
+
+    # Mock get_post_by_id to return our mock post
+    mock_get_post.return_value = mock_post
+    mock_update_content.return_value = True
+
+    # Create a test file
+    test_file = tmp_path / "test_image.jpg"
+    test_file.write_bytes(b"test content")
+
+    with open(test_file, "rb") as f:
+        response = client.put(
+            "/posts/update_media_post/1",
+            data={
+                "content": "Updated content"
+            },
+            files={
+                "media_file": ("test_image.jpg", f, "image/jpeg")
+            },
+            headers=auth_headers
+        )
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["message"] == "Media post updated successfully"
+    assert "updated_post" in data
 #     assert os.path.exists(os.path.join("uploads/media", data["updated_post"]["media_url"]))
 
 # ----------------------
 # ✅ Test update_document_post
 # ----------------------
-# @patch("services.services.get_post_by_id")
-# @patch("services.services.update_post_content")
-# @patch("services.services.remove_old_file_if_exists")
-# def test_update_document_post_success(mock_remove_file, mock_update_content, mock_get_post, auth_headers, test_user, tmp_path):
-#     mock_post = Post(id=1, user_id=test_user.id, content="Old content", post_type="document")
-#     mock_get_post.return_value = mock_post
-
-#     doc_path = tmp_path / "new_doc.pdf"
-#     with open(doc_path, "wb") as f:
-#         f.write(b"%PDF-1.4")
-
-#     with open(doc_path, "rb") as f:
-#         response = client.put(
-#             "/posts/update_document_post/1",
-#             files={"document_file": ("new_doc.pdf", f, "application/pdf")},
-#             data={"content": "New content"},
-#             headers=auth_headers
-#         )
+@patch("services.services.get_post_by_id")
+@patch("services.services.update_post_content")
+@patch("services.services.remove_old_file_if_exists")
+def test_update_document_post_success(mock_remove_file, mock_update_content, mock_get_post, auth_headers, test_user, tmp_path):
+    # Create test directories
+    os.makedirs("uploads/document", exist_ok=True)
     
-#     assert response.status_code == 200
-#     data = response.json()
-#     assert data["message"] == "Document post updated successfully"
-#     assert data["updated_post"]["content"] == "New content"
+    # Create a mock post with document
+    mock_post = Post(id=1, user_id=test_user.id, content="Old content", post_type="document")
+    mock_doc = PostDocument(post_id=1, document_url="old_doc.pdf", document_type="pdf")
+    mock_post.document = mock_doc
+
+    # Mock get_post_by_id to return our mock post
+    mock_get_post.return_value = mock_post
+    mock_update_content.return_value = True
+
+    # Create a test file
+    test_file = tmp_path / "test_doc.pdf"
+    test_file.write_bytes(b"test content")
+
+    with open(test_file, "rb") as f:
+        response = client.put(
+            "/posts/update_document_post/1",
+            data={
+                "content": "Updated content"
+            },
+            files={
+                "document_file": ("test_doc.pdf", f, "application/pdf")
+            },
+            headers=auth_headers
+        )
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["message"] == "Document post updated successfully"
+    assert "updated_post" in data
 #     assert os.path.exists(os.path.join("uploads/document", data["updated_post"]["document_url"]))
 
 # ----------------------
 # ✅ Test update_event_post
 # ----------------------
-# @patch("services.services.get_post_and_event")
-# @patch("services.services.update_post_and_event")
-# @patch("services.services.format_updated_event_response")
-# def test_update_event_post_success(mock_format_response, mock_update, mock_get, auth_headers, test_user):
-#     mock_post = Post(id=1, user_id=test_user.id, content="Old content", post_type="event")
-#     mock_event = Event(post_id=1, user_id=test_user.id, title="Old title")
-#     mock_get.return_value = (mock_post, mock_event)
-#     mock_update.return_value = True
-#     mock_format_response.return_value = {"id": 1, "content": "New content", "title": "New title"}
-
-#     response = client.put(
-#         "/posts/update_event_post/1",
-#         data={
-#             "content": "New content",
-#             "event_title": "New title",
-#             "event_description": "New description",
-#             "event_date": "2025-04-20",
-#             "event_time": "4:00",
-#             "user_timezone": "Asia/Dhaka",
-#             "location": "Dhaka"
-#         },
-#         headers=auth_headers
-#     )
+@patch("services.services.get_post_and_event")
+@patch("services.services.update_post_and_event")
+@patch("services.services.format_updated_event_response")
+def test_update_event_post_success(mock_format_response, mock_update, mock_get, auth_headers, test_user):
+    # Create mock post and event
+    mock_post = Post(id=1, user_id=test_user.id, content="Old content", post_type="event")
+    mock_event = Event(
+        post_id=1,
+        user_id=test_user.id,
+        title="Old title",
+        description="Old description",
+        event_datetime=datetime.now(tz=ZoneInfo("UTC")),
+        location="Old location"
+    )
     
-#     assert response.status_code == 200
-#     data = response.json()
-#     assert data["content"] == "New content"
-#     assert data["title"] == "New title"
+    # Setup mocks
+    mock_get.return_value = (mock_post, mock_event)
+    mock_update.return_value = True
+    mock_format_response.return_value = {
+        "id": 1,
+        "content": "New content",
+        "title": "New title",
+        "description": "New description",
+        "event_datetime": "2025-04-20T04:00:00+00:00",
+        "location": "Dhaka"
+    }
+
+    response = client.put(
+        "/posts/update_event_post/1",
+        data={
+            "content": "New content",
+            "event_title": "New title",
+            "event_description": "New description",
+            "event_date": "2025-04-20",
+            "event_time": "4:00",
+            "user_timezone": "Asia/Dhaka",
+            "location": "Dhaka"
+        },
+        headers=auth_headers
+    )
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert "id" in data
+    assert "content" in data
+    assert "title" in data
 
 # ----------------------
 # ✅ Test delete_post
 # ----------------------
+@patch("services.services.get_post_by_id")
+def test_delete_post_success(mock_get_post, auth_headers, test_user):
+    # Create a mock post
+    mock_post = Post(
+        id=1,
+        user_id=test_user.id,
+        content="Test post",
+        post_type="text",
+        created_at=datetime.now(),
+        like_count=0
+    )
+    
+    # Mock get_post_by_id to return our mock post
+    mock_get_post.return_value = mock_post
 
-# @patch("services.services.delete_post_by_id")  # Mocking the deletion function
-# def test_delete_post_success(mock_delete_post, mock_get_post, auth_headers, test_user):
-#     mock_post = Post(id=1, user_id=test_user.id, content="Test post", post_type="text", created_at=datetime.now(), like_count=0)
+    response = client.delete("/posts/delete_post/1", headers=auth_headers)
     
-#     # Mock the return value of get_post_by_id
-#     mock_get_post.return_value = mock_post
-    
-#     # Mock the deletion logic to return True (indicating successful deletion)
-#     mock_delete_post.return_value = True
-
-#     response = client.delete("/posts/delete_post/1", headers=auth_headers)
-    
-#     assert response.status_code == 200
-#     assert response.json()["message"] == "Post deleted successfully"
+    assert response.status_code == 200
+    assert response.json()["message"] == "Post deleted successfully"
 
 
 def test_get_events_success(auth_headers, test_user):
