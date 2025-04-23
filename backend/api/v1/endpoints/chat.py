@@ -1,4 +1,5 @@
 import os
+import uuid
 from urllib.parse import urlparse
 from fastapi import APIRouter, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect, Depends
 from fastapi.responses import JSONResponse
@@ -180,17 +181,17 @@ async def upload_file(
         upload_dir = "uploads/chat"
         os.makedirs(upload_dir, exist_ok=True)
 
-        # Generate unique filename
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
-        file_name = f"{current_user.id}_{timestamp}{file_ext}"
-        file_path = os.path.join(upload_dir, file_name)
+        # Generate a secure filename using UUID instead of user-controlled data
+        # This prevents path traversal attacks
+        unique_filename = f"{uuid.uuid4().hex}{file_ext}"
+        file_path = os.path.join(upload_dir, unique_filename)
 
         # Save file
         with open(file_path, "wb") as f:
             f.write(await file.read())
 
         # Generate file URL (relative path)
-        file_url = f"/{upload_dir}/{file_name}"
+        file_url = f"/{upload_dir}/{unique_filename}"
 
         return JSONResponse(content={"file_url": file_url})
 
