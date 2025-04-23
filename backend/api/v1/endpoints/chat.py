@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from typing import List
 from api.v1.endpoints.auth import get_current_user
 from schemas.chat import MessageOut, ConversationOut, MessageType
+import pathlib
 
 router = APIRouter()
 clients = {}
@@ -164,6 +165,22 @@ def get_conversations(db: Session = Depends(get_db), current_user=Depends(get_cu
 
     return results
 
+def safe_join(base, filename):
+    """
+    Safely join base directory and filename, preventing path traversal attacks.
+    Returns None if the resulting path would be outside the base directory.
+    """
+    # Convert to absolute path 
+    base_dir = os.path.abspath(base)
+    # Use pathlib for safe path joining and resolving
+    try:
+        # Create a safe path by joining and resolving
+        safe_path = os.path.normpath(os.path.join(base_dir, filename))
+        # Verify the path is within the base directory
+        return safe_path if safe_path.startswith(base_dir) else None
+    except (ValueError, TypeError):
+        return None
+
 @router.post("/upload")
 async def upload_file(
     file: UploadFile = File(...),
@@ -173,25 +190,37 @@ async def upload_file(
     try:
         # Validate file type
         allowed_extensions = {".jpg", ".jpeg", ".png", ".gif", ".pdf", ".docx"}
-        file_ext = os.path.splitext(file.filename)[1].lower()
-        if file_ext not in allowed_extensions:
+        # Get original extension but don't trust it for the actual path construction
+        original_ext = os.path.splitext(file.filename)[1].lower()
+        if original_ext not in allowed_extensions:
             raise HTTPException(status_code=400, detail="Unsupported file type")
 
+        # Define the absolute base upload directory
+        base_upload_dir = os.path.abspath("uploads/chat")
+        
         # Create uploads/chat directory if it doesn't exist
-        upload_dir = "uploads/chat"
-        os.makedirs(upload_dir, exist_ok=True)
+        os.makedirs(base_upload_dir, exist_ok=True)
 
-        # Generate a secure filename using UUID instead of user-controlled data
-        # This prevents path traversal attacks
-        unique_filename = f"{uuid.uuid4().hex}{file_ext}"
-        file_path = os.path.join(upload_dir, unique_filename)
+        # Generate a secure random filename with the validated extension
+        unique_filename = f"{uuid.uuid4().hex}{original_ext}"
+        
+        # Safely join the base directory and the filename
+        file_path = safe_join(base_upload_dir, unique_filename)
+        
+        # If safe_join returned None, the path is invalid
+        if file_path is None:
+            raise HTTPException(status_code=400, detail="Invalid file path")
+            
+        # Double-check the path is within the base directory
+        if not os.path.commonpath([base_upload_dir]) == os.path.commonpath([base_upload_dir, file_path]):
+            raise HTTPException(status_code=400, detail="File path is outside upload directory")
 
         # Save file
         with open(file_path, "wb") as f:
             f.write(await file.read())
 
         # Generate file URL (relative path)
-        file_url = f"/{upload_dir}/{unique_filename}"
+        file_url = f"/uploads/chat/{unique_filename}"
 
         return JSONResponse(content={"file_url": file_url})
 
