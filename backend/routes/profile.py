@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 import models.user as models
 from database.session import SessionLocal
 from models.user import User  # ✅ Correct model import
+from models.university import University
 from schemas.user import UserResponse  # ✅ Correct schema import
 from api.v1.endpoints.auth import get_current_user  # Authentication dependency
 import os
@@ -24,7 +25,24 @@ RELEVANT_FIELDS = [
 UPLOAD_DIR = "uploads/profile_pictures"
 os.makedirs(UPLOAD_DIR, exist_ok=True)  # Ensure upload directory exists
 
+def get_or_create_university(db: Session, uni_name: str, dept_name: str):
+    uni = db.query(University).filter(University.name == uni_name).first()
 
+    if not uni:
+        # University not found, create new
+        new_uni = University(name=uni_name, departments=[dept_name])
+        db.add(new_uni)
+        db.commit()
+        db.refresh(new_uni)
+        return new_uni
+
+    # If university exists, check if department is in list
+    if dept_name not in uni.departments:
+        uni.departments.append(dept_name)
+        db.commit()
+
+    return uni
+    
 @router.post("/step1", response_model=UserResponse)
 def complete_profile_step1(
     university_name: str = Form(...),
@@ -36,19 +54,29 @@ def complete_profile_step1(
     db_user = db.query(User).filter(User.id == current_user.id).first()
 
     if not db_user:
-        raise HTTPException(status_code=404, detail="User not found")   
-    
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # 🔥 Add this line to update/create university and department properly
+    get_or_create_university(db, university_name, department)
+    uni = db.query(University).filter(University.name == university_name).first()
+    if uni:
+        uni.total_members = db.query(User).filter(User.university_name == university_name).count()
+        db.commit()
+
+    # Update user fields
     db_user.university_name = university_name
     db_user.department = department
     db_user.fields_of_interest = ",".join(fields_of_interest)
 
+    # Optional: mark profile as completed (your own logic)
     if db_user.university_name and db_user.department and db_user.fields_of_interest:
-        db_user.profile_completed = True  
+        db_user.profile_completed = True
 
     db.commit()
     db.refresh(db_user)
 
     return UserResponse.from_orm(db_user)
+
 
 
 @router.post("/upload_picture")

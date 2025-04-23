@@ -48,7 +48,7 @@ const ProfileSuggestedFriends = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-4 bg-white shadow-md rounded-xl p-4 relative">
+    <div className="max-w-md mx-auto bg-white shadow-md rounded-xl p-4 relative mt-12 md:mt-12">
         {/* Top Section: "People You May Know" */}
         <div className="absolute top-0 w-full p-4">
             <h2 className="text-2xl font-bold flex items-center gap-2 text-blue-500">

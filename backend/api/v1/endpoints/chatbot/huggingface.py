@@ -1,9 +1,12 @@
 import os
+import google.generativeai as genai
 from dotenv import load_dotenv
 load_dotenv()
 
-hf_key = os.getenv("HUGGINGFACE_API_KEY")
-os.environ["HUGGINGFACE_API_KEY"]= hf_key
+hf_key = os.getenv("GOOGLE_API_KEY")
+os.environ["GOOGLE_API_KEY"]= hf_key
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+
 
 from fastapi import APIRouter,UploadFile, File, Form, Depends, HTTPException
 from schemas.huggingface import PromptRequest, PromptResponse, BotResponse
@@ -20,24 +23,22 @@ from langchain_community.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
 from langchain_community.llms import HuggingFaceHub
 from langchain.memory import ConversationBufferMemory
+import re
+
 from langchain_ollama import OllamaEmbeddings
 router = APIRouter()
 
-client = InferenceClient(token=hf_key)
 
-model = "mistralai/Mistral-7B-Instruct-v0.3"
-llm = HuggingFaceEndpoint(
-    model=model,
-    task="text-generation",  # Explicitly specify the task"
-    max_new_tokens=200,
-    temperature=0.7,
-    huggingfacehub_api_token=hf_key
-)
+gemini_model = genai.GenerativeModel("gemini-2.0-flash")
 
 
 import fitz  # PyMuPDF
 
-# Step 1: Extract text from uploaded PDF
+# Global store: user_id -> chat_session and retriever
+user_sessions = {}
+
+# -------------------- Helpers --------------------
+
 def extract_text_from_pdf(file: UploadFile):
     doc = fitz.open(stream=file.file.read(), filetype="pdf")
     text = ""
@@ -45,39 +46,18 @@ def extract_text_from_pdf(file: UploadFile):
         text += page.get_text()
     return text
 
-# Step 2: Create a Conversational QA Chain
-def create_qa_chain(text: str):
-    # Text splitting
+def create_retriever(text: str):
     splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
     docs = splitter.create_documents([text])
 
-    # Embedding
-    embeddings = HuggingFaceEmbeddings(model_name="BAAI/bge-small-en",model_kwargs={"device": "cpu"})
+    embeddings = HuggingFaceEmbeddings(
+        model_name="BAAI/bge-small-en",
+        model_kwargs={"device": "cpu"}
+    )
 
     db = FAISS.from_documents(docs, embeddings)
     retriever = db.as_retriever()
-
-    # Cloud-based LLM from Hugging Face Hub
-    llm = HuggingFaceHub(
-        repo_id= model,
-        model_kwargs={"temperature": 0.5, "max_new_tokens": 512},huggingfacehub_api_token=hf_key
-    )
-
-    memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True, k=5)
-
-    # QA chain
-    qa_chain = ConversationalRetrievalChain.from_llm(
-        llm=llm,
-        retriever=retriever,
-        memory=memory,
-    )
-    return qa_chain
-
-# Global variable to store the chain (in-memory, for demo)
-qa_chain = None
-user_chains = {}  # user_id -> qa_chain
-
-import re
+    return retriever
 
 def remove_duplicate_qa(text):
     # Keep only the last Helpful Answer
@@ -86,14 +66,21 @@ def remove_duplicate_qa(text):
         return answers[-1][0].strip()
     return text.strip()
 
+# -------------------- Endpoints --------------------
 
 @router.post("/upload_pdf/", response_model=BotResponse)
 async def upload_pdf(file: UploadFile, current_user: User = Depends(get_current_user)):
     text = extract_text_from_pdf(file)
-    qa_chain = create_qa_chain(text)
-    user_chains[current_user.id] = qa_chain
-    return {"response": "PDF uploaded and QA chain created successfully."}
+    retriever = create_retriever(text)
 
+    # Start chat session for user
+    chat = gemini_model.start_chat(history=[])
+    user_sessions[current_user.id] = {
+        "chat": chat,
+        "retriever": retriever
+    }
+
+    return {"response": "PDF uploaded and AI expert is ready to help you."}
 
 
 @router.post("/hugapi", response_model=PromptResponse)
@@ -106,12 +93,26 @@ def api_response(
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    qa_chain = user_chains.get(current_user.id)
-    if qa_chain is None:
-        response = client.text_generation(req, model= model)
-        clean_response = remove_duplicate_qa(response)
-        return {"response": clean_response}
+    session = user_sessions.get(current_user.id)
 
-    response = qa_chain.run(req)
-    clean_response = remove_duplicate_qa(response)
-    return {"response": clean_response}
+    if session is None:
+        # No uploaded PDF, so just ask Gemini directly
+        response = gemini_model.generate_content(req)
+        return {"response": response.text.strip()}
+
+    # Retrieve related documents from FAISS
+    retriever = session["retriever"]
+    related_docs = retriever.get_relevant_documents(req)
+    context = "\n\n".join([doc.page_content for doc in related_docs])
+
+    # Append context to query
+    full_prompt = f"""You are an assistant answering questions based on the following context:
+---
+{context}
+---
+Now answer this question: {req}"""
+
+    # Use the existing chat session for context-aware responses
+    chat = session["chat"]
+    response = chat.send_message(full_prompt)
+    return {"response": response.text.strip()}

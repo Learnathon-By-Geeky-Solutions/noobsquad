@@ -122,7 +122,7 @@ const ProfileCard = () => {
     : "/default-avatar.png";
 
   return (
-    <div className="bg-white shadow-md rounded-lg p-4">
+    <div className="bg-white shadow-md rounded-lg p-4 mt-12 md:mt-12">
       <div className="flex flex-col items-center relative">
         {/* Profile Picture Container */}
         <div className="relative group w-24 h-24 rounded-full">

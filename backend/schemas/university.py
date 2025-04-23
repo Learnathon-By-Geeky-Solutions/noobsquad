@@ -17,3 +17,9 @@ class UniversityPage(BaseModel):
     total_members: int
     departments: Dict[str, List[Member]]
     post_ids: List[int]
+
+class UniversityListResponse(BaseModel):
+    id: int
+    name: str
+    departments: List[str]
+    has_more_departments: bool

@@ -10,7 +10,8 @@ import {
 } from "lucide-react";
 import dayjs from "dayjs";
 
-const CollaborationRequests = () => {
+
+const CollaborationRequests = ({ setRequestCount }) => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -21,11 +22,14 @@ const CollaborationRequests = () => {
     const fetchRequests = async () => {
       try {
         const response = await api.get("/research/collaboration-requests/");
+        const requestData = response.data;
+        console.log("length:", response.data.length)
         if (response.data.length === 0) {
           setErrorMessage("No pending collaboration requests.");
         } else {
           setRequests(response.data);
         }
+        setRequestCount(requestData.length);
       } catch (error) {
         if (error.response?.status === 401) {
           alert("Unauthorized! Please log in.");
@@ -39,13 +43,17 @@ const CollaborationRequests = () => {
     };
 
     fetchRequests();
-  }, [navigate]);
+  }, [navigate, setRequestCount]);
 
   // Handle accepting a collaboration request
   const handleAccept = async (id) => {
     try {
       await api.post(`/research/accept-collaboration/${id}/`);
-      setRequests((prev) => prev.filter((req) => req.id !== id));
+      setRequests((prev) => {
+        const updated = prev.filter((req) => req.id !== id);
+        setRequestCount(updated.length);
+        return updated;
+      });
     } catch {
       alert("Failed to accept request. Please try again.");
     }
@@ -55,7 +63,11 @@ const CollaborationRequests = () => {
   const handleDecline = async (id) => {
     try {
       await api.post(`/research/decline-collaboration/${id}/`);
-      setRequests((prev) => prev.filter((req) => req.id !== id));
+      setRequests((prev) => {
+        const updated = prev.filter((req) => req.id !== id);
+        setRequestCount(updated.length);
+        return updated;
+      });
     } catch {
       alert("Failed to decline request. Please try again.");
     }

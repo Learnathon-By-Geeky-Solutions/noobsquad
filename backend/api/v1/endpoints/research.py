@@ -126,7 +126,7 @@ def search_papers(
     """
     try:
         key_word = f"%{keyword}%"
-        papers = db.query(ResearchPaper).filter(or_(ResearchPaper.original_filename.ilike(key_word),ResearchPaper.author.ilike(key_word))).all()
+        papers = db.query(ResearchPaper).filter(or_(ResearchPaper.original_filename.ilike(key_word),ResearchPaper.author.ilike(key_word),ResearchPaper.title.ilike(key_word))).all()
 
         if not papers:
             raise HTTPException(status_code=404, detail="No papers found")

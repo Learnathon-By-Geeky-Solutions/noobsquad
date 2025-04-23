@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom"; // 👈 import useParams
 import DepartmentSection from "./DepartmentSection";
 import UniversityPostFeed from "./PostFeed";
 
-const UniversityGroup = ({ universityName }) => {
+const UniversityGroup = () => {
+  const { universityName } = useParams(); // 👈 extract from URL
   const [universityData, setUniversityData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -14,6 +16,7 @@ const UniversityGroup = ({ universityName }) => {
         );
         const data = await res.json();
         console.log(data)
+        console.log("data:",data.post_ids)
         setUniversityData(data);
       } catch (err) {
         console.error("Error fetching university data:", err);
@@ -29,7 +32,7 @@ const UniversityGroup = ({ universityName }) => {
   if (!universityData) return <div className="text-center p-8">No data found.</div>;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 p-4 max-w-screen-xl mx-auto">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 p-4 max-w-screen-xl mt-20 md:mt-24">
       {/* Left Sidebar - Departments */}
       <div className="md:col-span-1">
         <h2 className="text-xl font-semibold mb-2">Departments</h2>

@@ -13,6 +13,7 @@ import ChatBox from "./components/AIChat";
 import UniversityPage from "./components/University/University";
 import UserProfile from "./components/AboutMe/AboutMe";
 import { User } from "lucide-react";
+import UniversityExplorePage from "./pages/MainUniPage";
 import VerifyEmail from "./pages/VerifyEmail";
 import ResetPassword from "./pages/ResetPassword";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -47,7 +48,6 @@ function AppContent() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/complete-profile" element={<CompleteProfile />} />
         <Route path="/chat" element={<ChatBox />} />
-        <Route path="/university/:universityName" element={<UniversityPage />} />
         
         <Route
           path="/dashboard/*"

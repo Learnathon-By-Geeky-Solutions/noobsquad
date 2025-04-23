@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 
-const ChatBox = () => {
+const ChatBox = ({ initialFile = null }) => {
 
   const [messages, setMessages] = useState([
       { id: Date.now(), sender: "bot", text: "Hi! How can I help you today?" }
@@ -8,7 +8,7 @@ const ChatBox = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [isAnalyzingPDF, setIsAnalyzingPDF] = useState(false);
-  const [file, setFile] = useState(null);
+  const [file, setFile] = useState(initialFile);
   const bottomRef = useRef(null);
 
   useEffect(() => {

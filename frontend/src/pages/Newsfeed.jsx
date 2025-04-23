@@ -4,14 +4,32 @@ import Feed from "../components/Feed"; // ✅ Import Feed
 import CreateEventForm from "../components/Events/CreateEventForm";
 import EventList from "../components/Events/EventList";
 import { useState } from "react"; 
+import { useEffect } from "react";
+import axios from "axios";
+import TopUniversityCard from "../components/University/TopUniCard";
 
 const Newsfeed = () => {
   const [showCreateEventForm, setShowCreateEventForm] = useState(false);
+  const [topUniversities, setTopUniversities] = useState([]);
+
+  useEffect(() => {
+    const fetchTopUniversities = async () => {
+      try {
+        const response = await axios.get("/universities/top-universities");
+        setTopUniversities(response.data);
+      } catch (error) {
+        console.error("Failed to fetch top universities:", error);
+      }
+    };
+  
+    fetchTopUniversities();
+  }, []);
 
   // Toggle visibility of Create Event Form
   const toggleCreateEventForm = () => {
     setShowCreateEventForm((prevState) => !prevState);
   };
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Main Container with Flexbox Layout */}
@@ -55,6 +73,8 @@ const Newsfeed = () => {
         {/* Right Sidebar: Currently Blank */}
         <aside className="w-1/4 bg-white shadow-md rounded-lg p-4">
           {/* This will remain empty for now */}
+          {/* <TopUniversityCard  topUniversities={topUniversities} /> */}
+
         </aside>
       </div>
     </div>
