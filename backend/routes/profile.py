@@ -58,6 +58,10 @@ def complete_profile_step1(
 
     # 🔥 Add this line to update/create university and department properly
     get_or_create_university(db, university_name, department)
+    uni = db.query(University).filter(University.name == university_name).first()
+    if uni:
+        uni.total_members = db.query(User).filter(User.university_name == university_name).count()
+        db.commit()
 
     # Update user fields
     db_user.university_name = university_name

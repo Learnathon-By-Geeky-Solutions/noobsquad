@@ -23,11 +23,18 @@ export default function UniversityExplorePage() {
   };
 
   return (
-    <div className="flex min-h-screen">
-      <UniversitySidebar onDeptClick={handleDepartmentClick} />
-      <div className="md:col-span-3">
-        <UniversityPostFeed postIds={postIds} />
-      </div>
+    <div className="grid grid-cols-1 md:grid-cols-4 min-h-screen bg-gray-50 mt-20 md:mt-24">
+  {/* Sidebar */}
+  <aside className="col-span-1">
+    <UniversitySidebar onDeptClick={handleDepartmentClick} />
+  </aside>
+
+  {/* Main Feed */}
+  <main className="col-span-1 md:col-span-3">
+    <div className="max-w-4xl mx-auto space-y-6">
+      <UniversityPostFeed postIds={postIds} />
     </div>
+  </main>
+</div>
   );
 }

@@ -130,4 +130,14 @@ def get_posts_by_hashtag(db: Session = Depends(get_db)):
     # Return the sorted list of post ids
     return sorted_post_ids
 
+@router.get("/top-universities")
+def get_top_universities(limit: int = 5, db: Session = Depends(get_db)):
+    universities = (
+        db.query(University)
+        .order_by(University.total_members.desc())
+        .limit(limit)
+        .all()
+    )
+    return universities
+
 

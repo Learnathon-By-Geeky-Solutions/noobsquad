@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Building2, GraduationCap } from "lucide-react"; // Optional icons
 import { useNavigate } from "react-router-dom";
 import api from "../../api";
 
@@ -18,30 +19,33 @@ export default function UniversitySidebar({ onDeptClick }) {
   }, []);
 
   return (
-    <div className="w-1/4 p-4 border-r overflow-y-auto h-screen">
-      {universities.map((uni) => (
-        <div key={uni.id} className="mb-4">
-          <h2
-            className="text-lg font-semibold cursor-pointer text-blue-600 hover:underline"
-            onClick={() => {
-                console.log("Navigating to:", `/university/${uni.name}`);
-                navigate(`/university/${uni.name}`)}}
+    <div className="w-full h-screen overflow-y-auto border-r bg-white p-4 shadow-md">
+  <h1 className="text-xl font-bold mb-6 text-gray-800">Explore Universities</h1>
+  {universities.map((uni) => (
+    <div
+      key={uni.id}
+      className="mb-6 bg-gray-50 rounded-2xl shadow-sm p-4 hover:shadow-md transition-shadow"
+    >
+      <h2
+        className="flex items-center gap-2 text-blue-700 text-lg font-semibold cursor-pointer hover:underline"
+        onClick={() => navigate(`${uni.name}`)}
+      >
+        <Building2 size={18} /> {uni.name}
+      </h2>
+      <ul className="ml-1 mt-3 space-y-2">
+        {uni.departments.map((dept) => (
+          <li
+            key={dept}
+            className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:text-blue-500"
+            onClick={() => onDeptClick(uni.name, dept)}
           >
-            {uni.name}
-          </h2>
-          <ul className="ml-4 text-sm space-y-1">
-            {uni.departments.map((dept) => (
-              <li
-                key={dept}
-                className="cursor-pointer text-gray-700 hover:text-blue-500"
-                onClick={() => onDeptClick(uni.name, dept)}
-              >
-                {dept}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+            <GraduationCap size={16} />
+            {dept}
+          </li>
+        ))}
+      </ul>
     </div>
+  ))}
+</div>
   );
 }
