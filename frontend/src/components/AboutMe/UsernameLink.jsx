@@ -5,7 +5,7 @@ const UsernameLink = ({ username, className = '' }) => {
   if (!username) return null
 
   return (
-    <Link to={`/dashboard/${username}/about`} className={`text-blue-500 hover:underline ${className}`}>
+    <Link to={`/dashboard/${username}/about`} className={`text-black-500 ${className}`}>
       {username}
     </Link>
   )

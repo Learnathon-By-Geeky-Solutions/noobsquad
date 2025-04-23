@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import ConnectedUsers from "../api/ConnectedUsers";
 import { UserPlus, UserRoundPen, UserX, Loader2, UserCheck } from "lucide-react";
+import UsernameLink from "./AboutMe/UsernameLink";
 
 const SuggestedUsers = () => {
   const [users, setUsers] = useState([]);
@@ -116,7 +117,7 @@ const SuggestedUsers = () => {
               alt="Profile"
               className="w-20 h-20 rounded-full object-cover border-2 border-blue-500 mb-3 mx-auto"
             />
-            <h3 className="text-lg font-semibold text-center mt-3 text-gray-800">{user.username}</h3>
+            <h3 className="text-lg font-semibold text-center mt-3 text-gray-800"><UsernameLink username={user.username} /></h3>
             <p className="text-sm text-gray-500 text-center">{user.bio || "No bio available"}</p>
             <button
               onClick={() => sendConnectionRequest(user.id)}

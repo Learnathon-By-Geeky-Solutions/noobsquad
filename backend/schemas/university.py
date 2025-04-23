@@ -23,3 +23,11 @@ class UniversityListResponse(BaseModel):
     name: str
     departments: List[str]
     has_more_departments: bool
+
+class UniversityResponse(BaseModel):
+    id: int
+    name: str
+    departments: List[str]
+    total_members: int
+    class Config:
+        from_attributes = True

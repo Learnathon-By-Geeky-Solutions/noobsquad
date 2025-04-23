@@ -104,7 +104,7 @@ const EventList = () => {
   }
 
   return (
-    <div className="max-w-full mx-auto grid grid-cols-1 sm:grid-cols-2 gap-2 mt-10">
+    <div className="max-w-full mx-auto grid grid-cols-1 sm:grid-cols-2 gap-2 mt-10 shadow-md">
       {events.length > 0 ? (
         events.map((event) => {
           const eventRsvp = rsvpStatus[event.id] || {};

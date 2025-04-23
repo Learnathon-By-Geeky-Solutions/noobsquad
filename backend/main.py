@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database.session import engine, Base
 from api.v1.endpoints import auth, connections, research, chat
-from routes import profile, post, postReaction, notification, group, user
+from routes import profile, post, postReaction, notification, group, user, topuni
 from fastapi.staticfiles import StaticFiles
 from api.v1.endpoints import search
 from api.v1.endpoints.chatbot import huggingface
@@ -42,3 +42,4 @@ app.include_router(search.router, prefix="/search", tags=["Search"])
 app.include_router(huggingface.router, prefix="/chatbot", tags=["Chatbot"])
 app.include_router(group.router, prefix="/universities", tags=["University Groups"])
 app.include_router(user.router, prefix="/user", tags=["Username"])
+app.include_router(topuni.router, prefix="/top", tags=["Top Uni"])

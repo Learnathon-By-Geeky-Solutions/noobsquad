@@ -5,7 +5,7 @@ from collections import defaultdict
 from models.user import User
 from models.post import Post
 from models.university import University
-from schemas.university import UniversityPage, Member, UniversityPost, UniversityListResponse
+from schemas.university import UniversityPage, Member, UniversityPost, UniversityListResponse, UniversityResponse
 from database.session import SessionLocal
 from core.dependencies import get_db
 from schemas.post import PostResponse
@@ -15,7 +15,12 @@ from models.hashtag import post_hashtags
 
 router = APIRouter()
 
-
+def get_db():
+    try:
+        db = SessionLocal()
+        yield db
+    finally:
+        db.close()
 
 @router.get("/{university_name}", response_model=UniversityPage)
 def get_university_info(university_name: str, db: Session = Depends(get_db)):
@@ -129,15 +134,4 @@ def get_posts_by_hashtag(db: Session = Depends(get_db)):
 
     # Return the sorted list of post ids
     return sorted_post_ids
-
-@router.get("/top-universities")
-def get_top_universities(limit: int = 5, db: Session = Depends(get_db)):
-    universities = (
-        db.query(University)
-        .order_by(University.total_members.desc())
-        .limit(limit)
-        .all()
-    )
-    return universities
-
 
