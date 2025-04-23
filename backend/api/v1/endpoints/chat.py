@@ -2,7 +2,7 @@ import os
 import uuid
 from urllib.parse import urlparse
 from fastapi import APIRouter, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect, Depends
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from sqlalchemy import desc, func, or_
 from sqlalchemy.orm import Session
 from models.chat import Message
@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from typing import List
 from api.v1.endpoints.auth import get_current_user
 from schemas.chat import MessageOut, ConversationOut, MessageType
-import pathlib
+from fastapi.staticfiles import StaticFiles
 
 router = APIRouter()
 clients = {}
@@ -165,21 +165,40 @@ def get_conversations(db: Session = Depends(get_db), current_user=Depends(get_cu
 
     return results
 
-def safe_join(base, filename):
-    """
-    Safely join base directory and filename, preventing path traversal attacks.
-    Returns None if the resulting path would be outside the base directory.
-    """
-    # Convert to absolute path 
-    base_dir = os.path.abspath(base)
-    # Use pathlib for safe path joining and resolving
-    try:
-        # Create a safe path by joining and resolving
-        safe_path = os.path.normpath(os.path.join(base_dir, filename))
-        # Verify the path is within the base directory
-        return safe_path if safe_path.startswith(base_dir) else None
-    except (ValueError, TypeError):
-        return None
+# Create a secure file manager for chat uploads
+class SecureFileManager:
+    def __init__(self, directory):
+        # Ensure the directory is absolute
+        self.base_directory = os.path.abspath(directory)
+        # Create the directory if it doesn't exist
+        os.makedirs(self.base_directory, exist_ok=True)
+    
+    def save_file(self, file_content, extension):
+        """
+        Securely saves a file with a random name and the specified extension
+        within the base directory.
+        
+        Returns the filename (not the full path) if successful
+        """
+        # Validate the extension (though this should be already validated)
+        if not extension.startswith('.'):
+            extension = '.' + extension
+            
+        # Generate a unique filename
+        filename = f"{uuid.uuid4().hex}{extension}"
+        
+        # Create the full path (this is safe because we control both parts)
+        file_path = os.path.join(self.base_directory, filename)
+        
+        # Verify the path is within the base directory (safety check)
+        if not os.path.abspath(file_path).startswith(self.base_directory):
+            return None
+            
+        # Write the file
+        with open(file_path, "wb") as f:
+            f.write(file_content)
+            
+        return filename
 
 @router.post("/upload")
 async def upload_file(
@@ -190,37 +209,25 @@ async def upload_file(
     try:
         # Validate file type
         allowed_extensions = {".jpg", ".jpeg", ".png", ".gif", ".pdf", ".docx"}
-        # Get original extension but don't trust it for the actual path construction
+        # Get extension but only use it for validation
         original_ext = os.path.splitext(file.filename)[1].lower()
         if original_ext not in allowed_extensions:
             raise HTTPException(status_code=400, detail="Unsupported file type")
 
-        # Define the absolute base upload directory
-        base_upload_dir = os.path.abspath("uploads/chat")
+        # Create a secure file manager for our uploads directory
+        file_manager = SecureFileManager("uploads/chat")
         
-        # Create uploads/chat directory if it doesn't exist
-        os.makedirs(base_upload_dir, exist_ok=True)
-
-        # Generate a secure random filename with the validated extension
-        unique_filename = f"{uuid.uuid4().hex}{original_ext}"
+        # Read file content fully before saving
+        file_content = await file.read()
         
-        # Safely join the base directory and the filename
-        file_path = safe_join(base_upload_dir, unique_filename)
+        # Use the file manager to save the file securely
+        filename = file_manager.save_file(file_content, original_ext)
         
-        # If safe_join returned None, the path is invalid
-        if file_path is None:
-            raise HTTPException(status_code=400, detail="Invalid file path")
-            
-        # Double-check the path is within the base directory
-        if not os.path.commonpath([base_upload_dir]) == os.path.commonpath([base_upload_dir, file_path]):
-            raise HTTPException(status_code=400, detail="File path is outside upload directory")
-
-        # Save file
-        with open(file_path, "wb") as f:
-            f.write(await file.read())
+        if not filename:
+            raise HTTPException(status_code=500, detail="Failed to save file securely")
 
         # Generate file URL (relative path)
-        file_url = f"/uploads/chat/{unique_filename}"
+        file_url = f"/uploads/chat/{filename}"
 
         return JSONResponse(content={"file_url": file_url})
 
