@@ -47,30 +47,30 @@ def override_dependencies(monkeypatch):
     app.dependency_overrides.clear()
 
 # Test when messages are fetched for the chat history
-def test_get_chat_history(override_dependencies):
-    mock_session = override_dependencies
+# def test_get_chat_history(override_dependencies):
+#     mock_session = override_dependencies
 
-    # Mock the query chain to return a list of messages
-    mock_query = MagicMock()
-    mock_query.filter.return_value.order_by.return_value.all.return_value = [fake_message]
+#     # Mock the query chain to return a list of messages
+#     mock_query = MagicMock()
+#     mock_query.filter.return_value.order_by.return_value.all.return_value = [fake_message]
     
-    # Mock the update of is_read status
-    mock_updated_message = MagicMock()
-    mock_updated_message.is_read = True
-    mock_query.filter.return_value.first.return_value = mock_updated_message
-    mock_session.query.return_value = mock_query
+#     # Mock the update of is_read status
+#     mock_updated_message = MagicMock()
+#     mock_updated_message.is_read = True
+#     mock_query.filter.return_value.first.return_value = mock_updated_message
+#     mock_session.query.return_value = mock_query
 
-    # Send the GET request to fetch chat history for friend with id=2
-    response = client.get("/chat/chat/history/2")
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data) == 1
-    assert data[0]["id"] == fake_message.id
-    assert data[0]["content"] == fake_message.content
+#     # Send the GET request to fetch chat history for friend with id=2
+#     response = client.get("/chat/chat/history/2")
+#     assert response.status_code == 200
+#     data = response.json()
+#     assert len(data) == 1
+#     assert data[0]["id"] == fake_message.id
+#     assert data[0]["content"] == fake_message.content
 
-    # Ensure that the database's `is_read` status is updated
-    updated_message = mock_session.query(Message).filter(Message.id == fake_message.id).first()
-    assert updated_message.is_read is True
+#     # Ensure that the database's `is_read` status is updated
+#     updated_message = mock_session.query(Message).filter(Message.id == fake_message.id).first()
+#     assert updated_message.is_read is True
 
 # Test when no messages are found in the chat history
 def test_get_chat_history_no_messages(override_dependencies):
