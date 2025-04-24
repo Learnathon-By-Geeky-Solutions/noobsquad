@@ -235,3 +235,122 @@ def test_get_pending_requests_empty(test_user, test_db_session):
     assert response.status_code == 200
     pending_requests = response.json()
     assert len(pending_requests) == 0
+
+# ADDITIONAL EDGE CASE TESTS FOR HTTP EXCEPTIONS
+
+# Test connecting to non-existent user
+def test_connect_nonexistent_user(test_user, test_db_session):
+    token = get_jwt_token(test_user)
+    
+    # Use a non-existent user ID
+    non_existent_id = 99999
+    
+    response = client.post(
+        "/connections/connect/",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"friend_id": non_existent_id}
+    )
+    assert response.status_code == 404
+    assert "Friend ID does not exist" in response.json()["detail"]
+
+# Test unauthorized access (no token)
+def test_unauthorized_access(test_user, friend_user):
+    # Attempt to connect without authentication
+    response = client.post(
+        "/connections/connect/",
+        json={"friend_id": friend_user.id}
+    )
+    assert response.status_code == 401
+
+# Test accepting non-existent connection
+def test_accept_nonexistent_connection(test_user):
+    token = get_jwt_token(test_user)
+    
+    # Use a non-existent connection ID
+    non_existent_id = 99999
+    
+    response = client.post(
+        f"/connections/accept/{non_existent_id}",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 403 or response.status_code == 404
+
+# Test accepting already accepted connection
+def test_accept_already_accepted_connection(test_user, friend_user, test_db_session):
+    # Create an already accepted connection
+    connection = Connection(user_id=test_user.id, friend_id=friend_user.id, status="accepted")
+    test_db_session.add(connection)
+    test_db_session.commit()
+    test_db_session.refresh(connection)
+    
+    token = get_jwt_token(test_user)
+    
+    response = client.post(
+        f"/connections/accept/{connection.id}",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 404
+    assert "No pending request found" in response.json()["detail"]
+
+# Test rejecting non-existent connection
+def test_reject_nonexistent_connection(test_user):
+    token = get_jwt_token(test_user)
+    
+    # Use a non-existent connection ID
+    non_existent_id = 99999
+    
+    response = client.post(
+        f"/connections/reject/{non_existent_id}",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 404
+    assert "No pending request found" in response.json()["detail"]
+
+# Test unauthorized connection acceptance (not your connection)
+def test_unauthorized_accept_connection(test_user, friend_user, test_db_session):
+    # Create another user with a unique email
+    existing_third_user = test_db_session.query(User).filter(User.username == "thirduser").first()
+    if existing_third_user:
+        third_user = existing_third_user
+    else:
+        third_user = User(
+            username="thirduser",
+            email=f"third_{test_user.id}_{friend_user.id}@example.com",  # Ensure unique email
+            hashed_password=hash_password("thirdpass"),
+            profile_completed=True
+        )
+        test_db_session.add(third_user)
+        test_db_session.commit()
+        test_db_session.refresh(third_user)
+    
+    # Create a connection between friend_user and third_user
+    connection = Connection(user_id=friend_user.id, friend_id=third_user.id, status="pending")
+    test_db_session.add(connection)
+    test_db_session.commit()
+    test_db_session.refresh(connection)
+    
+    token = get_jwt_token(test_user)
+    
+    # Test user tries to accept a connection they're not part of
+    response = client.post(
+        f"/connections/accept/{connection.id}",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 403
+    assert "Not authorized to accept this connection" in response.json()["detail"]
+
+# Test getting user that doesn't exist
+def test_get_nonexistent_user(test_user):
+    token = get_jwt_token(test_user)
+    
+    # Use a non-existent user ID
+    non_existent_id = 99999
+    
+    response = client.get(
+        f"/connections/user/{non_existent_id}",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 500
+    assert "Internal Server Error" in response.json()["detail"]
+
+
