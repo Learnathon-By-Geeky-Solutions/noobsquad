@@ -156,3 +156,82 @@ def test_get_user(test_user, friend_user, test_db_session):
     assert response.status_code == 200
     user = response.json()
     assert user["username"] == "frienduser"
+
+# Test the `/connect/` endpoint to send a connection request
+def test_send_connection(test_user, friend_user, test_db_session):
+    # Clean up any existing connections between the users
+    test_db_session.query(Connection).filter(
+        ((Connection.user_id == test_user.id) & (Connection.friend_id == friend_user.id)) |
+        ((Connection.user_id == friend_user.id) & (Connection.friend_id == test_user.id))
+    ).delete()
+    test_db_session.commit()
+    
+    # Get a valid JWT token
+    token = get_jwt_token(test_user)
+    
+    response = client.post(
+        "/connections/connect/",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"friend_id": friend_user.id}
+    )
+    assert response.status_code == 200
+    assert response.json()["user_id"] == test_user.id
+    assert response.json()["friend_id"] == friend_user.id
+    assert response.json()["status"] == "pending"
+
+# Test sending duplicate connection request
+def test_send_duplicate_connection(test_user, friend_user, test_db_session):
+    # Create an existing connection
+    connection = Connection(user_id=test_user.id, friend_id=friend_user.id, status="pending")
+    test_db_session.add(connection)
+    test_db_session.commit()
+    
+    # Get a valid JWT token
+    token = get_jwt_token(test_user)
+    
+    response = client.post(
+        "/connections/connect/",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"friend_id": friend_user.id}
+    )
+    assert response.status_code == 400  # Bad request for duplicate connection
+
+# Test the `/connections/pending-requests` endpoint
+def test_get_pending_requests(test_user, friend_user, test_db_session):
+    # Create a pending connection request
+    connection = Connection(user_id=friend_user.id, friend_id=test_user.id, status="pending")
+    test_db_session.add(connection)
+    test_db_session.commit()
+    
+    # Get a valid JWT token
+    token = get_jwt_token(test_user)
+    
+    response = client.get(
+        "/connections/pending-requests",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 200
+    pending_requests = response.json()
+    assert len(pending_requests) > 0
+    assert pending_requests[0]["user_id"] == friend_user.id
+    assert pending_requests[0]["friend_id"] == test_user.id
+    assert pending_requests[0]["status"] == "pending"
+
+# Test getting pending requests when there are none
+def test_get_pending_requests_empty(test_user, test_db_session):
+    # Clean up any existing connections for the test user
+    test_db_session.query(Connection).filter(
+        (Connection.user_id == test_user.id) | (Connection.friend_id == test_user.id)
+    ).delete()
+    test_db_session.commit()
+    
+    # Get a valid JWT token
+    token = get_jwt_token(test_user)
+    
+    response = client.get(
+        "/connections/pending-requests",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 200
+    pending_requests = response.json()
+    assert len(pending_requests) == 0

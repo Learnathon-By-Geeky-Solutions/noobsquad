@@ -19,8 +19,14 @@ def send_connection(
     current_user: User = Depends(get_current_user)  # ✅ Fix: Use `User` model, not `dict`
 ):
     try:
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+            
         new_request = send_request(db, current_user.id, friend_data.friend_id)  # ✅ Fix: Use `current_user.id`
         return new_request
+    except HTTPException as he:
+        # Propagate HTTP exceptions from send_request
+        raise he
     except Exception as e:
         logging.error(f"Connection error: {e}")
         raise HTTPException(status_code=500, detail=internal_error) from e
@@ -138,5 +144,5 @@ def get_user(user_id: int, db: Session = Depends(get_db), current_user: User = D
         return user
     except Exception as e:
         logging.error(f"Error fetching user {user_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=internal_error)    
+        raise HTTPException(status_code=500, detail=internal_error)
 
