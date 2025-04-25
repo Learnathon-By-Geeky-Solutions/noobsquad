@@ -216,8 +216,8 @@ const ProfileCompletion = () => {
       {step === 2 && (
         <div className="profile-step">
           <h3 className="step-title">Step 2: Upload Profile Picture (Optional)</h3>
-          <label className="upload-box">
-            {formData.profilePicture ? <img src={formData.imagePreview} alt="Preview" className="profile-preview" /> : "Drag or Drop Your Profile Picture"}
+          <label className="upload-box text-center">
+            {formData.profilePicture ? <img src={formData.imagePreview} alt="Preview" className="profile-preview" /> : "Drag & Drop Your Profile Picture"}
             <input type="file" name="profilePicture" onChange={handleFileChange} className="hidden" />
           </label>
           <div className="button-group">

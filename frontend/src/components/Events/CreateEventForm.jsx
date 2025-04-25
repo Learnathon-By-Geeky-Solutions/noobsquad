@@ -52,7 +52,6 @@ const CreateEventForm = () => {
 
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-md shadow-md mt-0">
-      <h2 className="text-2xl font-semibold mb-4">Create Event Post</h2>
       {error && <div className="text-red-500 mb-4">{error}</div>}
       <form onSubmit={handleSubmit}>
         <div className="mb-4">

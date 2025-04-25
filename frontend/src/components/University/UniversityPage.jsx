@@ -32,7 +32,7 @@ const UniversityGroup = () => {
   if (!universityData) return <div className="text-center p-8">No data found.</div>;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 p-4 max-w-screen-xl mt-20 md:mt-24">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 p-4 max-w-screen-xl mt-20 md:mt-24 min-h-screen">
       {/* Left Sidebar - Departments */}
       <div className="md:col-span-1">
         <h2 className="text-xl font-semibold mb-2">Departments</h2>

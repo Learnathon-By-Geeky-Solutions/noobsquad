@@ -14,6 +14,7 @@ import SearchResults from "../components/Search/SearchResults";
 import EventDetails from "../components/Events/EventDetails";
 import UniversityExplorePage from "./MainUniPage";
 import UniversityPage from "../components/University/University";
+import EventsPage from "./Events";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -59,13 +60,14 @@ const Dashboard = () => {
         <Route path="suggested-users" element={<SuggestedUsers />} />
         <Route path="research/*" element={<Research />} />
         <Route path="posts/*" element={<Home />} />
-        <Route path="events" element={<CreateEventForm />} /> 
+        <Route path="create-events" element={<CreateEventForm />} /> 
         <Route path="eventposts" element={<EventPosts />} />  
         <Route path="search-results" element={<SearchResults />} />
         <Route path="events/:eventId" element={<EventDetails />} />
         <Route path=":username/about" element={<UserProfile />} />
         <Route path="university" element={<UniversityExplorePage />} />
         <Route path="university/:universityName" element={<UniversityPage />} />
+        <Route path="Events" element={<EventsPage />}/>
       </Routes>
     </div>
   );

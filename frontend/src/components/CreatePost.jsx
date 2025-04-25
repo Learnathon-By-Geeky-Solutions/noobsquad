@@ -3,6 +3,7 @@ import api from "../api/axios";
 import { FaImage, FaFileAlt, FaCalendarAlt } from "react-icons/fa";
 import PropTypes from "prop-types";
 import { useDropzone } from "react-dropzone";
+import CreateEventForm from "./Events/CreateEventForm";
 
 const CreatePost = ({ userProfile }) => {
   const [postType, setPostType] = useState("text");
@@ -17,6 +18,7 @@ const CreatePost = ({ userProfile }) => {
   const [userTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [errorMessage, setErrorMessage] = useState(null); // New state for error message
+  const [eventImage, setEventImage] = useState(null);  // Added event image state
 
   CreatePost.propTypes = {
     userProfile: PropTypes.shape({
@@ -83,6 +85,9 @@ const CreatePost = ({ userProfile }) => {
       formData.append("event_time", eventTime);
       formData.append("location", location);
       formData.append("user_timezone", userTimezone);
+      if (eventImage) {
+        formData.append("event_image", eventImage);
+      }
     }
 
     return await api.post(`/posts/create_${postType}_post/`, formData, {
@@ -178,11 +183,100 @@ const CreatePost = ({ userProfile }) => {
 
       {postType === "event" && (
         <div className="space-y-2">
-          <input type="text" value={eventTitle} onChange={(e) => setEventTitle(e.target.value)} placeholder="Event Title *" className="border p-2 rounded w-full" />
-          <textarea value={eventDescription} onChange={(e) => setEventDescription(e.target.value)} placeholder="Event Description *" className="border p-2 rounded w-full"></textarea>
-          <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="border p-2 rounded w-full" />
-          <input type="time" value={eventTime} onChange={(e) => setEventTime(e.target.value)} className="border p-2 rounded w-full" />
-          <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location" className="border p-2 rounded w-full" />
+          <div className="mb-4">
+          <label htmlFor="eventTitle" className="block text-sm font-medium text-gray-700">
+            Event Title
+          </label>
+          <input
+            type="text"
+            id="eventTitle"
+            className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
+            value={eventTitle}
+            onChange={(e) => setEventTitle(e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="mb-4">
+          <label htmlFor="eventDescription" className="block text-sm font-medium text-gray-700">
+            Event Description
+          </label>
+          <textarea
+            id="eventDescription"
+            className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
+            value={eventDescription}
+            onChange={(e) => setEventDescription(e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="mb-4 flex gap-4">
+          <div>
+            <label htmlFor="eventDate" className="block text-sm font-medium text-gray-700">
+              Event Date
+            </label>
+            <input
+              type="date"
+              id="eventDate"
+              className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
+              value={eventDate}
+              onChange={(e) => setEventDate(e.target.value)}
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="eventTime" className="block text-sm font-medium text-gray-700">
+              Event Time
+            </label>
+            <input
+              type="time"
+              id="eventTime"
+              className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
+              value={eventTime}
+              onChange={(e) => setEventTime(e.target.value)}
+              required
+            />
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <label htmlFor="location" className="block text-sm font-medium text-gray-700">
+            Location
+          </label>
+          <input
+            type="text"
+            id="location"
+            className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+          />
+        </div>
+
+        <div className="mb-4">
+          <label htmlFor="content" className="block text-sm font-medium text-gray-700">
+            Content (Optional)
+          </label>
+          <textarea
+            id="content"
+            className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+          />
+        </div>
+
+        <div className="mb-4">
+          <label htmlFor="eventImage" className="block text-sm font-medium text-gray-700">
+            Event Image (Optional)
+          </label>
+          <input
+            type="file"
+            id="eventImage"
+            className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
+            accept="image/*"
+            onChange={(e) => setEventImage(e.target.files[0])}
+          />
+        </div> 
         </div>
       )}
 

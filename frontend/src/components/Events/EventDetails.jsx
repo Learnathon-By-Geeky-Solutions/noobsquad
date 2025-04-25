@@ -8,12 +8,21 @@ const EventDetails = () => {
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [rsvpStatus, setRsvpStatus] = useState(null);
+  const [rsvpCounts, setRsvpCounts] = useState({ going: 0, interested: 0 });
 
   useEffect(() => {
     const fetchEventDetails = async () => {
       try {
-        const response = await api.get(`/posts/events/?event_id=${eventId}`);
-        setEvent(response.data);
+        const [eventRes, statusRes, countRes] = await Promise.all([
+          api.get(`/posts/events/?event_id=${eventId}`),
+          api.get(`/interactions/event/${eventId}/my_rsvp/`),
+          api.get(`/interactions/posts/events/rsvp/counts/?event_id=${eventId}`)
+        ]);
+        setEvent(eventRes.data);
+        console.log("event:", eventRes.data)
+        setRsvpStatus(statusRes.data.status);
+        setRsvpCounts(countRes.data);
       } catch (err) {
         setError("Failed to fetch event details.");
         console.error(err);
@@ -24,6 +33,24 @@ const EventDetails = () => {
 
     fetchEventDetails();
   }, [eventId]);
+
+  const handleRSVP = async (status) => {
+    try {
+      const token = localStorage.getItem("token");
+      await api.post(`/interactions/event/${eventId}/rsvp`, {
+        event_id: eventId,
+        status,
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setRsvpStatus(status);
+
+      // Refresh counts
+      const countRes = await api.get(`/interactions/posts/events/rsvp/counts/?event_id=${eventId}`);
+      setRsvpCounts(countRes.data);
+    } catch (err) {
+      console.error("Failed to update RSVP:", err);
+    }
+  };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -80,11 +107,26 @@ const EventDetails = () => {
         {/* Card Container */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           {/* Event Actions (RSVP Buttons) */}
+          {/* RSVP Buttons */}
           <div className="p-4 border-b border-gray-200 flex space-x-4">
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-md font-semibold hover:bg-blue-700 transition">
+            <button
+              onClick={() => handleRSVP("going")}
+              className={`px-4 py-2 rounded-md font-semibold transition ${
+                rsvpStatus === "going"
+                  ? "bg-blue-700 text-white"
+                  : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+              }`}
+            >
               Going
             </button>
-            <button className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md font-semibold hover:bg-gray-300 transition">
+            <button
+              onClick={() => handleRSVP("interested")}
+              className={`px-4 py-2 rounded-md font-semibold transition ${
+                rsvpStatus === "interested"
+                  ? "bg-blue-700 text-white"
+                  : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+              }`}
+            >
               Interested
             </button>
             <button className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md font-semibold hover:bg-gray-300 transition">
@@ -115,7 +157,7 @@ const EventDetails = () => {
             {/* Attendees Placeholder */}
             <div className="flex items-center mb-6">
               <Users className="w-5 h-5 text-gray-500 mr-2" />
-              <span className="text-gray-600">X people going • Y interested</span>
+              <span className="text-gray-600">{rsvpCounts.going} people going • {rsvpCounts.interested} interested</span>
               {/* Replace X and Y with actual data if available */}
             </div>
 
