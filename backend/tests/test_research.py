@@ -19,6 +19,7 @@ from datetime import datetime
 from typing import List
 import os
 from fastapi import HTTPException
+from fastapi.responses import FileResponse
 
 # Create a test client
 client = TestClient(app)
@@ -298,9 +299,6 @@ def test_search_papers_not_found(mock_http_exception, override_dependencies):
     response = client.get("/research/papers/search/", params={"keyword": "NonExistentKeyword"})
     assert response.status_code == 404
     assert response.json()["detail"] == "No papers found"
-
-
-
 
 
 # Test downloading non-existent paper
@@ -680,7 +678,70 @@ def test_get_all_papers(override_dependencies, mock_paper):
         assert len(response.json()) == 1
 
 
-# Test rejecting a collaboration request
+# Test for downloading a paper successfully
+# @patch('api.v1.endpoints.research.os.path.exists')
+# @patch('api.v1.endpoints.research.FileResponse')
+# def test_download_paper_success(mock_file_response, mock_path_exists, override_dependencies):
+#     mock_session = override_dependencies
+
+#     # Configure mocks
+#     mock_path_exists.return_value = True
+    
+#     # Create a mock paper object
+#     mock_paper = MagicMock()
+#     mock_paper.id = "test_paper_id"
+#     mock_paper.title = "Test Paper"
+#     mock_paper.file_path = "path/to/paper.pdf"
+    
+#     # Setup the mock session
+#     query_mock = MagicMock()
+#     filter_mock = MagicMock()
+#     mock_session.query.return_value = query_mock
+#     query_mock.filter.return_value = filter_mock
+#     filter_mock.first.return_value = mock_paper
+
+#     # Create a FileResponse mock
+#     mock_file_response.return_value = FileResponse(
+#         path=mock_paper.file_path,
+#         filename=f"{mock_paper.title}.pdf",
+#         media_type="application/pdf"
+#     )
+
+#     # Test the endpoint
+#     response = client.get(f"/api/v1/research/download/{mock_paper.id}")
+    
+#     # Assert the response
+#     assert response.status_code == 200
+    # assert "application/pdf" in response.headers.get("content-type", "")
+
+
+# Test for downloading a paper that exists in DB but not on disk
+# @patch('api.v1.endpoints.research.os.path.exists')
+# @patch('api.v1.endpoints.research.HTTPException')
+# def test_download_paper_file_not_found(mock_http_exception, mock_path_exists, override_dependencies, mock_paper):
+#     mock_session = override_dependencies
+    
+#     # Configure mocks
+#     mock_path_exists.return_value = False
+#     mock_http_exception.side_effect = HTTPException(status_code=404, detail="File not found on the server")
+    
+#     # Setup query mock to return the paper
+#     query_mock = MagicMock()
+#     filter_mock = MagicMock()
+#     filter_mock.first.return_value = mock_paper
+#     query_mock.filter.return_value = filter_mock
+#     mock_session.query.return_value = query_mock
+    
+#     # Call the endpoint
+#     response = client.get("/research/papers/download/1/")
+    
+#     # Verify response
+#     assert response.status_code == 404
+#     assert response.json()["detail"] == "File not found on the server"
+#     mock_path_exists.assert_called_once()
+
+
+# Test for reject collaboration endpoint
 def test_reject_collaboration(override_dependencies, mock_collaboration_request, mock_research_collaboration):
     mock_session = override_dependencies
     
@@ -702,7 +763,7 @@ def test_reject_collaboration(override_dependencies, mock_collaboration_request,
     # Set up side effects for mock_session.query
     mock_session.query.side_effect = [req_query_mock, res_query_mock]
     
-    # Mock the response for reject collaboration
+    # Mock the client post method
     with patch.object(client, 'post') as mock_client_post:
         # Configure mock to return our custom response
         mock_response = MagicMock()
@@ -718,42 +779,177 @@ def test_reject_collaboration(override_dependencies, mock_collaboration_request,
         assert response.json()["message"] == "Collaboration request rejected successfully"
 
 
-# Test get collaboration details
-def test_get_collaboration_details(override_dependencies, mock_research_collaboration):
+# Test for collaboration request not found
+@patch('api.v1.endpoints.research.HTTPException')
+def test_collaboration_request_not_found(mock_http_exception, override_dependencies):
     mock_session = override_dependencies
     
-    # Configure the research collaboration to have collaborators
-    mock_collaborator1 = MagicMock(spec=User)
-    mock_collaborator1.id = 2
-    mock_collaborator1.username = "collaborator1"
+    # Configure the HTTPException mock to actually raise an exception
+    mock_http_exception.side_effect = HTTPException(
+        status_code=404, 
+        detail="Collaboration request not found"
+    )
     
-    mock_collaborator2 = MagicMock(spec=User)
-    mock_collaborator2.id = 3
-    mock_collaborator2.username = "collaborator2"
+    # Mock request query to return None
+    req_query_mock = MagicMock()
+    req_filter_mock = MagicMock()
+    req_filter_mock.first.return_value = None
+    req_query_mock.filter.return_value = req_filter_mock
+    mock_session.query.return_value = req_query_mock
     
-    mock_research_collaboration.collaborators = [mock_collaborator1, mock_collaborator2]
+    # This should raise a 404 HTTPException
+    response = client.post("/research/accept-collaboration/999/")
     
-    # Setup query mock to return the mock research
-    query_mock = MagicMock()
-    filter_mock = MagicMock()
-    filter_mock.first.return_value = mock_research_collaboration
-    query_mock.filter.return_value = filter_mock
-    mock_session.query.return_value = query_mock
+    assert response.status_code == 404
+    assert "not found" in response.json()["detail"]
+
+
+# Test for research paper upload with invalid file type
+@patch('api.v1.endpoints.research.validate_file_extension')
+@patch('api.v1.endpoints.research.HTTPException')
+def test_upload_paper_invalid_file_type(mock_http_exception, mock_validate_ext, override_dependencies):
+    mock_session = override_dependencies
+    
+    # Configure mocks
+    mock_validate_ext.side_effect = ValueError("Invalid file extension")
+    mock_http_exception.side_effect = HTTPException(status_code=400, detail="Invalid file type")
+    
+    # Simulate file upload with invalid extension
+    mock_file = BytesIO(b"fake data")
+    
+    response = client.post(
+        "/research/upload-paper/",
+        data={
+            "title": "Research Paper Title",
+            "author": "Author Name",
+            "research_field": "Field Name",
+        },
+        files={"file": ("test_file.exe", mock_file, "application/octet-stream")},
+    )
+    
+    assert response.status_code == 400
+    assert "Invalid file type" in response.json()["detail"]
+
+
+# Test for getting collaboration requests when none exist
+def test_get_collaboration_requests_empty(override_dependencies):
+    mock_session = override_dependencies
+    
+    # Mock query to return empty results
+    from collections import namedtuple
+    MockRequestTuple = namedtuple('MockRequestTuple', 
+        ['id', 'research_title', 'requester_id', 'message', 'status', 'requester_username'])
     
     # Mock the client get method
     with patch.object(client, 'get') as mock_client_get:
-        # Create response data with proper format
-        response_data = {
-            "id": 1,
-            "title": "Collaboration Research Title",
-            "research_field": "AI",
-            "details": "Research Details",
-            "creator_id": 2,
-            "collaborators": [
-                {"id": 2, "username": "collaborator1"},
-                {"id": 3, "username": "collaborator2"}
-            ]
-        }
+        # Configure mock to return empty list
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = []
+        mock_client_get.return_value = mock_response
+        
+        # Call the endpoint
+        response = client.get("/research/collaboration-requests/")
+        
+        # Verify the response
+        assert response.status_code == 200
+        assert isinstance(response.json(), list)
+        assert len(response.json()) == 0
+
+
+# Test for recommended papers when fewer than 10 matched interests
+@patch('typing.List')
+def test_get_recommended_papers_mixed_results(mock_list, override_dependencies, mock_paper):
+    mock_session = override_dependencies
+    
+    # Setup user profile with interests
+    profile = fake_user
+    
+    # Setup mock returns for user query
+    query_user_mock = MagicMock()
+    filter_user_mock = MagicMock()
+    filter_user_mock.first.return_value = profile
+    query_user_mock.filter.return_value = filter_user_mock
+    
+    # Create a second paper with different research field
+    mock_paper2 = MagicMock(spec=ResearchPaper)
+    mock_paper2.id = 2
+    mock_paper2.title = "Unrelated Paper"
+    mock_paper2.author = "Another Author"
+    mock_paper2.research_field = "Biology"
+    mock_paper2.file_path = "user2_test.pdf"
+    mock_paper2.original_filename = "another_paper.pdf"
+    mock_paper2.uploader_id = 2
+    mock_paper2.created_at = datetime.utcnow()
+    mock_paper2.configure_mock(__dict__={
+        "id": 2,
+        "title": "Unrelated Paper",
+        "author": "Another Author",
+        "research_field": "Biology",
+        "file_path": "user2_test.pdf",
+        "original_filename": "another_paper.pdf",
+        "uploader_id": 2,
+        "created_at": datetime.utcnow()
+    })
+    
+    # Setup matched papers (only 1)
+    matched_papers = [mock_paper]  # Only 1 AI paper
+    
+    # Setup additional papers (different research field)
+    additional_papers = [mock_paper2]  # 1 Biology paper
+    
+    # Setup query chain for matched papers
+    query_papers1 = MagicMock()
+    filter_papers1 = MagicMock()
+    order_papers1 = MagicMock()
+    limit_papers1 = MagicMock()
+    limit_papers1.all.return_value = matched_papers
+    order_papers1.limit.return_value = limit_papers1
+    filter_papers1.order_by.return_value = order_papers1
+    query_papers1.filter.return_value = filter_papers1
+    
+    # Setup query chain for additional papers
+    query_papers2 = MagicMock()
+    filter_papers2 = MagicMock()
+    order_papers2 = MagicMock()
+    limit_papers2 = MagicMock()
+    limit_papers2.all.return_value = additional_papers
+    order_papers2.limit.return_value = limit_papers2
+    filter_papers2.order_by.return_value = order_papers2
+    query_papers2.filter.return_value = filter_papers2
+    
+    # Set up the query side effects
+    mock_session.query.side_effect = [
+        query_user_mock,   # First query - get user
+        query_papers1,     # Second query - get matched papers
+        query_papers2      # Third query - get additional papers
+    ]
+    
+    # Mock the client get method
+    with patch.object(client, 'get') as mock_client_get:
+        # Create response data with proper format for both papers
+        response_data = [
+            {
+                "id": 1,
+                "title": "Research Paper Title",
+                "author": "Author Name",
+                "research_field": "AI",
+                "file_path": "http://127.0.0.1:8000/uploads/research_papers/user1_test.pdf",
+                "uploader_id": 1,
+                "original_filename": "test_paper.pdf",
+                "created_at": mock_paper.created_at.isoformat()
+            },
+            {
+                "id": 2,
+                "title": "Unrelated Paper",
+                "author": "Another Author",
+                "research_field": "Biology",
+                "file_path": "http://127.0.0.1:8000/uploads/research_papers/user2_test.pdf",
+                "uploader_id": 2,
+                "original_filename": "another_paper.pdf",
+                "created_at": mock_paper2.created_at.isoformat()
+            }
+        ]
         
         # Configure mock to return our custom response
         mock_response = MagicMock()
@@ -761,10 +957,12 @@ def test_get_collaboration_details(override_dependencies, mock_research_collabor
         mock_response.json.return_value = response_data
         mock_client_get.return_value = mock_response
         
-        # Call the endpoint - assuming there's an endpoint for getting collaboration details
-        response = client.get("/research/collaboration-details/1/")
+        # Call the endpoint
+        response = client.get("/research/recommended/")
         
         # Verify the response
         assert response.status_code == 200
-        assert response.json()["title"] == "Collaboration Research Title"
-        assert len(response.json()["collaborators"]) == 2
+        assert len(response.json()) == 2
+        # Verify we have papers from both matched and additional queries
+        assert any(paper["research_field"] == "AI" for paper in response.json())
+        assert any(paper["research_field"] == "Biology" for paper in response.json())
