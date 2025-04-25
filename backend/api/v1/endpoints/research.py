@@ -400,3 +400,23 @@ def accept_collaboration(
     except Exception as e:
         logging.error(f"Error accepting collaboration request: {str(e)}")
         raise HTTPException(status_code=500, detail= give_error)
+
+@router.get("/papers/user/{user_id}")
+def get_papers_by_user(user_id: int, db: Session = Depends(get_db)):
+    papers = db.query(ResearchPaper).filter(ResearchPaper.uploader_id == user_id).all()
+    return [
+            {
+                "id": paper.id,
+                "title": paper.title,
+                "author": paper.author,
+                "research_field": paper.research_field,
+                "file_path": f"http://127.0.0.1:8000/uploads/research_papers/{paper.file_path}",
+                "uploader_id": paper.uploader_id,
+                "download_url": f"/papers/download/{paper.id}/",
+                "request_id": f"/request-collaboration/{paper.id}/",
+                "original_filename": paper.original_filename
+                
+
+            }
+            for paper in papers
+        ]

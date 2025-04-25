@@ -1,13 +1,27 @@
 import ResearchTabView from "../ResearchTabView";
 import React, { useState } from "react";
-import { Upload, FilePlus, Handshake, FlaskConical,Search, BookOpen } from "lucide-react";
+import { Upload, FilePlus, Handshake, FlaskConical } from "lucide-react";
 import UploadPaper from "../../api/UploadPaper";
 import PostResearch from "../../api/PostResearch";
 import CollaborationRequests from "../../api/CollaborationRequests";
 import FetchUserPapers from "../../api/FetchUserPapers";
+import UserPapers from "./UserPaper";
 
 const ResearchProfile = ({ userId, isOwner }) => {
   const [requestCount, setRequestCount] = useState(0);
+  console.log("User ID:", userId);
+
+  if (!isOwner && !userId) {
+    return <p>Loading...</p>;
+  }
+
+  if (!isOwner) {
+    return (
+      <div className="w-full min-h-fit mt-32">
+        <UserPapers userId={userId} />
+      </div>
+    );
+  }
 
   const ownerTabs = [
     { path: "upload", label: "Upload Paper", icon: Upload, element: <UploadPaper /> },
@@ -34,14 +48,14 @@ const ResearchProfile = ({ userId, isOwner }) => {
       element: <FetchUserPapers />,
     },
   ];
-  const viewerTabs = [
-    { path: "search", label: "Search Papers", icon: Search, element: <SearchPapers /> },
-    { path: "recent-works", label: "Current Works", icon: BookOpen, element: <RecentPapers /> },
-  ];
 
   return (
-    <ResearchTabView title="My Research" basePath={`/dashboard/${userId}/about`}
-    tabs={isOwner ? ownerTabs : viewerTabs} />
+    <ResearchTabView
+      
+      title="Research"
+      basePath="/dashboard/research"
+      tabs={ownerTabs}
+    />
   );
 };
 

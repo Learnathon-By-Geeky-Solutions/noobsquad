@@ -9,7 +9,7 @@ const ResearchTabView = ({ title, basePath, tabs }) => {
         <h1 className="text-2xl font-bold text-gray-800">{title}</h1>
       </div>
 
-      <div className="bg-white shadow-sm rounded-xl mx-auto max-w-6xl px-4 py-4 mb-6">
+      <div className=" rounded-xl mx-auto max-w-6xl px-4 py-4 mb-6">
         <ul className="flex flex-wrap justify-center gap-4">
           {tabs.map(({ path, label, icon, loading, badge }) => (
             <NavTab
@@ -24,7 +24,7 @@ const ResearchTabView = ({ title, basePath, tabs }) => {
         </ul>
       </div>
 
-      <div className="max-w-6xl mx-auto p-6 bg-white shadow rounded-lg">
+      <div className="max-w-6xl mx-auto p-6 ">
         <Routes>
           {tabs.map(({ path, element }) => (
             <Route key={path} path={path} element={element} />
