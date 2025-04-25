@@ -7,6 +7,7 @@ import Posts from "./Posts";
 import ResearchProfile from "./Research";
 import ProfileSuggestedFriends from "./SuggestionsCard";
 import CreatePost from "../CreatePost";
+import UserPapers from './UserPaper';
 
 const UserProfile = () => {
   const { username } = useParams();
@@ -78,7 +79,9 @@ const UserProfile = () => {
       </>
       ) : (
         <div className="-mt-20 md:-mt-24">
-        <ResearchProfile userId={user.id} isOwner={isOwner}/></div>
+        <ResearchProfile userId={user} isOwner={isOwner}/>
+        </div>
+        
       )}
       </div>
     

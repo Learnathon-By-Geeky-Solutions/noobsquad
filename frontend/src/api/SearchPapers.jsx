@@ -166,9 +166,9 @@ const SearchPapers = () => {
               key={paper.id}
               className="p-4 border rounded-lg bg-gray-50 hover:bg-gray-100 transition shadow-sm"
             >
-              <div className="flex items-center gap-2 text-blue-800 font-semibold mb-1">
-                <FileText className="w-5 h-5" />
-                {paper.original_filename}
+              <div className="font-semibold text-blue-800 flex items-center gap-2 max-w-full break-words whitespace-pre-wrap break-all">
+  <FileText className="w-4 h-4 shrink-0" />
+  <span className="break-words break-all whitespace-pre-wrap">{paper.original_filename}</span>
               </div>
               <p className="text-base text-gray-700">
                 <span className="font-medium">Title:</span>{" "}
