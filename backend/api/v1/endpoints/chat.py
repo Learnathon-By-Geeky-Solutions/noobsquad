@@ -24,6 +24,7 @@ def is_valid_url(url: str) -> bool:
         result = urlparse(url)
         return all([result.scheme, result.netloc])  # Must have scheme (http/https) and domain
     except:
+        print(f"❌ Invalid URL: {url}")
         return False
     
 @router.websocket("/ws/{user_id}")
