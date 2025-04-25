@@ -11,7 +11,7 @@ genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 from fastapi import APIRouter,UploadFile, File, Form, Depends, HTTPException
 from schemas.huggingface import PromptRequest, PromptResponse, BotResponse
 from core.dependencies import get_db
-from api.v1.endpoints.auth import get_current_user  # Authentication dependency
+from api.v1.endpoints.Auth.auth import get_current_user  # Authentication dependency
 from models.user import User  # ✅ Correct model import
 from sqlalchemy.orm import Session
 from langchain_huggingface import HuggingFaceEndpoint

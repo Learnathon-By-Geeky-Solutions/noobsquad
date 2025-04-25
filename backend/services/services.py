@@ -8,7 +8,7 @@ import os
 import secrets
 from pathlib import Path
 from datetime import datetime, timezone
-from api.v1.endpoints.auth import get_current_user
+from api.v1.endpoints.Auth.auth import get_current_user
 from models.user import User
 from models.post import Post, PostMedia, PostDocument, Event, Like, Comment
 from schemas.post import PostResponse, MediaPostResponse, DocumentPostResponse, EventResponse, TextPostUpdate

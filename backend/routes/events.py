@@ -6,8 +6,7 @@ from schemas.post import  EventResponse
 from models.user import User
 from database.session import SessionLocal
 from core.dependencies import get_db
-from api.v1.endpoints.auth import get_current_user
-
+from api.v1.endpoints.Auth.auth import get_current_user
 from models.post import Event
 
 router = APIRouter()

@@ -5,11 +5,9 @@ from collections import defaultdict
 from models.user import User
 from models.post import Post
 from models.university import University
-from schemas.university import UniversityPage, Member, UniversityPost, UniversityListResponse, UniversityResponse
+from schemas.university import UniversityPage, Member, UniversityListResponse
 from database.session import SessionLocal
 from core.dependencies import get_db
-from schemas.post import PostResponse
-from services.services import extract_hashtags
 from models.hashtag import post_hashtags
 
 

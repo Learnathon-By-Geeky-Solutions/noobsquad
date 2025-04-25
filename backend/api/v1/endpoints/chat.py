@@ -12,7 +12,7 @@ import json
 from datetime import datetime,timezone
 from pydantic import BaseModel
 from typing import List
-from api.v1.endpoints.auth import get_current_user
+from api.v1.endpoints.Auth.auth import get_current_user
 from schemas.chat import MessageOut, ConversationOut, MessageType
 from fastapi.staticfiles import StaticFiles
 

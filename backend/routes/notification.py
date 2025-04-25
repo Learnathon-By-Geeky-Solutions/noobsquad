@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from crud.notification import get_unread_notifications, get_all_notifications, mark_notification_as_read
 from schemas.notification import NotificationResponse
-from database.session import SessionLocal
 from core.dependencies import get_db
 
 

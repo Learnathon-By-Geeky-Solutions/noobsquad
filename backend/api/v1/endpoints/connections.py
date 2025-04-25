@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from core.dependencies import get_db
 from core.connection_crud import send_request, accept_request, reject_request, get_connections
 from schemas.connection import ConnectionCreate, ConnectionResponse
-from api.v1.endpoints.auth import get_current_user  # Ensure authentication middleware is implemented
+from api.v1.endpoints.Auth.auth import get_current_user  # Ensure authentication middleware is implemented
 from models.user import User
 from models.connection import Connection
 from sqlalchemy import select, or_, case

@@ -1,9 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Form, File, UploadFile, Query, Request
-from api.v1.endpoints.auth import get_current_user
+from fastapi import APIRouter, Depends, HTTPException
 from database.session import SessionLocal
 from models.user import User
 from sqlalchemy.orm import Session
-from schemas.user import UserResponse
 
 
 router = APIRouter()

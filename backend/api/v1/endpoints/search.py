@@ -8,7 +8,7 @@ from models.university import University
 from core.dependencies import get_db
 import logging
 from models.user import User
-from api.v1.endpoints.auth import get_current_user
+from api.v1.endpoints.Auth.auth import get_current_user
 
 router = APIRouter()
 

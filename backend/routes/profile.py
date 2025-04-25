@@ -1,14 +1,11 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
-import models.user as models
-from database.session import SessionLocal
 from models.user import User  # ✅ Correct model import
 from models.university import University
 from schemas.user import UserResponse  # ✅ Correct schema import
-from api.v1.endpoints.auth import get_current_user  # Authentication dependency
+from api.v1.endpoints.Auth.auth import get_current_user  # Authentication dependency
 import os
-import uuid
 from pathlib import Path
 import secrets
 from core.dependencies import get_db
