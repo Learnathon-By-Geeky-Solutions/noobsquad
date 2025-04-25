@@ -104,9 +104,14 @@ const EventList = () => {
   }
 
   return (
-    <div className="max-w-full mx-auto grid grid-cols-1 sm:grid-cols-2 gap-2 mt-10 shadow-md">
+    <div className="bg-white rounded-lg -mt-4 mb-4">
+      <h2 className="text-xl font-semibold p-4 mt-4 ml-4 mb-4">Events You Might Interested</h2>
+
+    
+    <div className="max-w-fit mx-auto grid grid-cols-1 sm:grid-cols-2 gap-x-2 gap-y-8 mt-10 shadow-md bg-gray-50">
       {events.length > 0 ? (
-        events.map((event) => {
+        <>
+        {events.slice(0, 4).map((event) => {
           const eventRsvp = rsvpStatus[event.id] || {};
           const isInterested = eventRsvp.interested || false;
           const isGoing = eventRsvp.going || false;
@@ -217,10 +222,22 @@ const EventList = () => {
               </div>
             </div>
           );
-        })
+        
+      })}
+      <div className="col-span-full text-center mt-4 mb-4">
+        <Link
+          to="/dashboard/events"
+          className="inline-block text-blue-600 hover:underline text-sm"
+        >
+          See More Events →
+        </Link>
+      </div>
+    </>
+
       ) : (
         <p className="text-gray-700">No events available.</p>
       )}
+    </div>
     </div>
   );
 };

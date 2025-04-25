@@ -40,3 +40,8 @@ class User(Base):
 
     received_notifications = relationship("Notification", foreign_keys="Notification.user_id", back_populates="user")
     sent_notifications = relationship("Notification", foreign_keys="Notification.actor_id", back_populates="actor")
+
+
+
+
+

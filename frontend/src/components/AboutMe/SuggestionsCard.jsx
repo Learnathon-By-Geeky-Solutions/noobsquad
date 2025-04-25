@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { UserPlus, Loader2 } from "lucide-react";
+import UsernameLink from "./UsernameLink";
 
 const ProfileSuggestedFriends = () => {
   const [users, setUsers] = useState([]);
@@ -51,7 +52,7 @@ const ProfileSuggestedFriends = () => {
     <div className="max-w-md mx-auto bg-white shadow-md rounded-xl p-4 relative mt-12 md:mt-12">
         {/* Top Section: "People You May Know" */}
         <div className="absolute top-0 w-full p-4">
-            <h2 className="text-2xl font-bold flex items-center gap-2 text-blue-500">
+            <h2 className="text-xl font-semibold flex items-center gap-2 text-black-500">
             People You May Know
             </h2>
         </div>
@@ -72,10 +73,10 @@ const ProfileSuggestedFriends = () => {
                             : "/default-avatar.png"
                         }
                         alt="Profile"
-                        className="w-20 h-20 rounded-full object-cover border-2 border-blue-500"
+                        className="w-14 h-14 rounded-full object-cover border-2 border-blue-500"
                     />
                     <div className="flex flex-col">
-                        <h3 className="text-lg font-semibold text-gray-800">{user.username}</h3>
+                        <h3 className="text-lg font-semibold text-gray-800"><UsernameLink username={user.username} /></h3>
                         <p className="text-sm text-gray-500">{user.university_name || "University Name"}</p>
                         <p className="text-sm text-gray-500">{user.department || "Department Name"}</p>
                     </div>

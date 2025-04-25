@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from models.post import Like, Comment, Share, Post, Event, EventAttendee
 from models.user import User
 from schemas.post import PostResponse
@@ -265,3 +266,25 @@ def remove_rsvp(event_id: int, db: Session = Depends(get_db), current_user: User
     db.delete(rsvp)
     db.commit()
     return {"message": "RSVP removed successfully"}
+
+@router.get("/event/{event_id}/my_rsvp/")
+def get_user_rsvp_status(event_id: int, db: Session = Depends(get_db),current_user: User =Depends(get_current_user)):
+    rsvp = db.query(EventAttendee).filter(EventAttendee.event_id == event_id, EventAttendee.user_id == current_user.id).first()
+    return {"status": rsvp.status if rsvp else None}
+
+@router.get("/posts/events/rsvp/counts/")
+def get_rsvp_counts(event_id: int = Query(...), db: Session = Depends(get_db)):
+    going_count = db.query(func.count()).filter(
+        EventAttendee.event_id == event_id,
+        EventAttendee.status == "going"
+    ).scalar()
+
+    interested_count = db.query(func.count()).filter(
+        EventAttendee.event_id == event_id,
+        EventAttendee.status == "interested"
+    ).scalar()
+
+    return {
+        "going": going_count,
+        "interested": interested_count
+    }

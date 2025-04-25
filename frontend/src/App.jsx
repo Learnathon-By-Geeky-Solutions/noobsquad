@@ -10,10 +10,6 @@ import ChatWindows from "./components/chat/ChatWindows";
 import SharedPost from "./pages/SharedPost";
 import PrivateRoute from "./components/PrivateRoute"; // ✅ import this
 import ChatBox from "./components/AIChat";
-import UniversityPage from "./components/University/University";
-import UserProfile from "./components/AboutMe/AboutMe";
-import { User } from "lucide-react";
-import UniversityExplorePage from "./pages/MainUniPage";
 import VerifyEmail from "./pages/VerifyEmail";
 import ResetPassword from "./pages/ResetPassword";
 import ForgotPassword from "./pages/ForgotPassword";
