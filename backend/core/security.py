@@ -37,6 +37,6 @@ def generate_otp() -> str:
 def store_otp(db, user, otp: str):
     """Store OTP with 10-minute expiry."""
     user.otp = otp
-    user.otp_expiry = datetime.utcnow() + timedelta(minutes=10)
+    user.otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=10)
     db.commit()
     db.refresh(user)

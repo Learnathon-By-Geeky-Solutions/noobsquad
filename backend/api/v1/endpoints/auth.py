@@ -27,6 +27,8 @@ load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
 
+user_not_found = "User not found"
+
 # OAuth2PasswordBearer for token authentication
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
@@ -94,7 +96,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         
         user = db.query(models.User).filter(models.User.username == username).first()
         if not user:
-            raise HTTPException(status_code=404, detail=" User not found")
+            raise HTTPException(status_code=404, detail= user_not_found)
         
         return user
     
@@ -109,13 +111,20 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
 async def verify_otp(request: OTPVerificationRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == request.email).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail= user_not_found)
     
     if user.is_verified:
         raise HTTPException(status_code=400, detail="Email already verified")
     
-    if user.otp_expiry < datetime.utcnow():
-        raise HTTPException(status_code=400, detail="OTP expired")
+    # Handle timezone-aware comparison to avoid "TypeError: can't compare offset-naive and offset-aware datetimes"
+    if user.otp_expiry:
+        # If otp_expiry is naive (doesn't have tzinfo), make it aware
+        user_otp_expiry = user.otp_expiry.replace(tzinfo=timezone.utc) if user.otp_expiry.tzinfo is None else user.otp_expiry
+        
+        if user_otp_expiry < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="OTP expired")
+    else:
+        raise HTTPException(status_code=400, detail="OTP not found or expired")
     
     if user.otp != request.otp:
         raise HTTPException(status_code=400, detail="Invalid OTP")
@@ -137,7 +146,7 @@ async def verify_otp(request: OTPVerificationRequest, db: Session = Depends(get_
 async def resend_otp(request: OTPVerificationRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == request.email).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail= user_not_found)
     
     if user.is_verified:
         raise HTTPException(status_code=400, detail="Email already verified")
@@ -158,7 +167,7 @@ async def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(
     user = db.query(User).filter(User.email == request.email).first()
     if not user:
         logger.error(f"No user found for email: {request.email}")
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail= user_not_found)
     
     otp = generate_otp()
     store_otp(db, user, otp)
@@ -173,10 +182,19 @@ async def reset_password(request: ResetPasswordRequest, db: Session = Depends(ge
     user = db.query(User).filter(User.email == request.email).first()
     if not user:
         logger.error(f"No user found for email: {request.email}")
-        raise HTTPException(status_code=404, detail="User not found")
-    if user.otp_expiry < datetime.utcnow():
-        logger.error(f"OTP expired for email: {request.email}")
-        raise HTTPException(status_code=400, detail="OTP expired")
+        raise HTTPException(status_code=404, detail= user_not_found)
+    
+    # Handle timezone-aware comparison to avoid "TypeError: can't compare offset-naive and offset-aware datetimes"
+    if user.otp_expiry:
+        # If otp_expiry is naive (doesn't have tzinfo), make it aware
+        user_otp_expiry = user.otp_expiry.replace(tzinfo=timezone.utc) if user.otp_expiry.tzinfo is None else user.otp_expiry
+        
+        if user_otp_expiry < datetime.now(timezone.utc):
+            logger.error(f"OTP expired for email: {request.email}")
+            raise HTTPException(status_code=400, detail="OTP expired")
+    else:
+        raise HTTPException(status_code=400, detail="OTP not found or expired")
+        
     if user.otp != request.otp:
         logger.error(f"Invalid OTP for email: {request.email}")
         raise HTTPException(status_code=400, detail="Invalid OTP")

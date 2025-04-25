@@ -15,7 +15,7 @@ from models.research_collaboration import research_collaborators
 from werkzeug.utils import secure_filename
 import uuid
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from services.services import *
 from schemas.researchpaper import ResearchPaperOut
 
@@ -59,7 +59,7 @@ async def upload_paper(
             file_path=safe_filename,  # Only the filename
             original_filename=file.filename,
             uploader_id=current_user.id,
-            created_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc)
         )
         db.add(new_paper)
         db.commit()

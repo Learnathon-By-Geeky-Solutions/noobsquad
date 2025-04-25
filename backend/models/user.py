@@ -1,6 +1,7 @@
 from sqlalchemy import Column, DateTime, Integer, String, Boolean
 from database.session import Base
 from sqlalchemy.orm import relationship
+from datetime import timezone, datetime
 
 CASCADE_DELETE_ORPHAN = "all, delete-orphan"
 
@@ -14,7 +15,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)  # Tracks email verification status
     otp = Column(String, nullable=True)  # Stores the OTP temporarily
-    otp_expiry = Column(DateTime, nullable=True)  # OTP expiry time
+    otp_expiry = Column(DateTime(timezone=True), nullable=True)  # OTP expiry time with timezone awareness
 
     # ✅ Merged fields from UserProfile
     profile_picture = Column(String, nullable=True)  # Image URL

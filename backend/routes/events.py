@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Body, Query
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List
 from schemas.post import  EventResponse
 from models.user import User
@@ -14,7 +14,7 @@ router = APIRouter()
 
 @router.get("/events/grouped-by-time", response_model=Dict[str, List[int]])
 def get_grouped_event_ids(db: Session = Depends(get_db)):
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     in_7_days = now + timedelta(days=7)
     in_30_days = now + timedelta(days=30)
     in_1_year = now + timedelta(days=365)
