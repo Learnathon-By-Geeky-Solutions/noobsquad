@@ -1,4 +1,5 @@
 #all helper functions related to post, will be here
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime
@@ -11,15 +12,6 @@ from crud.notification import create_notification
 STATUS_404_ERROR = "Post not found"
 
 # Event part
-
-
-def send_post_notifications(db: Session, user: User, post: Post):
-    friends = get_connections(db, user.id)
-    for friend in friends:
-        friend_id = friend["friend_id"] if friend["user_id"] == user.id else friend["user_id"]
-        create_notification(db=db, recipient_id=friend_id, actor_id=user.id, notif_type="new_post", post_id=post.id)
-    db.commit()
-
 
 def should_convert(date, time, tz):
     return all([date, time, tz])
