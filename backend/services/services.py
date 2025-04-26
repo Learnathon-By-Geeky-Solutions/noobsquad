@@ -1,4 +1,5 @@
 #all helper functions related to post, will be here
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime
