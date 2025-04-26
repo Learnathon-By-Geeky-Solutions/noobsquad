@@ -9,6 +9,7 @@ from api.v1.endpoints.auth import get_current_user  # Ensure authentication midd
 from models.user import User
 from models.research_collaboration import ResearchCollaboration
 from models.collaboration_request import CollaborationRequest
+from typing import List
 from fastapi import Query
 from sqlalchemy import and_, func, or_
 from models.research_collaboration import research_collaborators
@@ -16,7 +17,7 @@ from werkzeug.utils import secure_filename
 import uuid
 from pathlib import Path
 from datetime import datetime, timezone
-from services.services import *
+from services.services import validate_file_extension, generate_secure_filename, save_upload_file
 from schemas.researchpaper import ResearchPaperOut
 
 router = APIRouter()
