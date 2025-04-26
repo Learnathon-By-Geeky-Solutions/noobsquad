@@ -2,7 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database.session import engine, Base
 from api.v1.endpoints import auth, connections, research, chat
-from routes import profile, post, postReaction, notification, group, user, topuni, events
+from routes import profile, post,  notification, group, user, topuni, events
+from routes.PostReaction import Like, Comment, Share, EventAttendee
 from fastapi.staticfiles import StaticFiles
 from api.v1.endpoints import search
 from api.v1.endpoints.chatbot import huggingface
@@ -34,7 +35,10 @@ Base.metadata.create_all(bind=engine)
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 app.include_router(profile.router, prefix="/profile", tags=["User Profile"])
 app.include_router(post.router,prefix="/posts", tags=["Posts"])
-app.include_router(postReaction.router, prefix="/interactions", tags=["Post Interactions"])
+app.include_router(Like.router, prefix="/interactions", tags=["Post Interactions"])
+app.include_router(Comment.router, prefix="/interactions", tags=["Post Interactions"])
+app.include_router(Share.router, prefix="/interactions", tags=["Post Interactions"])
+app.include_router(EventAttendee.router, prefix="/interactions", tags=["Post Interactions"])
 app.include_router(connections.router, prefix="/connections", tags=["Connections"])
 app.include_router(research.router, prefix="/research", tags=["Research"])
 app.include_router(chat.router, prefix="/chat", tags=["Chat"])
