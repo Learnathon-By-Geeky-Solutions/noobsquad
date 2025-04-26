@@ -17,7 +17,7 @@ from werkzeug.utils import secure_filename
 import uuid
 from pathlib import Path
 from datetime import datetime, timezone
-from services.file_service import validate_file_extension, generate_secure_filename, save_upload_file
+from services.services import validate_file_extension, generate_secure_filename, save_upload_file
 from schemas.researchpaper import ResearchPaperOut
 
 router = APIRouter()
