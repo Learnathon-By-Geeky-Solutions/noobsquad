@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const API_BASE_URL = 'http://127.0.0.1:8000/'; // Update if needed
+// Use environment variable in production, fallback to local development URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/';
 
 // ✅ Create an Axios instance with JWT Authorization
 const api = axios.create({

@@ -15,7 +15,7 @@ import {
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useChat } from "../context/ChatContext";
-import NotificationBell from "./notifications/notificationbell";
+import NotificationBell from "./notifications/NotificationBell";
 import ChatPopupWrapper from "./AIPopup";
 
 import api from "../api/axios"; // Import your axios instance
