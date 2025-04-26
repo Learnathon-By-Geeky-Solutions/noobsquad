@@ -1,24 +1,10 @@
-#all helper functions related to post, will be here
-from uuid import uuid4
-import uuid
-from fastapi import APIRouter, Depends, HTTPException, Form, File, UploadFile, Query, Request
-from sqlalchemy.orm import Session
-from typing import Optional, List, Union
+
+from fastapi import HTTPException, UploadFile
 import os
 import secrets
 from pathlib import Path
-from datetime import datetime, timezone
-from api.v1.endpoints.auth import get_current_user
-from models.user import User
-from models.post import Post, PostMedia, PostDocument, Event, Like, Comment
-from schemas.post import PostResponse, MediaPostResponse, DocumentPostResponse, EventResponse, TextPostUpdate
-from database.session import SessionLocal
-from zoneinfo import ZoneInfo
-from sqlalchemy.orm import Session, joinedload
 import shutil
-from core.connection_crud import get_connections
-from crud.notification import create_notification
-from AI.moderation import moderate_text
+
 
 STATUS_404_ERROR = "Post not found"
 
