@@ -7,9 +7,20 @@ export const ChatProvider = ({ children }) => {
   const [chatWindows, setChatWindows] = useState([]);
 
   const openChat = (user, refreshConversations) => {
+    console.log("Opening chat with user:", user);
+    
+    if (!user || !user.id) {
+      console.error("Invalid user object provided to openChat:", user);
+      return;
+    }
+    
     setChatWindows((prev) => {
       const alreadyOpen = prev.find((chat) => chat.id === user.id);
-      if (alreadyOpen) return prev;
+      if (alreadyOpen) {
+        console.log("Chat already open for user:", user.id);
+        return prev;
+      }
+      console.log("Adding new chat window for user:", user.id);
       return [...prev, { ...user, refreshConversations }];
     });
   };

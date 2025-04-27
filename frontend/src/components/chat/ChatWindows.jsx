@@ -10,7 +10,8 @@ const ChatWindows = () => {
     const userId = localStorage.getItem("user_id");
 
     if (userId) {
-      const ws = new WebSocket(`${import.meta.env.WEBSOCKET_URL}/chat/ws/${userId}`);
+      const wsUrl = import.meta.env.VITE_WEBSOCKET_URL || import.meta.env.VITE_API_URL.replace('http', 'ws');
+      const ws = new WebSocket(`${wsUrl}/chat/ws/${userId}`);
 
       ws.onopen = () => {
         console.log("✅ WebSocket connection established");
@@ -34,8 +35,6 @@ const ChatWindows = () => {
       console.warn("⚠️ No user_id found in localStorage.");
     }
   }, []);
-
-  if (!socket) return null;
 
   return (
     <>

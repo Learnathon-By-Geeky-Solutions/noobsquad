@@ -50,6 +50,16 @@ const ConnectedUsers = () => {
       .finally(() => setLoading(false));
   }, []);
 
+  // Function to handle opening a chat with proper error handling
+  const handleOpenChat = (friend) => {
+    console.log("Attempting to open chat with friend:", friend);
+    if (!friend || !friend.id) {
+      console.error("Invalid friend object:", friend);
+      return;
+    }
+    openChat(friend);
+  };
+
   const renderContent = () => {
     if (loading) {
       return <p className="text-gray-500">Loading your connections...</p>;
@@ -78,7 +88,7 @@ const ConnectedUsers = () => {
             <h3 className="text-lg font-semibold text-gray-800">{friend.username}</h3>
 
             <button
-              onClick={() => openChat(friend)}
+              onClick={() => handleOpenChat(friend)}
               className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium flex items-center justify-center gap-2 transition"
             >
               <MessageCircle className="w-4 h-4" />
