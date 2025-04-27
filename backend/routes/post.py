@@ -194,7 +194,7 @@ async def create_text_post(
     db: Session = Depends(get_db)
 ):
     if moderate_text(content):
-        raise HTTPException(status_code=400, detail="Inappropriate content detected")
+        raise HTTPException(status_code=400, detail="Inappropriate content detected, Please revise your post.")
 
     post = create_post_entry(db, current_user.id, content, "text")
     hashtags = extract_hashtags(post.content)

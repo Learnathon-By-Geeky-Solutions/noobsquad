@@ -1,20 +1,28 @@
-from transformers import pipeline
+from fastapi import HTTPException
+from better_profanity import profanity
 
-_classifier = None
-
-def get_classifier():
-    global _classifier
-    if _classifier is None:
-        print("Loading classifier...")
-        _classifier = pipeline('text-classification', model='distilbert-base-uncased-finetuned-sst-2-english')
-        print("Classifier loaded!")
-    return _classifier
+# Initialize the profanity filter
+profanity.load_censor_words()
 
 def moderate_text(text: str) -> bool:
     """
-    Function to check if the text contains inappropriate content (e.g., toxicity).
-    Returns True if toxic, False if not.
+    Returns True if text is inappropriate, False if it's safe
+    Uses better-profanity for offline content moderation
     """
-    classifier = get_classifier()
-    result = classifier(text)
-    return result[0]['label'] == 'NEGATIVE'
+    if not text or not isinstance(text, str):
+        return False
+
+    try:
+        # Check if text contains profanity
+        contains_profanity = profanity.contains_profanity(text)
+        
+        if contains_profanity:
+            print("Text contains inappropriate content")
+            return True
+        else:
+            print("Text is considered safe")
+            return False
+            
+    except Exception as e:
+        print(f"Error in text moderation: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error in text moderation: {str(e)}")
