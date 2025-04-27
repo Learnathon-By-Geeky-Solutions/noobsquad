@@ -51,6 +51,7 @@ jobs:
           echo "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}" >> backend/.env
           echo "BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}" >> backend/.env
           echo "EMAIL_FROM=${{ secrets.EMAIL_FROM }}" >> backend/.env
+          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" >> backend/.env
           
         shell: bash
 
