@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 import uuid
 from fastapi.testclient import TestClient
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # Add backend directory to sys.path
 sys.path.append(str(Path(__file__).resolve().parents[1]))
@@ -11,7 +11,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 from main import app
 from database.session import SessionLocal, Base, engine
 from models.user import User
-from core.security import hash_password
+from core.security import hash_password, verify_password
 from sqlalchemy.orm import Session
 
 # Initialize FastAPI test client
@@ -196,7 +196,7 @@ def test_verify_otp():
         hashed_password=hash_password("testpass"),
         is_verified=False,
         otp=test_otp,
-        otp_expiry=datetime.utcnow() + timedelta(minutes=10)
+        otp_expiry=datetime.now(timezone.utc) + timedelta(minutes=10)  # Use timezone-aware datetime
     )
     db.add(user)
     db.commit()
@@ -236,7 +236,7 @@ def test_verify_otp_invalid():
         hashed_password=hash_password("testpass"),
         is_verified=False,
         otp=test_otp,
-        otp_expiry=datetime.utcnow() + timedelta(minutes=10)
+        otp_expiry=datetime.now(timezone.utc) + timedelta(minutes=10)  # Use timezone-aware datetime
     )
     db.add(user)
     db.commit()
@@ -266,7 +266,7 @@ def test_verify_otp_expired():
         hashed_password=hash_password("testpass"),
         is_verified=False,
         otp=test_otp,
-        otp_expiry=datetime.utcnow() - timedelta(minutes=1)  # Expired OTP
+        otp_expiry=datetime.now(timezone.utc) - timedelta(minutes=1)  # Expired OTP
     )
     db.add(user)
     db.commit()
@@ -299,7 +299,7 @@ def test_resend_otp():
         hashed_password=hash_password("testpass"),
         is_verified=False,
         otp=initial_otp,
-        otp_expiry=datetime.utcnow() + timedelta(minutes=10)
+        otp_expiry=datetime.now(timezone.utc) + timedelta(minutes=10)  # Use timezone-aware datetime
     )
     db.add(user)
     db.commit()
@@ -385,14 +385,15 @@ def test_reset_password():
         hashed_password=hash_password(original_password),
         is_verified=True,
         otp=test_otp,
-        otp_expiry=datetime.utcnow() + timedelta(minutes=10)
+        otp_expiry=datetime.now(timezone.utc) + timedelta(minutes=10)  # Use timezone-aware datetime
     )
     db.add(user)
     db.commit()
+    db.refresh(user)
     db.close()
 
-    # Reset password
-    new_password = "new_password123"
+    # Test resetting password with a valid OTP
+    new_password = "new_password"
     response = client.post(
         "/auth/reset-password/",
         json={
@@ -404,23 +405,14 @@ def test_reset_password():
     assert response.status_code == 200
     assert "Password reset successfully" in response.json()["message"]
 
-    # Verify password was changed and OTP cleared
+    # Verify password was changed in DB
     db = SessionLocal()
     user = db.query(User).filter(User.email == unique_email).first()
-    assert user.otp is None
+    assert verify_password(new_password, user.hashed_password)
+    assert not verify_password(original_password, user.hashed_password)
+    assert user.otp is None  # OTP should be cleared after password reset
     assert user.otp_expiry is None
     db.close()
-
-    # Try to login with new password
-    response = client.post(
-        "/auth/token",
-        data={
-            "username": unique_username,
-            "password": new_password
-        }
-    )
-    assert response.status_code == 200
-    assert "access_token" in response.json()
 
 def test_reset_password_invalid_otp():
     # Create a user with OTP for password reset
@@ -435,7 +427,7 @@ def test_reset_password_invalid_otp():
         hashed_password=hash_password("testpass"),
         is_verified=True,
         otp=test_otp,
-        otp_expiry=datetime.utcnow() + timedelta(minutes=10)
+        otp_expiry=datetime.now(timezone.utc) + timedelta(minutes=10)  # Use timezone-aware datetime
     )
     db.add(user)
     db.commit()
@@ -466,7 +458,7 @@ def test_reset_password_expired_otp():
         hashed_password=hash_password("testpass"),
         is_verified=True,
         otp=test_otp,
-        otp_expiry=datetime.utcnow() - timedelta(minutes=1)  # Expired OTP
+        otp_expiry=datetime.now(timezone.utc) - timedelta(minutes=1)  # Expired OTP
     )
     db.add(user)
     db.commit()

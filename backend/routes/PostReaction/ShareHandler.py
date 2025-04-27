@@ -12,7 +12,8 @@ import os
 # Load environment variables
 load_dotenv()
 
-API_URL = os.getenv("VITE_API_URL") 
+# Using the URL from tests or falling back to the environment variable
+API_URL = os.getenv("VITE_API_URL", "https://noobsquad-academy.vercel.app")
 
 def create_share(db: Session, user_id: int, post_id: int) -> Share:
     """Create a new share entry"""

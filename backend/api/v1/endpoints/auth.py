@@ -116,6 +116,10 @@ async def verify_otp(request: OTPVerificationRequest, db: Session = Depends(get_
     if user.is_verified:
         raise HTTPException(status_code=400, detail="Email already verified")
     
+    # Check if OTP is valid
+    if user.otp != request.otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+    
     # Handle timezone-aware comparison to avoid "TypeError: can't compare offset-naive and offset-aware datetimes"
     if user.otp_expiry:
         # If otp_expiry is naive (doesn't have tzinfo), make it aware
@@ -125,9 +129,6 @@ async def verify_otp(request: OTPVerificationRequest, db: Session = Depends(get_
             raise HTTPException(status_code=400, detail="OTP expired")
     else:
         raise HTTPException(status_code=400, detail="OTP not found or expired")
-    
-    if user.otp != request.otp:
-        raise HTTPException(status_code=400, detail="Invalid OTP")
     
     # Mark as verified
     user.is_verified = True
@@ -184,6 +185,11 @@ async def reset_password(request: ResetPasswordRequest, db: Session = Depends(ge
         logger.error(f"No user found for email: {request.email}")
         raise HTTPException(status_code=404, detail= user_not_found)
     
+    # Check if OTP is valid first
+    if user.otp != request.otp:
+        logger.error(f"Invalid OTP for email: {request.email}")
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+    
     # Handle timezone-aware comparison to avoid "TypeError: can't compare offset-naive and offset-aware datetimes"
     if user.otp_expiry:
         # If otp_expiry is naive (doesn't have tzinfo), make it aware
@@ -195,10 +201,6 @@ async def reset_password(request: ResetPasswordRequest, db: Session = Depends(ge
     else:
         raise HTTPException(status_code=400, detail="OTP not found or expired")
         
-    if user.otp != request.otp:
-        logger.error(f"Invalid OTP for email: {request.email}")
-        raise HTTPException(status_code=400, detail="Invalid OTP")
-    
     user.hashed_password = hash_password(request.new_password)
     user.otp = None
     user.otp_expiry = None
