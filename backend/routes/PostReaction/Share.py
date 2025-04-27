@@ -11,6 +11,13 @@ from .ShareHandler import (
     get_post_additional_data
 )
 from crud.notification import create_notification
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
+
+API_URL = os.getenv("FRONTEND_URL")
 
 router = APIRouter()
 
@@ -32,7 +39,7 @@ def share_post(share_data: ShareCreate, db: Session = Depends(get_db), current_u
     
     # Create share entry
     new_share = create_share(db, current_user.id, share_data.post_id)
-    share_link = f"http://localhost:5173/share/{new_share.share_token}"
+    share_link = f"{API_URL}/share/{new_share.share_token}"
 
     # Notify post owner if different from current user
     post_owner = db.query(User).filter(User.id == post.user_id).first()

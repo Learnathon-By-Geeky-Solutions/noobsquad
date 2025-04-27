@@ -40,7 +40,7 @@ const ChatBox = ({ initialFile = null }) => {
     formData.append("file", file);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/chatbot/upload_pdf/", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/chatbot/upload_pdf/`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`
@@ -71,7 +71,7 @@ const ChatBox = ({ initialFile = null }) => {
       const formData = new FormData();
       formData.append("req", input);
 
-      const response = await fetch("http://127.0.0.1:8000/chatbot/hugapi", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/chatbot/hugapi`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`

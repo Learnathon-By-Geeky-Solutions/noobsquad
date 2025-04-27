@@ -29,7 +29,7 @@ const ProfileCard = () => {
     const fetchData = async () => {
       try {
         // 1. Get logged-in user
-        const authRes = await axios.get("http://localhost:8000/auth/users/me/", {
+        const authRes = await axios.get(`${import.meta.env.VITE_API_URL}/auth/users/me/`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setAuthUser(authRes.data);
@@ -37,7 +37,7 @@ const ProfileCard = () => {
   
         // 2. Get profile user ID
         const profileRes = await axios.get(
-          `http://localhost:8000/user/username/${username}`,
+          `${import.meta.env.VITE_API_URL}/user/username/${username}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -48,7 +48,7 @@ const ProfileCard = () => {
   
         // ✅ 3. Get full profile data for that user ID
         const userRes = await axios.get(
-          `http://localhost:8000/user/profile/${profileId}`,
+          `${import.meta.env.VITE_API_URL}/user/profile/${profileId}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -92,7 +92,7 @@ const ProfileCard = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:8000/profile/upload_picture",
+        `${import.meta.env.VITE_API_URL}/profile/upload_picture`,
         formData,
         {
           headers: {
@@ -118,7 +118,7 @@ const ProfileCard = () => {
   if (!user) return <p className="text-center text-gray-500 mt-10">Loading...</p>;
 
   const currentPicture = user.profile_picture
-    ? `http://127.0.0.1:8000/uploads/profile_pictures/${user.profile_picture}`
+    ? `${import.meta.env.VITE_API_URL}/uploads/profile_pictures/${user.profile_picture}`
     : "/default-avatar.png";
 
   return (

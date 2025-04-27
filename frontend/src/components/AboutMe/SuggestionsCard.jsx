@@ -14,7 +14,7 @@ const ProfileSuggestedFriends = () => {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://127.0.0.1:8000/connections/users/", {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/connections/users/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -38,7 +38,7 @@ const ProfileSuggestedFriends = () => {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.post("http://127.0.0.1:8000/connections/connect/", { friend_id: userId }, {
+      await axios.post(`${import.meta.env.VITE_API_URL}/connections/connect/`, { friend_id: userId }, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setConnectionStatus(prev => ({ ...prev, [userId]: "Pending" }));
@@ -69,7 +69,7 @@ const ProfileSuggestedFriends = () => {
                     <img
                         src={
                         user.profile_picture
-                            ? `http://127.0.0.1:8000/uploads/profile_pictures/${user.profile_picture}`
+                            ? `${import.meta.env.VITE_API_URL}/uploads/profile_pictures/${user.profile_picture}`
                             : "/default-avatar.png"
                         }
                         alt="Profile"
@@ -107,7 +107,7 @@ const ProfileSuggestedFriends = () => {
             {/* "See more" link */}
             {users.length > 3 && (
                 <div className="mt-5 text-center">
-                <a href="http://localhost:5173/dashboard/suggested-users" className="text-blue-500 hover:underline">
+                <a href={`${import.meta.env.FRONTEND_URL}/dashboard/suggested-users`} className="text-blue-500 hover:underline">
                     See more
                 </a>
                 </div>

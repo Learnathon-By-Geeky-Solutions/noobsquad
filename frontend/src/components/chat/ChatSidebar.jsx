@@ -10,7 +10,7 @@ const ChatSidebar = () => {
   const fetchConversations = async () => {
     const token = localStorage.getItem("token");
     try {
-      const res = await axios.get("http://localhost:8000/chat/chat/conversations", {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/chat/chat/conversations`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       console.log("Fetched conversations:", res.data);
@@ -62,7 +62,7 @@ const ChatSidebar = () => {
           };
 
           const profileImage = c.avatar
-            ? `http://localhost:8000/uploads/profile_pictures/${c.avatar}`
+            ? `${import.meta.env.VITE_API_URL}/uploads/profile_pictures/${c.avatar}`
             : "/default-avatar.png";
 
           console.log("Rendering user:", normalizedUser);

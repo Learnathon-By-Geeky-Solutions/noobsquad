@@ -12,6 +12,12 @@ import uuid
 from pathlib import Path
 import secrets
 from core.dependencies import get_db
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+API_URL = os.getenv("VITE_API_URL")
 
 router = APIRouter()
 
@@ -119,6 +125,6 @@ def upload_profile_picture(
 
     return {
         "filename": secure_filename,
-        "profile_url": f"http://127.0.0.1:8000/uploads/profile_pictures/{secure_filename}",
+        "profile_url": f"{API_URL}/uploads/profile_pictures/{secure_filename}",
         "profile_completed": db_user.profile_completed
     }

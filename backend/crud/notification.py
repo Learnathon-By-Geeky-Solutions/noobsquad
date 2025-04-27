@@ -4,7 +4,13 @@ from models.notifications import Notification
 from schemas.notification import NotificationCreate
 from datetime import datetime, timezone
 from models.user import User
+from dotenv import load_dotenv
+import os
 
+# Load environment variables
+load_dotenv()
+
+API_URL = os.getenv("VITE_API_URL")
 # Function to create a new notification
 def create_notification(db: Session, recipient_id: int, actor_id: int, notif_type: str, post_id: int = None):
     new_notification = Notification(
@@ -33,7 +39,7 @@ def get_unread_notifications(db: Session, user_id: int):
             "actor_username": n.actor.username,
             "created_at": n.created_at,
             "user_id": n.user_id,  # Add this field
-            "actor_image_url": f"http://127.0.0.1:8000/uploads/profile_pictures/{n.actor.profile_picture}"
+            "actor_image_url": f"{API_URL}/uploads/profile_pictures/{n.actor.profile_picture}"
         }
 
         for n in notifications
@@ -52,7 +58,7 @@ def get_all_notifications(db: Session, user_id: int):
             "actor_username": n.actor.username,
             "created_at": n.created_at,
             "user_id": n.user_id,  # Add this field
-            "actor_image_url": f"http://127.0.0.1:8000/uploads/profile_pictures/{n.actor.profile_picture}"
+            "actor_image_url": f"{API_URL}/uploads/profile_pictures/{n.actor.profile_picture}"
 
         }
         for n in notifications
@@ -78,7 +84,7 @@ def mark_notification_as_read(db: Session, notif_id: int):
             "actor_username": notification.actor.username,
             "created_at": notification.created_at,
             "user_id": notification.user_id,  # Add this field
-            "actor_image_url": f"http://127.0.0.1:8000/uploads/profile_pictures/{notification.actor.profile_picture}"
+            "actor_image_url": f"{API_URL}/uploads/profile_pictures/{notification.actor.profile_picture}"
 
         }
     return None

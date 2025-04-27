@@ -9,7 +9,7 @@ const NotificationBell = ({ userId }) => {
   const fetchUnreadCount = async () => {
     if (!userId) return; // ✅ Prevent call if userId is undefined
     try {
-      const res = await fetch(`http://localhost:8000/notifications/unread?user_id=${userId}`);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/notifications/unread?user_id=${userId}`);
       const data = await res.json();
       setUnreadCount(data.length);
     } catch (err) {

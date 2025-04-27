@@ -4,7 +4,7 @@ export const fetchUserDetails = async (userId) => {
   try {
     const token = localStorage.getItem("token");
     const response = await axios.get(
-      `http://127.0.0.1:8000/connections/user/${userId}`,
+      `${import.meta.env.VITE_API_URL}/connections/user/${userId}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
     return response.data;
@@ -19,7 +19,7 @@ export const fetchConnectedUsers = async () => {
     const token = localStorage.getItem("token");
     const currentUserId = parseInt(localStorage.getItem("user_id"));
     const response = await axios.get(
-      "http://127.0.0.1:8000/connections/connections/",
+      `${import.meta.env.VITE_API_URL}/connections/connections/`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
 

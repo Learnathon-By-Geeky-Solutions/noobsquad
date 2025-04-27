@@ -19,6 +19,10 @@ from pathlib import Path
 from datetime import datetime, timezone
 from services.FileHandler import validate_file_extension, generate_secure_filename, save_upload_file
 from schemas.researchpaper import ResearchPaperOut
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 router = APIRouter()
 
@@ -27,6 +31,8 @@ give_error = "Internal Server Error"
 UPLOAD_DIR = Path("uploads/research_papers")  # ✅ Ensure UPLOAD_DIR is a Path object
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)  # ✅ Create directory if it doesn't exist
 ALLOWED_DOCS = [".pdf", ".doc", ".docx"]
+# Get base URL from environment variable
+API_URL = os.getenv("VITE_API_URL")
 
 @router.post("/upload-paper/")
 async def upload_paper(
@@ -109,7 +115,7 @@ def get_recommended_papers(
     result = []
     for paper in papers:
         paper_dict = paper.__dict__.copy()
-        paper_dict["file_path"] = f"http://127.0.0.1:8000/uploads/research_papers/{paper.file_path}"
+        paper_dict["file_path"] = f"{API_URL}/uploads/research_papers/{paper.file_path}"
         result.append(paper_dict)
 
     return result
@@ -138,7 +144,7 @@ def search_papers(
                 "title": paper.title,
                 "author": paper.author,
                 "research_field": paper.research_field,
-                "file_path": f"http://127.0.0.1:8000/uploads/research_papers/{paper.file_path}",
+                "file_path": f"{API_URL}/uploads/research_papers/{paper.file_path}",
                 "uploader_id": paper.uploader_id,
                 "download_url": f"/papers/download/{paper.id}/",
                 "request_id": f"/request-collaboration/{paper.id}/",
@@ -411,7 +417,7 @@ def get_papers_by_user(user_id: int, db: Session = Depends(get_db)):
                 "title": paper.title,
                 "author": paper.author,
                 "research_field": paper.research_field,
-                "file_path": f"http://127.0.0.1:8000/uploads/research_papers/{paper.file_path}",
+                "file_path": f"{API_URL}/uploads/research_papers/{paper.file_path}",
                 "uploader_id": paper.uploader_id,
                 "download_url": f"/papers/download/{paper.id}/",
                 "request_id": f"/request-collaboration/{paper.id}/",

@@ -2,6 +2,13 @@
 from sqlalchemy.orm import Session
 from models.post import Post, PostMedia, PostDocument, Event
 from sqlalchemy.orm import Session
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
+
+API_URL = os.getenv("VITE_API_URL")
 
 STATUS_404_ERROR = "Post not found"
 
@@ -19,13 +26,13 @@ def get_post_additional_data(post: Post, db: Session):
 def get_media_post_data(post: Post, db: Session):
     media = db.query(PostMedia).filter(PostMedia.post_id == post.id).first()
     return {
-        "media_url": f"http://127.0.0.1:8000/uploads/media/{media.media_url}" if media else None
+        "media_url": f"{API_URL}/uploads/media/{media.media_url}" if media else None
     }
 
 def get_document_post_data(post: Post, db: Session):
     document = db.query(PostDocument).filter(PostDocument.post_id == post.id).first()
     return {
-        "document_url": f"http://127.0.0.1:8000/uploads/document/{document.document_url}" if document else None
+        "document_url": f"{API_URL}/uploads/document/{document.document_url}" if document else None
     }
 
 def get_event_post_data(post: Post, db: Session):

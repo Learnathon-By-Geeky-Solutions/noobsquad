@@ -27,14 +27,14 @@ const UserProfile = () => {
     const fetchUserData = async () => {
       try {
         // 1. Get current logged-in user
-        const current = await axios.get("http://localhost:8000/auth/users/me/", {
+        const current = await axios.get(`${import.meta.env.VITE_API_URL}/auth/users/me/`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setCurrentUserId(current.data.id);
         console.log("current.data.id:", current.data.id)
 
         // 2. Get visited profile user using username
-        const profile = await axios.get(`http://localhost:8000/user/username/${username}`, {
+        const profile = await axios.get(`${import.meta.env.VITE_API_URL}/user/username/${username}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

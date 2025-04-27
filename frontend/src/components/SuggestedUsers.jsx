@@ -17,7 +17,7 @@ const SuggestedUsers = () => {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://127.0.0.1:8000/connections/users/", {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/connections/users/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -35,14 +35,14 @@ const SuggestedUsers = () => {
   const fetchIncomingRequests = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://127.0.0.1:8000/connections/pending-requests", {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/connections/pending-requests`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       const usersData = await Promise.all(
         response.data.map(async (req) => {
           try {
-            const userResponse = await axios.get(`http://127.0.0.1:8000/connections/user/${req.user_id}`, {
+            const userResponse = await axios.get(`${import.meta.env.VITE_API_URL}/connections/user/${req.user_id}`, {
               headers: { Authorization: `Bearer ${token}` }
             });
             return { ...req, userDetails: userResponse.data };
@@ -64,7 +64,7 @@ const SuggestedUsers = () => {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.post("http://127.0.0.1:8000/connections/connect/", { friend_id: userId }, {
+      await axios.post(`${import.meta.env.VITE_API_URL}/connections/connect/`, { friend_id: userId }, {
         headers: { Authorization: `Bearer ${token}` }
       });
     } catch (error) {
@@ -76,7 +76,7 @@ const SuggestedUsers = () => {
   const acceptConnectionRequest = async (requestId) => {
     try {
       const token = localStorage.getItem("token");
-      await axios.post(`http://127.0.0.1:8000/connections/accept/${requestId}`, {}, {
+      await axios.post(`${import.meta.env.VITE_API_URL}/connections/accept/${requestId}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setIncomingRequests(prev => prev.filter(req => req.id !== requestId));
@@ -88,7 +88,7 @@ const SuggestedUsers = () => {
   const rejectConnectionRequest = async (requestId) => {
     try {
       const token = localStorage.getItem("token");
-      await axios.post(`http://127.0.0.1:8000/connections/reject/${requestId}`, {}, {
+      await axios.post(`${import.meta.env.VITE_API_URL}/connections/reject/${requestId}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setIncomingRequests(prev => prev.filter(req => req.id !== requestId));
@@ -111,7 +111,7 @@ const SuggestedUsers = () => {
             <img
               src={
                 user.profile_picture
-                  ? `http://127.0.0.1:8000/uploads/profile_pictures/${user.profile_picture}`
+                  ? `${import.meta.env.VITE_API_URL}/uploads/profile_pictures/${user.profile_picture}`
                   : "/default-avatar.png"
               }
               alt="Profile"
@@ -158,7 +158,7 @@ const SuggestedUsers = () => {
               <img
                 src={
                   req.userDetails?.profile_picture
-                    ? `http://127.0.0.1:8000/uploads/profile_pictures/${req.userDetails.profile_picture}`
+                    ? `${import.meta.env.VITE_API_URL}/uploads/profile_pictures/${req.userDetails.profile_picture}`
                     : "/default-avatar.png"
                 }
                 alt="Profile"

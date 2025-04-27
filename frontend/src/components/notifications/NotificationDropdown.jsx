@@ -10,7 +10,7 @@ const NotificationDropdown = ({ userId, onRead }) => {
   const fetchNotifications = async () => {
     try {
       if (!userId) return;
-      const response = await fetch(`http://localhost:8000/notifications?user_id=${userId}`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/notifications?user_id=${userId}`);
       const data = await response.json();
       setNotifications(data);
     } catch (error) {
@@ -20,7 +20,7 @@ const NotificationDropdown = ({ userId, onRead }) => {
 
   const markAsRead = async (notifId) => {
     try {
-      await fetch(`http://localhost:8000/notifications/${notifId}/read`, {
+      await fetch(`${import.meta.env.VITE_API_URL}/notifications/${notifId}/read`, {
         method: 'PUT',
       });
       fetchNotifications();

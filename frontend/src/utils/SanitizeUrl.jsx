@@ -27,11 +27,6 @@ export const sanitizeUrl = (url) => {
     return '/default-avatar.png';
   }
 
-  // Ensure the URL has a valid hostname (not empty, not just localhost)
-  // const hostname = parsedUrl.hostname;
-  // if (!hostname || hostname === 'localhost' || !hostname.includes('.')) {
-  //   return '/default-avatar.png';
-  // }
 
   // If all checks pass, return the original URL
   return trimmedUrl;

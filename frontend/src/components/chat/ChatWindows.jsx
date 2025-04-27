@@ -10,7 +10,7 @@ const ChatWindows = () => {
     const userId = localStorage.getItem("user_id");
 
     if (userId) {
-      const ws = new WebSocket(`ws://localhost:8000/chat/ws/${userId}`);
+      const ws = new WebSocket(`${import.meta.env.WEBSOCKET_URL}/chat/ws/${userId}`);
 
       ws.onopen = () => {
         console.log("✅ WebSocket connection established");

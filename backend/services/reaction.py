@@ -7,6 +7,13 @@ from models.user import User
 from models.post import Post, Like, Comment
 from zoneinfo import ZoneInfo
 from crud.notification import create_notification
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
+
+API_URL = os.getenv("VITE_API_URL")
 
 # Helper: notify user if not the actor
 
@@ -73,5 +80,5 @@ def serialize_user(user: User):
     return {
         "id": user.id,
         "username": user.username,
-        "profile_picture": f"http://127.0.0.1:8000/uploads/profile_pictures/{user.profile_picture}"
+        "profile_picture": f"{API_URL}/uploads/profile_pictures/{user.profile_picture}"
     }

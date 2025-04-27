@@ -13,7 +13,7 @@ const UniversityPostFeed = ({ postIds }) => {
   
         const results = await Promise.all(
           postIds.map(async (id) => {
-            const res = await fetch(`http://127.0.0.1:8000/posts/${id}`, {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/posts/${id}`, {
               headers: {
                 Authorization: `Bearer ${token}`,
               },

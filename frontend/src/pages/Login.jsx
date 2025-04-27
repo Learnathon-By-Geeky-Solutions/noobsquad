@@ -42,7 +42,7 @@ const Login = () => {
       console.log("Token stored:", data.access_token);
 
       // Fetch user data with explicit token
-      const userResponse = await axios.get("http://localhost:8000/auth/users/me/", {
+      const userResponse = await axios.get(`${import.meta.env.VITE_API_URL}/auth/users/me/`, {
         headers: {
           Authorization: `Bearer ${data.access_token}`,
         },

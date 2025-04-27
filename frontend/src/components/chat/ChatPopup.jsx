@@ -18,7 +18,7 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
 
     const fetchMessages = async () => {
       try {
-        const res = await axios.get(`http://localhost:8000/chat/chat/history/${user.id}`, {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/chat/chat/history/${user.id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setMessages(res.data);
@@ -118,7 +118,7 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
     formData.append("file", file);
 
     try {
-      const res = await axios.post("http://localhost:8000/chat/upload", formData, {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/chat/upload`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
@@ -236,9 +236,9 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
                 </a>
               )}
               {msg.message_type === "image" && (
-                <a href={`http://localhost:8000${msg.file_url}`} target="_blank" rel="noopener noreferrer">
+                <a href={`${import.meta.env.VITE_API_URL}${msg.file_url}`} target="_blank" rel="noopener noreferrer">
                   <img
-                    src={`http://localhost:8000${msg.file_url}`}
+                    src={`${import.meta.env.VITE_API_URL}${msg.file_url}`}
                     alt={msg.content || "Shared image"}
                     className="max-w-full h-auto rounded-lg mt-1 cursor-pointer"
                     onError={(e) => {
@@ -250,7 +250,7 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
               )}
               {msg.message_type === "file" && (
                 <a
-                  href={`http://localhost:8000${msg.file_url}`}
+                  href={`${import.meta.env.VITE_API_URL}${msg.file_url}`}
                   download
                   className="underline break-all"
                 >

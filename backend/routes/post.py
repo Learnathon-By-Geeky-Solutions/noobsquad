@@ -25,7 +25,13 @@ from services.NotificationHandler import send_post_notifications
 from services.PostTypeHandler import get_post_additional_data
 from models.hashtag import Hashtag
 from models.university import University
+from dotenv import load_dotenv
+import os
 
+# Load environment variables
+load_dotenv()
+
+API_URL = os.getenv("VITE_API_URL") # ✅ Get base URL from environment variable
 
 router = APIRouter()
 
@@ -92,7 +98,7 @@ def get_posts(
             "user": {
                 "id": post.user.id,
                 "username": post.user.username,
-                "profile_picture": f"http://127.0.0.1:8000/uploads/profile_pictures/{post.user.profile_picture}"
+                "profile_picture": f"{API_URL}/uploads/profile_pictures/{post.user.profile_picture}"
             },
             "total_likes": post.like_count,
             "user_liked": user_liked
@@ -128,7 +134,7 @@ def get_single_post(
         "user": {
             "id": post.user.id,
             "username": post.user.username,
-            "profile_picture": f"http://127.0.0.1:8000/uploads/profile_pictures/{post.user.profile_picture}"
+            "profile_picture": f"{API_URL}/uploads/profile_pictures/{post.user.profile_picture}"
         },
         "total_likes": post.like_count,
         "user_liked": user_liked
@@ -238,7 +244,7 @@ async def create_event_post(
         ext = validate_file_extension(event_image.filename, {".jpg", ".jpeg", ".png", ".gif", ".webp"})
         filename = generate_secure_filename(current_user.id, ext)
         save_upload_file(event_image, EVENT_UPLOAD_DIR, filename)
-        image_url = f"http://127.0.0.1:8000/uploads/event_images/{filename}"
+        image_url = f"{API_URL}/uploads/event_images/{filename}"
 
     post = create_post_entry(db, current_user.id, content, "event")
     event = Event(

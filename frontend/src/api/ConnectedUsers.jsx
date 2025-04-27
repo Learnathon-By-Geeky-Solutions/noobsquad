@@ -7,7 +7,7 @@ const fetchUserDetails = async (userId) => {
   try {
     const token = localStorage.getItem("token");
     const response = await axios.get(
-      `http://127.0.0.1:8000/connections/user/${userId}`,
+      `${import.meta.env.VITE_API_URL}/connections/user/${userId}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
     return response.data;
@@ -21,7 +21,7 @@ const fetchConnectedUsers = async () => {
   const token = localStorage.getItem("token");
   const currentUserId = parseInt(localStorage.getItem("user_id"));
   const response = await axios.get(
-    "http://127.0.0.1:8000/connections/connections/",
+    `${import.meta.env.VITE_API_URL}/connections/connections/`,
     { headers: { Authorization: `Bearer ${token}` } }
   );
 
@@ -69,7 +69,7 @@ const ConnectedUsers = () => {
             <img
               src={
                 friend.profile_picture
-                  ? `http://127.0.0.1:8000/uploads/profile_pictures/${friend.profile_picture}`
+                  ? `${import.meta.env.VITE_API_URL}/uploads/profile_pictures/${friend.profile_picture}`
                   : "/default-avatar.png"
               }
               alt="Profile"

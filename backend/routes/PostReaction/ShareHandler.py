@@ -6,6 +6,13 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 import uuid
 from crud.notification import create_notification
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
+
+API_URL = os.getenv("VITE_API_URL") 
 
 def create_share(db: Session, user_id: int, post_id: int) -> Share:
     """Create a new share entry"""
@@ -50,7 +57,7 @@ def get_post_additional_data(db: Session, post: Post, current_user_id: int):
         "user": {
             "id": post.user.id,
             "username": post.user.username,
-            "profile_picture": f"http://127.0.0.1:8000/uploads/profile_pictures/{post.user.profile_picture}"
+            "profile_picture": f"{API_URL}/uploads/profile_pictures/{post.user.profile_picture}"
         },
         "total_likes": post.like_count,
         "user_liked": user_liked,
@@ -70,12 +77,12 @@ def get_post_additional_data(db: Session, post: Post, current_user_id: int):
 def get_media_data(db: Session, post: Post):
     """Get media-specific post data"""
     media = db.query(PostMedia).filter(PostMedia.post_id == post.id).first()
-    return {"media_url": f"http://127.0.0.1:8000/uploads/media/{media.media_url}" if media else None}
+    return {"media_url": f"{API_URL}/uploads/media/{media.media_url}" if media else None}
 
 def get_document_data(db: Session, post: Post):
     """Get document-specific post data"""
     document = db.query(PostDocument).filter(PostDocument.post_id == post.id).first()
-    return {"document_url": f"http://127.0.0.1:8000/uploads/document/{document.document_url}" if document else None}
+    return {"document_url": f"{API_URL}/uploads/document/{document.document_url}" if document else None}
 
 def get_event_data(db: Session, post: Post):
     """Get event-specific post data"""

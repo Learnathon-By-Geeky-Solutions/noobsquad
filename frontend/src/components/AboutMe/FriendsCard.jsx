@@ -28,7 +28,7 @@ const ProfileFriends = () => {
                 <img
                   src={
                     friend.profile_picture
-                      ? `http://127.0.0.1:8000/uploads/profile_pictures/${friend.profile_picture}`
+                      ? `${import.meta.env.VITE_API_URL}/uploads/profile_pictures/${friend.profile_picture}`
                       : "/default-avatar.png"
                   }
                   alt="Profile"
@@ -43,7 +43,7 @@ const ProfileFriends = () => {
     
           {friends.length > 6 && (
             <div className="text-center mt-3">
-              <Link to="http://localhost:5173/dashboard/suggested-users" className="text-blue-500 hover:underline">
+              <Link to={`${import.meta.env.FRONTEND_URL}/dashboard/suggested-users`} className="text-blue-500 hover:underline">
                 See more
               </Link>
             </div>

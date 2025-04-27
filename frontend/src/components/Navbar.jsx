@@ -49,7 +49,7 @@ const Navbar = () => {
       if (!token) return;
 
       try {
-        const res = await axios.get("http://localhost:8000/chat/chat/conversations", {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/chat/chat/conversations`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const total = res.data.reduce((sum, convo) => sum + convo.unread_count, 0);

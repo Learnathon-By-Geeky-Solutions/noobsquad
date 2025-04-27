@@ -12,7 +12,7 @@ const UniversityGroup = () => {
     const fetchUniversityInfo = async () => {
       try {
         const res = await fetch(
-          `http://127.0.0.1:8000/universities/${universityName}`
+          `${import.meta.env.VITE_API_URL}/universities/${universityName}`
         );
         const data = await res.json();
         console.log(data)
