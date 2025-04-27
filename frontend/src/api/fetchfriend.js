@@ -19,7 +19,7 @@ export const fetchConnectedUsers = async () => {
     const token = localStorage.getItem("token");
     const currentUserId = parseInt(localStorage.getItem("user_id"));
     const response = await axios.get(
-      `${import.meta.env.VITE_API_URL}/connections/connections/`,
+      `${import.meta.env.VITE_API_URL}/connections/connections`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
