@@ -9,7 +9,7 @@ import os
 load_dotenv()
 
 # Using the URL from tests or falling back to the environment variable
-API_URL = os.getenv("VITE_API_URL", "https://noobsquad-academy.vercel.app")
+API_URL = os.getenv("VITE_API_URL")
 
 STATUS_404_ERROR = "Post not found"
 
