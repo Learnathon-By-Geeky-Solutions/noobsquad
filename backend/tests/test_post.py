@@ -313,7 +313,7 @@ def test_create_text_post_with_inappropriate_content(override_dependencies):
     )
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "Inappropriate content detected"
+    assert response.json()["detail"] == "Inappropriate content detected, Please revise your post."
     session.add.assert_not_called()
     session.commit.assert_not_called()
 
