@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // ✅ Base API URL
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL.replace('http', 'https');
 
 // ✅ Create an Axios instance with default config
 const api = axios.create({
