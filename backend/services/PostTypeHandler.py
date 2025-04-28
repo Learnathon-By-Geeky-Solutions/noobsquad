@@ -27,7 +27,7 @@ def get_post_additional_data(post: Post, db: Session):
 def get_media_post_data(post: Post, db: Session):
     media = db.query(PostMedia).filter(PostMedia.post_id == post.id).first()
     return {
-        "media_url": f"{API_URL}/uploads/media/{media.media_url}" if media else None
+        "media_url": media.media_url if media else None
     }
 
 def get_document_post_data(post: Post, db: Session):

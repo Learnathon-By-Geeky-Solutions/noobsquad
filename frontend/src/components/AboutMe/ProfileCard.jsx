@@ -118,7 +118,7 @@ const ProfileCard = () => {
   if (!user) return <p className="text-center text-gray-500 mt-10">Loading...</p>;
 
   const currentPicture = user.profile_picture
-    ? `${import.meta.env.VITE_API_URL}/uploads/profile_pictures/${user.profile_picture}`
+    ? `${user.profile_picture}`
     : "/default-avatar.png";
 
   return (
