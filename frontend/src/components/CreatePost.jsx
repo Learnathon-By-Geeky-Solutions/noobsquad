@@ -138,7 +138,7 @@ const CreatePost = ({ userProfile }) => {
         ></textarea>
       </div>
 
-      <div className="flex justify-center space-x-6 mb-4">
+      <div className="flex justify-between items-center mb-4 max-w-md mx-auto">
         <button
           onClick={() => setPostType("media")}
           className={`p-3 rounded-lg flex items-center gap-2 transition-all duration-200 ${
