@@ -13,6 +13,7 @@ from pathlib import Path
 import secrets
 from core.dependencies import get_db
 from dotenv import load_dotenv
+from utils.cloudinary import upload_to_cloudinary
 
 # Load environment variables
 load_dotenv()
@@ -110,21 +111,21 @@ def upload_profile_picture(
             detail="Invalid file type. Allowed: jpg, jpeg, png, gif, webp."
         )
 
-    secure_filename = f"{db_user.id}_{secrets.token_hex(8)}{file_extension}"
-    file_location = os.path.abspath(os.path.join(UPLOAD_DIR, secure_filename))
+    # ✅ Upload directly to Cloudinary
+    upload_result = upload_to_cloudinary(
+        file.file,  # sending the file object
+        folder_name="noobsquad/profile_pictures"
+    )
 
-    if not file_location.startswith(os.path.abspath(UPLOAD_DIR)):
-        raise HTTPException(status_code=400, detail="Invalid file path detected.")
+    secure_url = upload_result["secure_url"]  # Cloudinary secure URL
+    # resource_type = upload_result["resource_type"]  # optional if you want to store type
 
-    with open(file_location, "wb") as buffer:
-        buffer.write(file.file.read())
-
-    db_user.profile_picture = secure_filename
+    # ✅ Update database
+    db_user.profile_picture = secure_url  # Save Cloudinary URL directly
     db.commit()
     db.refresh(db_user)
 
     return {
-        "filename": secure_filename,
-        "profile_url": f"{API_URL}/uploads/profile_pictures/{secure_filename}",
+        "profile_url": secure_url,
         "profile_completed": db_user.profile_completed
     }

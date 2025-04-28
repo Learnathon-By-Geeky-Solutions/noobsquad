@@ -27,6 +27,7 @@ from models.hashtag import Hashtag
 from models.university import University
 from dotenv import load_dotenv
 import os
+from utils.cloudinary import upload_to_cloudinary
 
 # Load environment variables
 load_dotenv()
@@ -98,7 +99,7 @@ def get_posts(
             "user": {
                 "id": post.user.id,
                 "username": post.user.username,
-                "profile_picture": f"{API_URL}/uploads/profile_pictures/{post.user.profile_picture}"
+                "profile_picture": {post.user.profile_picture}
             },
             "total_likes": post.like_count,
             "user_liked": user_liked
@@ -134,7 +135,7 @@ def get_single_post(
         "user": {
             "id": post.user.id,
             "username": post.user.username,
-            "profile_picture": f"{API_URL}/uploads/profile_pictures/{post.user.profile_picture}"
+            "profile_picture": {post.user.profile_picture}
         },
         "total_likes": post.like_count,
         "user_liked": user_liked
@@ -153,11 +154,18 @@ async def create_media_post(
     db: Session = Depends(get_db)
 ):
     ext = validate_file_extension(media_file.filename, ALLOWED_MEDIA)
-    filename = generate_secure_filename(current_user.id, ext)
-    save_upload_file(media_file, MEDIA_DIR, filename)
+    upload_result = upload_to_cloudinary(
+        media_file.file,  # Correct: sending the file object
+        folder_name="noobsquad/media_uploads"
+    )
+
+    secure_url = upload_result["secure_url"]
+    resource_type = upload_result["resource_type"]
 
     post = create_post_entry(db, current_user.id, content, "media")
-    media_entry = PostMedia(post_id=post.id, media_url=filename, media_type=ext)
+    media_entry = PostMedia(post_id=post.id, media_url=secure_url, media_type=ext)  # <-- Corrected
+
+    
     db.add(media_entry)
     db.commit()
     db.refresh(media_entry)
@@ -242,9 +250,12 @@ async def create_event_post(
     image_url = None
     if event_image:
         ext = validate_file_extension(event_image.filename, {".jpg", ".jpeg", ".png", ".gif", ".webp"})
-        filename = generate_secure_filename(current_user.id, ext)
-        save_upload_file(event_image, EVENT_UPLOAD_DIR, filename)
-        image_url = f"{API_URL}/uploads/event_images/{filename}"
+        upload_result = upload_to_cloudinary(
+            event_image.file,  # Correct: sending the file object
+            folder_name="noobsquad/event_media_uploads"
+        )
+
+        image_url = upload_result["secure_url"]
 
     post = create_post_entry(db, current_user.id, content, "event")
     event = Event(
@@ -300,16 +311,26 @@ async def update_media_post(
 
     if media_file and media_file.filename:
         ext = validate_file_extension(media_file.filename, ALLOWED_MEDIA)
-        filename = generate_secure_filename(current_user.id, ext)
-        save_upload_file(media_file, MEDIA_DIR, filename)
+        
+        upload_result = upload_to_cloudinary(
+            media_file.file,
+            folder_name="noobsquad/media_uploads"
+        )
+
+        secure_url = upload_result["secure_url"]
+        resource_type = upload_result["resource_type"]
 
         media_entry = db.query(PostMedia).filter(PostMedia.post_id == post.id).first()
         if media_entry:
-            remove_old_file_if_exists(os.path.join(MEDIA_DIR, media_entry.media_url))
-            media_entry.media_url = filename
-            media_entry.media_type = ext
+            # (Optional) Here you can delete old Cloudinary media if you want
+            media_entry.media_url = secure_url
+            media_entry.media_type = resource_type  # You can also keep ext if needed
         else:
-            media_entry = PostMedia(post_id=post.id, media_url=filename, media_type=ext)
+            media_entry = PostMedia(
+                post_id=post.id,
+                media_url=secure_url,
+                media_type=ext
+            )
             db.add(media_entry)
 
         db.commit()
