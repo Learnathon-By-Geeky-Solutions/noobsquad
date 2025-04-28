@@ -10,7 +10,7 @@ const NotificationDropdown = ({ userId, onRead }) => {
   const fetchNotifications = async () => {
     try {
       if (!userId) return;
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/notifications?user_id=${userId}`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/notifications/?user_id=${userId}`);
       const data = await response.json();
       setNotifications(data);
     } catch (error) {
