@@ -5,7 +5,6 @@ import { ChatContext } from "../../context/ChatContext";
 const ChatSidebar = () => {
   const [conversations, setConversations] = useState([]);
   const { openChat } = useContext(ChatContext);
-  const [socket, setSocket] = useState(null);
 
   // Initial fetch of conversations
   const fetchConversations = async () => {
@@ -20,6 +19,33 @@ const ChatSidebar = () => {
     }
   };
 
+  const handleWebSocketMessage = (data) => {
+    switch (data.type) {
+      case 'conversation_update':
+        // Update specific conversation
+        setConversations(prevConversations => 
+          prevConversations.map(conv => 
+            conv.user_id === data.user_id ? { ...conv, ...data.conversation } : conv
+          )
+        );
+        break;
+      
+      case 'new_message':
+        // Update conversation list when new message arrives
+        fetchConversations();
+        break;
+
+      case 'read_receipt':
+        // Update unread counts
+        setConversations(prevConversations =>
+          prevConversations.map(conv =>
+            conv.user_id === data.sender_id ? { ...conv, unread_count: 0 } : conv
+          )
+        );
+        break;
+    }
+  };
+
   // Setup WebSocket connection
   useEffect(() => {
     const userId = localStorage.getItem("user_id");
@@ -30,40 +56,13 @@ const ChatSidebar = () => {
 
     ws.onopen = () => {
       console.log("✅ ChatSidebar WebSocket connected");
-      setSocket(ws);
-      fetchConversations(); // Fetch initial conversations
+      fetchConversations();
     };
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        
-        switch (data.type) {
-          case 'conversation_update':
-            // Update specific conversation
-            setConversations(prev => 
-              prev.map(conv => 
-                conv.user_id === data.user_id ? { ...conv, ...data.conversation } : conv
-              )
-            );
-            break;
-          
-          case 'new_message':
-            // Update conversation list when new message arrives
-            fetchConversations();
-            break;
-
-          case 'read_receipt':
-            // Update unread counts
-            setConversations(prev =>
-              prev.map(conv =>
-                conv.user_id === data.sender_id
-                  ? { ...conv, unread_count: 0 }
-                  : conv
-              )
-            );
-            break;
-        }
+        handleWebSocketMessage(data);
       } catch (err) {
         console.error("Failed to parse WebSocket message:", err);
       }
@@ -75,7 +74,6 @@ const ChatSidebar = () => {
 
     ws.onclose = () => {
       console.log("ChatSidebar WebSocket closed");
-      setSocket(null);
     };
 
     return () => {
@@ -85,22 +83,29 @@ const ChatSidebar = () => {
     };
   }, []);
 
-  // Format time string
   const formatTime = (isoTime) => {
     const date = new Date(isoTime);
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const now = new Date();
+    const diffHours = Math.floor((now - date) / (1000 * 60 * 60));
+
+    if (diffHours < 24) {
+      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    } else if (diffHours < 48) {
+      return "Yesterday";
+    } else {
+      return date.toLocaleDateString();
+    }
   };
 
-  // Format last message based on message_type
   const formatLastMessage = (conversation) => {
     if (conversation.message_type === "text" || conversation.message_type === "link") {
       return conversation.last_message || "";
     }
     if (conversation.message_type === "image") {
-      return "Image";
+      return "📷 Image";
     }
     if (conversation.message_type === "file") {
-      return "File";
+      return "📎 File";
     }
     return "";
   };
@@ -119,9 +124,7 @@ const ChatSidebar = () => {
             avatar: c.avatar,
           };
 
-          const profileImage = c.avatar
-            ? `${import.meta.env.VITE_API_URL}/uploads/profile_pictures/${c.avatar}`
-            : "/default-avatar.png";
+          const profileImage = c.avatar || "/default-avatar.png";
 
           return (
             <button

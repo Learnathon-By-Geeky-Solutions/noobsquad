@@ -10,10 +10,12 @@ from models.chat import Message
 from models.user import User
 from core.dependencies import get_db
 from api.v1.endpoints.auth import get_current_user
+from utils.cloudinary import upload_to_cloudinary
 import json
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 from schemas.chat import MessageOut, ConversationOut, MessageType as SchemaMessageType
+from pathlib import Path
 
 router = APIRouter()
 clients: Dict[int, WebSocket] = {}
@@ -251,42 +253,23 @@ async def upload_file(
 ):
     try:
         # Validate the extension
-        _, ext = os.path.splitext(file.filename)
-        ext = ext.lower()
+        file_extension = Path(file.filename).suffix.lower()
         
-        if ext not in ALLOWED_EXTENSIONS:
+        if file_extension not in ALLOWED_EXTENSIONS:
             raise HTTPException(status_code=400, detail="Unsupported file type")
 
-        # Set up base directory (do not use user-controlled data)
-        upload_dir = os.path.abspath("uploads/chat")
-        os.makedirs(upload_dir, exist_ok=True)
+        # Upload to Cloudinary
+        upload_result = upload_to_cloudinary(
+            file.file,
+            folder_name="noobsquad/chat_uploads"
+        )
+
+        secure_url = upload_result["secure_url"]
         
-        # Generate completely random filename that has no user-controlled components
-        # Use secrets module for cryptographically strong random data
-        random_filename = f"{secrets.token_hex(16)}{ext}"
-        
-        # Define the destination file path
-        # We control both 'upload_dir' and 'random_filename' - no user input is used
-        destination = os.path.join(upload_dir, random_filename)
-        
-        # Final safety check - this should never fail with our implementation
-        if not os.path.abspath(destination).startswith(upload_dir):
-            raise HTTPException(status_code=500, detail="Security check failed")
-        
-        # Write the file content directly
-        contents = await file.read()
-        with open(destination, "wb") as f:
-            f.write(contents)
-            
-        # Return the URL path (not os path)
-        file_url = f"/uploads/chat/{random_filename}"
-        
-        return JSONResponse(content={"file_url": file_url})
+        return JSONResponse(content={"file_url": secure_url})
         
     except HTTPException:
-        # Re-raise HTTP exceptions
         raise
     except Exception as e:
-        # Log the actual error but don't expose details to the client
         print(f"File upload error: {str(e)}")
         raise HTTPException(status_code=500, detail="File upload failed")

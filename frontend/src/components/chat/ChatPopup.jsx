@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import PropTypes from "prop-types";
 import axios from "axios";
 
@@ -48,6 +48,21 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
     }
   }, [messages]);
 
+  const updateMessages = useCallback((newMessage) => {
+    setMessages(prev => [...prev, {
+      ...newMessage,
+      id: newMessage.id || Date.now(),
+      timestamp: newMessage.timestamp || new Date().toISOString(),
+    }]);
+  }, []);
+
+  const updateReadStatus = useCallback((data) => {
+    setMessages(prev => prev.map(message => ({
+      ...message,
+      is_read: message.is_read || message.id <= data.last_read_id
+    })));
+  }, []);
+
   // WebSocket message handling
   useEffect(() => {
     if (!socket) return;
@@ -56,29 +71,16 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
       try {
         const data = JSON.parse(event.data);
         
-        switch (data.type) {
-          case 'message':
-            const isRelevant =
-              (data.sender_id === currentUserId && data.receiver_id === user.id) ||
-              (data.sender_id === user.id && data.receiver_id === currentUserId);
+        if (data.type === 'message') {
+          const isRelevant =
+            (data.sender_id === currentUserId && data.receiver_id === user.id) ||
+            (data.sender_id === user.id && data.receiver_id === currentUserId);
 
-            if (isRelevant) {
-              setMessages((prev) => [...prev, {
-                ...data,
-                id: data.id || Date.now(),
-                timestamp: data.timestamp || new Date().toISOString(),
-              }]);
-            }
-            break;
-
-          case 'read_receipt':
-            if (data.chat_id === user.id) {
-              setMessages(prev => prev.map(m => ({
-                ...m,
-                is_read: m.is_read || m.id <= data.last_read_id
-              })));
-            }
-            break;
+          if (isRelevant) {
+            updateMessages(data);
+          }
+        } else if (data.type === 'read_receipt' && data.chat_id === user.id) {
+          updateReadStatus(data);
         }
       } catch (err) {
         console.error("Failed to parse WebSocket message:", err);
@@ -87,7 +89,7 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
 
     socket.addEventListener("message", handleMessage);
     return () => socket.removeEventListener("message", handleMessage);
-  }, [socket, user.id, currentUserId]);
+  }, [socket, user.id, currentUserId, updateMessages, updateReadStatus]);
 
   // Handle file selection and preview
   const handleFileChange = (e) => {
@@ -185,6 +187,14 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
 
   const hasContentToSend = input.trim() || file;
 
+  const handleImageError = useCallback((e) => {
+    // Only set fallback once to prevent infinite loop
+    if (!e.target.src.includes('fallback-image.png')) {
+      e.target.src = "/fallback-image.png";
+      console.warn("Image load failed, using fallback");
+    }
+  }, []);
+
   return (
     <div className="fixed bottom-0 right-4 w-80 bg-white rounded-t-xl shadow-2xl z-50 overflow-hidden">
       {/* Header */}
@@ -195,7 +205,7 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
               src={user.avatar || "/default-avatar.png"}
               alt={user.username}
               className="w-8 h-8 rounded-full"
-              onError={(e) => (e.target.src = "/default-avatar.png")}
+              onError={handleImageError}
             />
             <span className="absolute bottom-0 right-0 w-4 h-4 bg-green-400 rounded-full border-2 border-white"></span>
           </div>
@@ -241,21 +251,18 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
                 </a>
               )}
               {msg.message_type === "image" && (
-                <a href={`${import.meta.env.VITE_API_URL}${msg.file_url}`} target="_blank" rel="noopener noreferrer">
+                <a href={msg.file_url} target="_blank" rel="noopener noreferrer">
                   <img
-                    src={`${import.meta.env.VITE_API_URL}${msg.file_url}`}
+                    src={msg.file_url}
                     alt={msg.content || "Shared image"}
                     className="max-w-full h-auto rounded-lg mt-1 cursor-pointer"
-                    onError={(e) => {
-                      e.target.src = "/fallback-image.png";
-                      console.warn("Failed to load image:", msg.file_url);
-                    }}
+                    onError={handleImageError}
                   />
                 </a>
               )}
               {msg.message_type === "file" && (
                 <a
-                  href={`${import.meta.env.VITE_API_URL}${msg.file_url}`}
+                  href={msg.file_url}
                   download
                   className="underline break-all"
                 >
@@ -288,6 +295,7 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
                   src={filePreview}
                   alt="Preview"
                   className="max-w-[100px] h-auto rounded-lg mb-1"
+                  onError={handleImageError}
                 />
               ) : (
                 <div className="text-sm text-gray-600">
@@ -314,15 +322,16 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
 
       {/* Input Area */}
       <div className="border-t bg-white p-3 flex items-center space-x-2">
-        <label className="cursor-pointer text-gray-500 hover:text-blue-500">
+        <label className="cursor-pointer text-gray-500 hover:text-blue-500" aria-label="Attach file">
           <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M14.5 3h-9A1.5 1.5 0 004 4.5v11A1.5 1.5 0 005.5 17h9a1.5 1.5 0 001.5-1.5v-11A1.5 1.5 0 0014.5 3zm-9 1h9a.5.5 0 01.5.5v11a.5.5 0 01-.5.5h-9a.5.5 0 01-.5-.5v-11a.5.5 0 01.5-.5zm2 9h5a.5.5 0 000-1h-5a.5.5 0 000 1zm0-2h5a.5.5 0 000-1h-5a.5.5 0 000 1zm0-2h5a.5.5 0 000-1h-5a.5.5 0 000 1z" />
+            <path d="M14.5 3h-9A1.5 1.5 0 004 4.5v11A1.5 1.5 0 005.5 17h9a1.5 1.5 0 001.5-1.5v-11A1.5 1.5 0 0014.5 3zm-9 1h9a.5.5 0 01.5.5v11a.5.5 0 01-.5.5h-9a.5.5 0 01-.5-.5v-11a.5.5 0 01.5-.5zm2 9h5a.5.5 0 000-1h-5a.5.5 0 000 1zm0-2h5a.5.5 0 000-1h-5a.5.5 0 000 1z" />
           </svg>
           <input
             type="file"
             accept=".jpg,.jpeg,.png,.gif,.pdf,.docx"
             onChange={handleFileChange}
             className="hidden"
+            aria-label="Upload file"
           />
         </label>
         <input
