@@ -77,7 +77,22 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
             (data.sender_id === user.id && data.receiver_id === currentUserId);
 
           if (isRelevant) {
-            updateMessages(data);
+            // Replace optimistic message or add new message
+            setMessages(prev => {
+              const optimisticMessageIndex = prev.findIndex(
+                msg => msg.id === `temp-${Date.now()}` || 
+                      (msg.content === data.content && 
+                       msg.sender_id === data.sender_id && 
+                       Math.abs(new Date(msg.timestamp) - new Date(data.timestamp)) < 1000)
+              );
+              
+              if (optimisticMessageIndex >= 0) {
+                const newMessages = [...prev];
+                newMessages[optimisticMessageIndex] = data;
+                return newMessages;
+              }
+              return [...prev, data];
+            });
           }
         } else if (data.type === 'read_receipt' && data.chat_id === user.id) {
           updateReadStatus(data);
@@ -89,7 +104,7 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
 
     socket.addEventListener("message", handleMessage);
     return () => socket.removeEventListener("message", handleMessage);
-  }, [socket, user.id, currentUserId, updateMessages, updateReadStatus]);
+  }, [socket, user.id, currentUserId, updateReadStatus]);
 
   // Handle file selection and preview
   const handleFileChange = (e) => {
@@ -170,11 +185,22 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
       message_type: isLink ? "link" : "text",
     };
 
+    // Add message to local state immediately for instant feedback
+    const optimisticMessage = {
+      ...message,
+      id: `temp-${Date.now()}`,
+      sender_id: currentUserId,
+      timestamp: new Date().toISOString()
+    };
+    setMessages(prev => [...prev, optimisticMessage]);
+
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify(message));
       setInput("");
     } else {
       console.warn("WebSocket is not connected");
+      // Remove optimistic message if send failed
+      setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
     }
   };
 
@@ -324,7 +350,7 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
       <div className="border-t bg-white p-3 flex items-center space-x-2">
         <label className="cursor-pointer text-gray-500 hover:text-blue-500" aria-label="Attach file">
           <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M14.5 3h-9A1.5 1.5 0 004 4.5v11A1.5 1.5 0 005.5 17h9a1.5 1.5 0 001.5-1.5v-11A1.5 1.5 0 0014.5 3zm-9 1h9a.5.5 0 01.5.5v11a.5.5 0 01-.5.5h-9a.5.5 0 01-.5-.5v-11a.5.5 0 01.5-.5zm2 9h5a.5.5 0 000-1h-5a.5.5 0 000 1zm0-2h5a.5.5 0 000-1h-5a.5.5 0 000 1z" />
+            <path d="M14.5 3h-9A1.5 1.5 0 004 4.5v11A1.5 1.5 0 005.5 17h9a.5.5 0 001.5-1.5v-11A1.5 1.5 0 0014.5 3zm-9 1h9a.5.5 0 01.5.5v11a.5.5 0 01-.5.5h-9a.5.5 0 01-.5-.5v-11a.5.5 0 01.5-.5zm2 9h5a.5.5 0 000-1h-5a.5.5 0 000 1zm0-2h5a.5.5 0 000-1h-5a.5.5 0 000 1z" />
           </svg>
           <input
             type="file"

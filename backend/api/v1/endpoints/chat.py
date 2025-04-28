@@ -107,6 +107,7 @@ async def handle_chat_message(user_id: int, message_data: dict, db: Session):
     )
     db.add(db_message)
     db.commit()
+    db.refresh(db_message)  # Refresh to get the ID and other DB-generated fields
 
     # Prepare message event
     msg_event = {
@@ -120,12 +121,12 @@ async def handle_chat_message(user_id: int, message_data: dict, db: Session):
         "timestamp": db_message.timestamp.isoformat()
     }
 
-    # Send message to both users
+    # Send message to both users immediately
     for uid in [user_id, receiver_id]:
         if uid in clients:
             await send_websocket_message(clients[uid], msg_event)
 
-    # Send new message notification
+    # Send new message notification only to receiver
     if receiver_id in clients:
         new_msg_event = {
             "type": "new_message",
@@ -134,7 +135,7 @@ async def handle_chat_message(user_id: int, message_data: dict, db: Session):
         }
         await send_websocket_message(clients[receiver_id], new_msg_event)
 
-    # Update conversations
+    # Update conversations for both users
     await broadcast_conversation_update(db, user_id, receiver_id)
 
 @router.websocket("/ws/{user_id}")

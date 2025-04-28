@@ -186,15 +186,19 @@ const Navbar = () => {
             <div className="relative">
               <Link
                 to="/dashboard/chat"
-                className="flex items-center gap-1 hover:text-blue-600 transition"
+                className="flex items-center gap-1 hover:text-blue-600 transition relative"
               >
-                <MessageCircle className="w-5 h-5" /> Messages
+                <MessageCircle className="w-5 h-5" />
+                <span>Messages</span>
+                {totalUnread > 0 && (
+                  <div className="absolute -top-2 -right-2 flex items-center justify-center">
+                    <span className="animate-pulse absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 text-xs text-white items-center justify-center">
+                      {totalUnread}
+                    </span>
+                  </div>
+                )}
               </Link>
-              {totalUnread > 0 && (
-                <span className="absolute -top-2 -right-3 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                  {totalUnread}
-                </span>
-              )}
             </div>
             <button
               onClick={() => setShowAiChat((prev) => !prev)}
