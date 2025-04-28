@@ -1,11 +1,17 @@
 import cloudinary
 import cloudinary.uploader
 from fastapi import HTTPException
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+cloudinary_key = os.getenv("CLOUDINARY_API_KEY")
+cloudinary_secret = os.getenv("CLOUDINARY_API_SECRET")
 
 cloudinary.config(
   cloud_name="dws8lpmua",
-  api_key="595136529363616",
-  api_secret="VwJl7HXcox_1U9qeeN0fVmoL_VY",
+  api_key=cloudinary_key,
+  api_secret=cloudinary_secret,
   secure=True
 )
 
