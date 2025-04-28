@@ -126,175 +126,188 @@ const CreatePost = ({ userProfile }) => {
   };
 
   return (
-    <div className="bg-white shadow-md p-4 rounded-lg mb-4 mt-20 md:mt-24">
-      <h2 className="text-lg font-semibold mb-2">Create Post</h2>
+    <div className="bg-white shadow-lg p-6 rounded-xl mb-6 mt-20 md:mt-24 transition-all duration-300 hover:shadow-xl">
+      <h2 className="text-2xl font-bold mb-4 text-gray-800">Create Post</h2>
 
-      <div className="flex items-center mb-3">
+      <div className="flex items-center mb-4">
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="Post your thoughts, notes, or nerdy rants!"
-          className="border p-2 rounded w-full"
+          className="border border-gray-300 p-4 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none min-h-[100px] text-gray-700"
         ></textarea>
       </div>
 
-      <div className="flex justify-around mb-3">
+      <div className="flex justify-center space-x-6 mb-4">
         <button
           onClick={() => setPostType("media")}
-          className={`p-2 rounded-full ${postType === "media" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
+          className={`p-3 rounded-lg flex items-center gap-2 transition-all duration-200 ${
+            postType === "media" 
+              ? "bg-blue-500 text-white shadow-md transform scale-105" 
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
         >
           <FaImage size={20} />
+          <span>Media</span>
         </button>
         <button
           onClick={() => setPostType("document")}
-          className={`p-2 rounded-full ${postType === "document" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
+          className={`p-3 rounded-lg flex items-center gap-2 transition-all duration-200 ${
+            postType === "document" 
+              ? "bg-blue-500 text-white shadow-md transform scale-105" 
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
         >
           <FaFileAlt size={20} />
+          <span>Document</span>
         </button>
         <button
           onClick={() => setPostType("event")}
-          className={`p-2 rounded-full ${postType === "event" ? "bg-blue-500 text-white" : "bg-gray-200"}`}
+          className={`p-3 rounded-lg flex items-center gap-2 transition-all duration-200 ${
+            postType === "event" 
+              ? "bg-blue-500 text-white shadow-md transform scale-105" 
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
         >
           <FaCalendarAlt size={20} />
+          <span>Event</span>
         </button>
       </div>
 
       {postType === "media" && (
-        <div {...getMediaRootProps()} className="border-2 border-dashed p-6 text-center rounded-lg mb-3 cursor-pointer bg-gray-100">
+        <div {...getMediaRootProps()} className="border-2 border-dashed border-gray-300 p-8 text-center rounded-lg mb-4 cursor-pointer bg-gray-50 hover:bg-gray-100 transition-all duration-200">
           <input {...getMediaInputProps()} />
           {mediaFile ? (
-            <p className="text-green-600 font-semibold">{mediaFile.name}</p>
+            <p className="text-green-600 font-semibold text-lg">{mediaFile.name}</p>
           ) : (
-            <p className="text-gray-500">Drag & Drop or Click to Upload Media</p>
+            <div className="space-y-2">
+              <FaImage className="mx-auto text-gray-400" size={32} />
+              <p className="text-gray-500">Drag & Drop or Click to Upload Media</p>
+            </div>
           )}
         </div>
       )}
 
       {postType === "document" && (
-        <div {...getDocRootProps()} className="border-2 border-dashed p-6 text-center rounded-lg mb-3 cursor-pointer bg-gray-100">
+        <div {...getDocRootProps()} className="border-2 border-dashed border-gray-300 p-8 text-center rounded-lg mb-4 cursor-pointer bg-gray-50 hover:bg-gray-100 transition-all duration-200">
           <input {...getDocInputProps()} />
           {documentFile ? (
-            <p className="text-green-600 font-semibold">{documentFile.name}</p>
+            <p className="text-green-600 font-semibold text-lg">{documentFile.name}</p>
           ) : (
-            <p className="text-gray-500">Drag & Drop or Click to Upload Document</p>
+            <div className="space-y-2">
+              <FaFileAlt className="mx-auto text-gray-400" size={32} />
+              <p className="text-gray-500">Drag & Drop or Click to Upload Document</p>
+            </div>
           )}
         </div>
       )}
 
       {postType === "event" && (
-        <div className="space-y-2">
+        <div className="space-y-4 bg-gray-50 p-6 rounded-lg">
           <div className="mb-4">
-          <label htmlFor="eventTitle" className="block text-sm font-medium text-gray-700">
-            Event Title
-          </label>
-          <input
-            type="text"
-            id="eventTitle"
-            className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
-            value={eventTitle}
-            onChange={(e) => setEventTitle(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="mb-4">
-          <label htmlFor="eventDescription" className="block text-sm font-medium text-gray-700">
-            Event Description
-          </label>
-          <textarea
-            id="eventDescription"
-            className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
-            value={eventDescription}
-            onChange={(e) => setEventDescription(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="mb-4 flex gap-4">
-          <div>
-            <label htmlFor="eventDate" className="block text-sm font-medium text-gray-700">
-              Event Date
+            <label htmlFor="eventTitle" className="block text-sm font-semibold text-gray-700 mb-2">
+              Event Title
             </label>
             <input
-              type="date"
-              id="eventDate"
-              className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
-              value={eventDate}
-              onChange={(e) => setEventDate(e.target.value)}
+              type="text"
+              id="eventTitle"
+              className="mt-1 p-3 block w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              value={eventTitle}
+              onChange={(e) => setEventTitle(e.target.value)}
               required
             />
           </div>
 
-          <div>
-            <label htmlFor="eventTime" className="block text-sm font-medium text-gray-700">
-              Event Time
+          <div className="mb-4">
+            <label htmlFor="eventDescription" className="block text-sm font-semibold text-gray-700 mb-2">
+              Event Description
             </label>
-            <input
-              type="time"
-              id="eventTime"
-              className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
-              value={eventTime}
-              onChange={(e) => setEventTime(e.target.value)}
+            <textarea
+              id="eventDescription"
+              className="mt-1 p-3 block w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 min-h-[100px]"
+              value={eventDescription}
+              onChange={(e) => setEventDescription(e.target.value)}
               required
             />
           </div>
-        </div>
 
-        <div className="mb-4">
-          <label htmlFor="location" className="block text-sm font-medium text-gray-700">
-            Location
-          </label>
-          <input
-            type="text"
-            id="location"
-            className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-          />
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="eventDate" className="block text-sm font-semibold text-gray-700 mb-2">
+                Event Date
+              </label>
+              <input
+                type="date"
+                id="eventDate"
+                className="mt-1 p-3 block w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
+                required
+              />
+            </div>
 
-        <div className="mb-4">
-          <label htmlFor="content" className="block text-sm font-medium text-gray-700">
-            Content (Optional)
-          </label>
-          <textarea
-            id="content"
-            className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-          />
-        </div>
+            <div>
+              <label htmlFor="eventTime" className="block text-sm font-semibold text-gray-700 mb-2">
+                Event Time
+              </label>
+              <input
+                type="time"
+                id="eventTime"
+                className="mt-1 p-3 block w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                value={eventTime}
+                onChange={(e) => setEventTime(e.target.value)}
+                required
+              />
+            </div>
+          </div>
 
-        <div className="mb-4">
-          <label htmlFor="eventImage" className="block text-sm font-medium text-gray-700">
-            Event Image (Optional)
-          </label>
-          <input
-            type="file"
-            id="eventImage"
-            className="mt-1 p-2 block w-full border border-gray-300 rounded-md"
-            accept="image/*"
-            onChange={(e) => setEventImage(e.target.files[0])}
-          />
-        </div> 
+          <div className="mb-4">
+            <label htmlFor="location" className="block text-sm font-semibold text-gray-700 mb-2">
+              Location
+            </label>
+            <input
+              type="text"
+              id="location"
+              className="mt-1 p-3 block w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            />
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="eventImage" className="block text-sm font-semibold text-gray-700 mb-2">
+              Event Image (Optional)
+            </label>
+            <input
+              type="file"
+              id="eventImage"
+              className="mt-1 p-3 block w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              accept="image/*"
+              onChange={(e) => setEventImage(e.target.files[0])}
+            />
+          </div>
         </div>
       )}
 
       {uploadProgress > 0 && uploadProgress < 100 && (
-        <div className="w-full bg-gray-200 rounded-full h-2.5 mt-4 mb-2">
+        <div className="w-full bg-gray-200 rounded-full h-3 mt-4 mb-2 overflow-hidden">
           <div
-            className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+            className="bg-blue-600 h-full rounded-full transition-all duration-300"
             style={{ width: `${uploadProgress}%` }}
           ></div>
         </div>
       )}
 
-      {/* Display error message */}
       {errorMessage && (
-        <p className="text-red-500 mt-2 text-center">{errorMessage}</p>
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded">
+          <p className="text-red-700">{errorMessage}</p>
+        </div>
       )}
 
-      <button onClick={handleSubmit} className="bg-blue-500 text-white px-4 py-2 rounded w-full">
+      <button 
+        onClick={handleSubmit} 
+        className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg w-full font-semibold transition-all duration-200 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+      >
         Post
       </button>
     </div>
