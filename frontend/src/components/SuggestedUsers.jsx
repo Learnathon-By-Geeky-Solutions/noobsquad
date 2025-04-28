@@ -17,7 +17,7 @@ const SuggestedUsers = () => {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get(`${import.meta.env.VITE_API_URL.replace('http', 'https')}/connections/users`, {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/connections/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

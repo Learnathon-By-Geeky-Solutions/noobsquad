@@ -23,8 +23,7 @@ const Feed = () => {
     try {
       const token = localStorage.getItem("token");
       console.log("🔍 Fetching posts with token:", token);
-
-      const res = await api.get(`/posts?limit=10&offset=${offset}`, {
+      const res = await api.get(`/posts/?limit=10&offset=${offset}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
