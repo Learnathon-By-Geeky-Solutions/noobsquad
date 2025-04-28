@@ -1,8 +1,11 @@
 import os
 import uuid
 import secrets
+import asyncio
+import enum
 from urllib.parse import urlparse
 from fastapi import APIRouter, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect, Depends
+from starlette.websockets import WebSocketState
 from fastapi.responses import JSONResponse, FileResponse
 from sqlalchemy import desc, func, or_
 from sqlalchemy.orm import Session
@@ -87,56 +90,68 @@ async def handle_chat_message(user_id: int, message_data: dict, db: Session):
     file_url = message_data.get("file_url", None)
     message_type = message_data.get("message_type", "text").lower()
 
-    # Validate message type using schema enum
-    if message_type not in SchemaMessageType._value2member_map_:
-        print(f"❌ Invalid message type: {message_type}")
-        return
+    try:
+        # Validate message type using schema enum
+        if message_type not in SchemaMessageType._value2member_map_:
+            print(f"❌ Invalid message type: {message_type}")
+            return
 
-    if message_type == SchemaMessageType.LINK.value and content and not is_valid_url(content):
-        print(f"❌ Invalid URL: {content}")
-        return
+        if message_type == SchemaMessageType.LINK.value and content and not is_valid_url(content):
+            print(f"❌ Invalid URL: {content}")
+            return
 
-    # Save message to database
-    db_message = Message(
-        sender_id=user_id,
-        receiver_id=receiver_id,
-        content=content,
-        file_url=file_url,
-        message_type=message_type,
-        timestamp=datetime.now(timezone.utc)
-    )
-    db.add(db_message)
-    db.commit()
-    db.refresh(db_message)  # Refresh to get the ID and other DB-generated fields
+        # Save message to database
+        db_message = Message(
+            sender_id=user_id,
+            receiver_id=receiver_id,
+            content=content,
+            file_url=file_url,
+            message_type=message_type,
+            timestamp=datetime.now(timezone.utc)
+        )
+        db.add(db_message)
+        db.commit()
+        db.refresh(db_message)  # Refresh to get the ID and other DB-generated fields
 
-    # Prepare message event
-    msg_event = {
-        "type": "message",
-        "id": db_message.id,
-        "sender_id": user_id,
-        "receiver_id": receiver_id,
-        "content": content,
-        "file_url": file_url,
-        "message_type": message_type,
-        "timestamp": db_message.timestamp.isoformat()
-    }
-
-    # Send message to both users immediately
-    for uid in [user_id, receiver_id]:
-        if uid in clients:
-            await send_websocket_message(clients[uid], msg_event)
-
-    # Send new message notification only to receiver
-    if receiver_id in clients:
-        new_msg_event = {
-            "type": "new_message",
+        # Prepare message event
+        msg_event = {
+            "type": "message",
+            "id": db_message.id,
             "sender_id": user_id,
-            "receiver_id": receiver_id
+            "receiver_id": receiver_id,
+            "content": content,
+            "file_url": file_url,
+            "message_type": message_type,
+            "timestamp": db_message.timestamp.isoformat(),
+            "is_read": False
         }
-        await send_websocket_message(clients[receiver_id], new_msg_event)
 
-    # Update conversations for both users
-    await broadcast_conversation_update(db, user_id, receiver_id)
+        # Send message to both users immediately
+        send_tasks = []
+        for uid in [user_id, receiver_id]:
+            if uid in clients and clients[uid].client_state == WebSocketState.CONNECTED:
+                send_tasks.append(send_websocket_message(clients[uid], msg_event))
+        
+        if send_tasks:
+            await asyncio.gather(*send_tasks)
+
+        # Send new message notification to receiver
+        if receiver_id in clients and clients[receiver_id].client_state == WebSocketState.CONNECTED:
+            new_msg_event = {
+                "type": "new_message",
+                "sender_id": user_id,
+                "receiver_id": receiver_id
+            }
+            await send_websocket_message(clients[receiver_id], new_msg_event)
+
+        # Update conversations for both users
+        await broadcast_conversation_update(db, user_id, receiver_id)
+        return True
+
+    except Exception as e:
+        print(f"Error in handle_chat_message: {str(e)}")
+        db.rollback()
+        return False
 
 @router.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
@@ -149,7 +164,14 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
             data = await websocket.receive_text()
             try:
                 message_data = json.loads(data)
-                await handle_chat_message(user_id, message_data, db)
+                success = await handle_chat_message(user_id, message_data, db)
+                if not success:
+                    # Send error message back to sender
+                    error_event = {
+                        "type": "error",
+                        "message": "Failed to send message"
+                    }
+                    await send_websocket_message(websocket, error_event)
             except json.JSONDecodeError:
                 print(f"❌ Invalid JSON from user {user_id}: {data}")
             except Exception as e:
@@ -157,6 +179,9 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
     except WebSocketDisconnect:
         clients.pop(user_id, None)
         print(f"🔌 WebSocket disconnected: user {user_id}")
+    except Exception as e:
+        print(f"❌ Unexpected error in websocket_endpoint: {str(e)}")
+        clients.pop(user_id, None)
 
 @router.get("/chat/history/{friend_id}", response_model=List[MessageOut])
 async def get_chat_history(friend_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):

@@ -11,6 +11,8 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
   const messagesContainerRef = useRef(null); // Ref for the messages container
   const currentUserId = parseInt(localStorage.getItem("user_id"));
   const token = localStorage.getItem("token");
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const lastScrollTop = useRef(0);
 
   // Fetch chat history once when opening chat
   useEffect(() => {
@@ -33,20 +35,42 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
     fetchMessages();
   }, [user?.id, token, refreshConversations]);
 
+  // Handle scroll events
+  const handleScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    // Check if user manually scrolled up
+    if (container.scrollTop < lastScrollTop.current) {
+      setShouldAutoScroll(false);
+    }
+
+    // Check if scrolled to bottom
+    const isNearBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+    
+    if (isNearBottom) {
+      setShouldAutoScroll(true);
+    }
+
+    lastScrollTop.current = container.scrollTop;
+  }, []);
+
   // Auto-scroll handling
   useEffect(() => {
-    if (messages.length > 0) {
-      const container = messagesContainerRef.current;
-      if (!container) return;
-
-      const isNearBottom =
-        container.scrollHeight - container.scrollTop - container.clientHeight < 50;
-
-      if (isNearBottom) {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      }
+    if (messages.length > 0 && shouldAutoScroll) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages]);
+  }, [messages, shouldAutoScroll]);
+
+  // Add scroll event listener
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, [handleScroll]);
 
   const updateMessages = useCallback((newMessage) => {
     setMessages(prev => [...prev, {
