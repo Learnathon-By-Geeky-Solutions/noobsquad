@@ -12,7 +12,7 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
   const currentUserId = parseInt(localStorage.getItem("user_id"));
   const token = localStorage.getItem("token");
 
-  // Fetch chat history
+  // Fetch chat history once when opening chat
   useEffect(() => {
     if (!user?.id) return;
 
@@ -31,52 +31,57 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
     };
 
     fetchMessages();
-    const interval = setInterval(fetchMessages, 1000);
-    return () => clearInterval(interval);
-  }, [user?.id, refreshConversations, token]);
+  }, [user?.id, token, refreshConversations]);
 
-  // Scroll to the bottom when chat popup opens (after initial fetch)
+  // Auto-scroll handling
   useEffect(() => {
     if (messages.length > 0) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      const container = messagesContainerRef.current;
+      if (!container) return;
+
+      const isNearBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+
+      if (isNearBottom) {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
     }
-  }, [messages.length]); // Trigger when the number of messages changes (initial load)
+  }, [messages]);
 
-  // Conditional auto-scroll to latest message during updates
-  useEffect(() => {
-    const container = messagesContainerRef.current;
-    if (!container) return;
-
-    // Check if the user is near the bottom (within 50 pixels)
-    const isNearBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight < 50;
-
-    if (isNearBottom) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages]); // Trigger on every message update
-
-  // Handle WebSocket messages
+  // WebSocket message handling
   useEffect(() => {
     if (!socket) return;
 
     const handleMessage = (event) => {
       try {
-        const msg = JSON.parse(event.data);
-        const isRelevant =
-          (msg.sender_id === currentUserId && msg.receiver_id === user.id) ||
-          (msg.sender_id === user.id && msg.receiver_id === currentUserId);
+        const data = JSON.parse(event.data);
+        
+        switch (data.type) {
+          case 'message':
+            const isRelevant =
+              (data.sender_id === currentUserId && data.receiver_id === user.id) ||
+              (data.sender_id === user.id && data.receiver_id === currentUserId);
 
-        if (isRelevant) {
-          setMessages((prev) => [...prev, {
-            ...msg,
-            id: msg.id || Date.now(),
-            timestamp: msg.timestamp || new Date().toISOString(),
-          }]);
+            if (isRelevant) {
+              setMessages((prev) => [...prev, {
+                ...data,
+                id: data.id || Date.now(),
+                timestamp: data.timestamp || new Date().toISOString(),
+              }]);
+            }
+            break;
+
+          case 'read_receipt':
+            if (data.chat_id === user.id) {
+              setMessages(prev => prev.map(m => ({
+                ...m,
+                is_read: m.is_read || m.id <= data.last_read_id
+              })));
+            }
+            break;
         }
       } catch (err) {
-        console.error("Failed to parse message", err);
-        console.warn("📭 Non-JSON message from server:", event.data);
+        console.error("Failed to parse WebSocket message:", err);
       }
     };
 

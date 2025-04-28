@@ -5,26 +5,84 @@ import { ChatContext } from "../../context/ChatContext";
 const ChatSidebar = () => {
   const [conversations, setConversations] = useState([]);
   const { openChat } = useContext(ChatContext);
+  const [socket, setSocket] = useState(null);
 
-  // Fetch conversations from backend
+  // Initial fetch of conversations
   const fetchConversations = async () => {
     const token = localStorage.getItem("token");
     try {
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/chat/chat/conversations`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log("Fetched conversations:", res.data);
       setConversations(res.data);
     } catch (err) {
       console.error("Error fetching conversations:", err);
     }
   };
 
-  // Auto-refresh every second
+  // Setup WebSocket connection
   useEffect(() => {
-    fetchConversations();
-    const interval = setInterval(fetchConversations, 1000);
-    return () => clearInterval(interval);
+    const userId = localStorage.getItem("user_id");
+    if (!userId) return;
+
+    const wsUrl = import.meta.env.VITE_WEBSOCKET_URL || import.meta.env.VITE_API_URL.replace('http', 'ws');
+    const ws = new WebSocket(`${wsUrl}/chat/ws/${userId}`);
+
+    ws.onopen = () => {
+      console.log("✅ ChatSidebar WebSocket connected");
+      setSocket(ws);
+      fetchConversations(); // Fetch initial conversations
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        switch (data.type) {
+          case 'conversation_update':
+            // Update specific conversation
+            setConversations(prev => 
+              prev.map(conv => 
+                conv.user_id === data.user_id ? { ...conv, ...data.conversation } : conv
+              )
+            );
+            break;
+          
+          case 'new_message':
+            // Update conversation list when new message arrives
+            fetchConversations();
+            break;
+
+          case 'read_receipt':
+            // Update unread counts
+            setConversations(prev =>
+              prev.map(conv =>
+                conv.user_id === data.sender_id
+                  ? { ...conv, unread_count: 0 }
+                  : conv
+              )
+            );
+            break;
+        }
+      } catch (err) {
+        console.error("Failed to parse WebSocket message:", err);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error("ChatSidebar WebSocket error:", error);
+    };
+
+    ws.onclose = () => {
+      console.log("ChatSidebar WebSocket closed");
+      setSocket(null);
+    };
+
+    return () => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+    };
   }, []);
 
   // Format time string
@@ -65,9 +123,6 @@ const ChatSidebar = () => {
             ? `${import.meta.env.VITE_API_URL}/uploads/profile_pictures/${c.avatar}`
             : "/default-avatar.png";
 
-          console.log("Rendering user:", normalizedUser);
-          console.log("Profile image URL:", profileImage);
-
           return (
             <button
               key={c.user_id}
@@ -80,7 +135,6 @@ const ChatSidebar = () => {
                 onError={(e) => {
                   e.target.onerror = null;
                   e.target.src = "/default-avatar.png";
-                  console.warn("Failed to load profile image, fallback applied.");
                 }}
                 alt={`${c.username}'s avatar`}
                 className="w-12 h-12 rounded-full object-cover"

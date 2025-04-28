@@ -7,25 +7,134 @@ from fastapi.responses import JSONResponse, FileResponse
 from sqlalchemy import desc, func, or_
 from sqlalchemy.orm import Session
 from models.chat import Message
+from models.user import User
 from core.dependencies import get_db
-import json
-from datetime import datetime,timezone
-from pydantic import BaseModel
-from typing import List
 from api.v1.endpoints.auth import get_current_user
-from schemas.chat import MessageOut, ConversationOut, MessageType
-from fastapi.staticfiles import StaticFiles
+import json
+from datetime import datetime, timezone
+from typing import Dict, List, Optional
+from schemas.chat import MessageOut, ConversationOut, MessageType as SchemaMessageType
 
 router = APIRouter()
-clients = {}
+clients: Dict[int, WebSocket] = {}
 
 def is_valid_url(url: str) -> bool:
     try:
         result = urlparse(url)
-        return all([result.scheme, result.netloc])  # Must have scheme (http/https) and domain
-    except:
-        raise HTTPException(status_code=400, detail="Invalid URL")
-    
+        return all([result.scheme, result.netloc])
+    except ValueError:
+        return False
+
+def prepare_message_for_json(message: dict) -> dict:
+    """Helper function to ensure message data is JSON serializable"""
+    if 'message_type' in message:
+        # Convert message_type to string value
+        message['message_type'] = message['message_type'].value if hasattr(message['message_type'], 'value') else str(message['message_type'])
+    if 'timestamp' in message and isinstance(message['timestamp'], datetime):
+        message['timestamp'] = message['timestamp'].isoformat()
+    return message
+
+async def send_websocket_message(client: WebSocket, message: dict):
+    """Helper function to send WebSocket messages"""
+    try:
+        serializable_message = prepare_message_for_json(message)
+        await client.send_text(json.dumps(serializable_message))
+    except Exception as e:
+        print(f"Failed to send WebSocket message: {str(e)}")
+
+async def broadcast_conversation_update(db: Session, user_id: int, friend_id: int):
+    """Send conversation updates to both participants"""
+    # Get last message between users
+    last_msg = db.query(Message).filter(
+        ((Message.sender_id == user_id) & (Message.receiver_id == friend_id)) |
+        ((Message.sender_id == friend_id) & (Message.receiver_id == user_id))
+    ).order_by(Message.timestamp.desc()).first()
+
+    if not last_msg:
+        return
+
+    # Get unread count
+    unread_count = db.query(func.count(Message.id)).filter(
+        Message.sender_id == friend_id,
+        Message.receiver_id == user_id,
+        Message.is_read == False
+    ).scalar()
+
+    # Prepare conversation update
+    update = {
+        "type": "conversation_update",
+        "user_id": friend_id,
+        "conversation": {
+            "last_message": last_msg.content,
+            "message_type": last_msg.message_type.value if hasattr(last_msg.message_type, 'value') else str(last_msg.message_type),
+            "timestamp": last_msg.timestamp.isoformat(),
+            "is_sender": last_msg.sender_id == user_id,
+            "unread_count": unread_count
+        }
+    }
+
+    # Send to both users
+    for uid in [user_id, friend_id]:
+        if uid in clients:
+            await send_websocket_message(clients[uid], update)
+
+async def handle_chat_message(user_id: int, message_data: dict, db: Session):
+    """Handle incoming chat messages"""
+    receiver_id = int(message_data.get("receiver_id"))
+    content = message_data.get("content")
+    file_url = message_data.get("file_url", None)
+    message_type = message_data.get("message_type", "text").lower()
+
+    # Validate message type using schema enum
+    if message_type not in SchemaMessageType._value2member_map_:
+        print(f"❌ Invalid message type: {message_type}")
+        return
+
+    if message_type == SchemaMessageType.LINK.value and content and not is_valid_url(content):
+        print(f"❌ Invalid URL: {content}")
+        return
+
+    # Save message to database
+    db_message = Message(
+        sender_id=user_id,
+        receiver_id=receiver_id,
+        content=content,
+        file_url=file_url,
+        message_type=message_type,
+        timestamp=datetime.now(timezone.utc)
+    )
+    db.add(db_message)
+    db.commit()
+
+    # Prepare message event
+    msg_event = {
+        "type": "message",
+        "id": db_message.id,
+        "sender_id": user_id,
+        "receiver_id": receiver_id,
+        "content": content,
+        "file_url": file_url,
+        "message_type": message_type,
+        "timestamp": db_message.timestamp.isoformat()
+    }
+
+    # Send message to both users
+    for uid in [user_id, receiver_id]:
+        if uid in clients:
+            await send_websocket_message(clients[uid], msg_event)
+
+    # Send new message notification
+    if receiver_id in clients:
+        new_msg_event = {
+            "type": "new_message",
+            "sender_id": user_id,
+            "receiver_id": receiver_id
+        }
+        await send_websocket_message(clients[receiver_id], new_msg_event)
+
+    # Update conversations
+    await broadcast_conversation_update(db, user_id, receiver_id)
+
 @router.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
     await websocket.accept()
@@ -35,123 +144,88 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
     try:
         while True:
             data = await websocket.receive_text()
-
             try:
-                # Parse incoming message
                 message_data = json.loads(data)
-                receiver_id = int(message_data.get("receiver_id"))
-                content = message_data.get("content")
-                file_url = message_data.get("file_url")  # Optional
-                message_type = message_data.get("message_type", "text").lower() # Default to text
-
-                                # Validate message type
-                if message_type not in [mt.value for mt in MessageType]:
-                    print(f"❌ Invalid message type: {message_type}")
-                    continue
-
-                # Validate link if message_type is link
-                if message_type == "link" and content and not is_valid_url(content):
-                    print(f"❌ Invalid URL: {content}")
-
-                # ✅ Save message to database
-                db_message = Message(
-                    sender_id=user_id,
-                    receiver_id=receiver_id,
-                    content=content,
-                    file_url=file_url,
-                    message_type=message_type,
-                    timestamp=datetime.now(timezone.utc)
-                )
-                db.add(db_message)
-                db.commit()
-
-                # Prepare outgoing message
-                msg_json = json.dumps({
-                    "sender_id": user_id,
-                    "receiver_id": receiver_id,
-                    "content": content,
-                    "file_url": file_url,
-                    "message_type": message_type,
-                    "timestamp": db_message.timestamp.isoformat()
-                })
-
-                # ✅ Send to both sender and receiver
-                for uid in [user_id, receiver_id]:
-                    if uid in clients:
-                        await clients[uid].send_text(msg_json)
-                    else:
-                        print(f"⚠️ User {uid} not connected")
-
+                await handle_chat_message(user_id, message_data, db)
             except json.JSONDecodeError:
                 print(f"❌ Invalid JSON from user {user_id}: {data}")
-
+            except Exception as e:
+                print(f"❌ Error processing message: {str(e)}")
     except WebSocketDisconnect:
         clients.pop(user_id, None)
         print(f"🔌 WebSocket disconnected: user {user_id}")
 
-        
 @router.get("/chat/history/{friend_id}", response_model=List[MessageOut])
-def get_chat_history(friend_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+async def get_chat_history(friend_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     user_id = current_user.id
-
-    # ✅ Step 1: Get all messages between current user and friend
+    
+    # Get chat history
     messages = db.query(Message).filter(
         ((Message.sender_id == user_id) & (Message.receiver_id == friend_id)) |
         ((Message.sender_id == friend_id) & (Message.receiver_id == user_id))
     ).order_by(Message.timestamp.asc()).all()
 
-    # ✅ Step 2: Mark friend's messages to current user as read
-    db.query(Message).filter(
+    # Mark messages as read
+    unread = db.query(Message).filter(
         Message.sender_id == friend_id,
         Message.receiver_id == user_id,
         Message.is_read == False
-    ).update({Message.is_read: True})
+    )
+    
+    if unread.count() > 0:
+        read_count = unread.count()
+        unread.update({Message.is_read: True})
+        db.commit()
 
-    db.commit()  # 💾 Save changes
+        # Send read receipt via WebSocket
+        if friend_id in clients:
+            read_receipt = {
+                "type": "read_receipt",
+                "chat_id": user_id,
+                "last_read_id": messages[-1].id if messages else None,
+                "read_count": read_count
+            }
+            await send_websocket_message(clients[friend_id], read_receipt)
+
+        # Update conversations after marking messages as read
+        await broadcast_conversation_update(db, user_id, friend_id)
 
     return messages
 
-
-from sqlalchemy.orm import joinedload
-
 @router.get("/chat/conversations", response_model=List[ConversationOut])
-def get_conversations(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+async def get_conversations(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     user_id = current_user.id
-
-    # Step 1: Get all latest messages for each conversation
-    subquery = db.query(
-        func.max(Message.id).label("latest_id")
-    ).filter(
-        or_(
-            Message.sender_id == user_id,
-            Message.receiver_id == user_id
-        )
-    ).group_by(
-        func.least(Message.sender_id, Message.receiver_id),
-        func.greatest(Message.sender_id, Message.receiver_id)
-    ).subquery()
-
-    # ✅ Eager-load sender and receiver user objects
-    latest_messages = db.query(Message).options(
-        joinedload(Message.sender),
-        joinedload(Message.receiver)
-    ).join(
-        subquery, Message.id == subquery.c.latest_id
-    ).order_by(desc(Message.timestamp)).all()
-
     results = []
-    for msg in latest_messages:
-        friend = msg.receiver if msg.sender_id == user_id else msg.sender
-        other_user_id = friend.id
 
-        # ✅ Get unread message count from that friend
+    # Get all conversations with last message
+    conversations = db.query(Message).filter(
+        (Message.sender_id == user_id) | (Message.receiver_id == user_id)
+    ).order_by(Message.timestamp.desc()).all()
+
+    processed_users = set()
+    
+    for msg in conversations:
+        friend_id = msg.receiver_id if msg.sender_id == user_id else msg.sender_id
+        
+        if friend_id in processed_users:
+            continue
+            
+        processed_users.add(friend_id)
+        
+        # Get friend details
+        friend = db.query(User).filter(User.id == friend_id).first()
+        if not friend:
+            continue
+
+        # Get unread count
         unread_count = db.query(func.count(Message.id)).filter(
-            Message.sender_id == other_user_id,
+            Message.sender_id == friend_id,
             Message.receiver_id == user_id,
             Message.is_read == False
         ).scalar()
-        # Normalize message_type to lowercase for consistency
-        message_type = msg.message_type.lower() if isinstance(msg.message_type, str) else msg.message_type.value.lower()
+
+        message_type = msg.message_type.value if hasattr(msg.message_type, 'value') else str(msg.message_type)
+        
         results.append({
             "user_id": friend.id,
             "username": friend.username,
