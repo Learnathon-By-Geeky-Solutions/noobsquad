@@ -672,7 +672,7 @@ def test_get_media_post_data():
     db.query.assert_called_with(PostMedia)
     query.filter.assert_called_once()
     # Verify result
-    assert result == {"media_url": "http://127.0.0.1:8000/uploads/media/test_media.jpg"}
+    assert result == {"media_url": "test_media.jpg"}
     
     # Test case: No media
     db.reset_mock()

@@ -223,8 +223,11 @@ def test_upload_profile_picture_success(override_dependencies, mock_upload_dir, 
     mock_query.filter.return_value.first.return_value = test_user
     mock_session.query.return_value = mock_query
     
-    # Mock the secrets.token_hex function to return a predictable value
-    with patch("secrets.token_hex", return_value="mocktoken"):
+    # Mock Cloudinary upload to return a predictable URL
+    mock_cloudinary_result = {
+        "secure_url": "https://res.cloudinary.com/test/image/upload/test.jpg"
+    }
+    with patch("routes.profile.upload_to_cloudinary", return_value=mock_cloudinary_result):
         # Make the request
         response = client.post(
             "/profile/upload_picture",
@@ -234,20 +237,15 @@ def test_upload_profile_picture_success(override_dependencies, mock_upload_dir, 
     # Assertions
     assert response.status_code == 200
     result = response.json()
-    assert "filename" in result
-    assert result["filename"] == "1_mocktoken.jpg"
     assert "profile_url" in result
+    assert result["profile_url"] == mock_cloudinary_result["secure_url"]
+    assert "profile_completed" in result
     assert result["profile_completed"] == test_user.profile_completed
     
-    # Verify user was updated
-    assert test_user.profile_picture == "1_mocktoken.jpg"
+    # Verify user was updated with Cloudinary URL
+    assert test_user.profile_picture == mock_cloudinary_result["secure_url"] 
     mock_session.commit.assert_called()
     mock_session.refresh.assert_called_with(test_user)
-    
-    # Verify file was saved (if using real file operations)
-    if os.path.exists(mock_upload_dir):
-        file_path = os.path.join(mock_upload_dir, "1_mocktoken.jpg")
-        assert os.path.exists(file_path)
 
 # Test upload_profile_picture endpoint - user not found
 def test_upload_profile_picture_user_not_found(override_dependencies, test_image):
