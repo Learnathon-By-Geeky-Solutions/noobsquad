@@ -2,7 +2,7 @@ from typing import Optional, Dict, Any
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, UploadFile
 from models.user import User
-from models.post import Post, PostMedia, PostDocument, Event
+from models.post import Post, PostMedia, PostDocument, Event, Comment
 from utils.cloudinary import upload_to_cloudinary
 from services.PostHandler import get_user_like_status
 from services.PostTypeHandler import get_post_additional_data
