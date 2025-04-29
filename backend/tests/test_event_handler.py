@@ -8,10 +8,12 @@ from services.EventHandler import (
     _parse_datetime_string,
     _convert_to_utc,
     parse_event_datetime,
-    _handle_event_image,
+    handle_event_upload,
     create_event_post,
     update_event_post,
-    format_event_response
+    format_event_response,
+    _update_post_content,
+    _update_event_fields
 )
 
 class TestEventHandler(TestCase):
@@ -36,6 +38,8 @@ class TestEventHandler(TestCase):
         
         self.assertIsInstance(result, datetime)
         self.assertEqual(result.year, 2025)
+        self.assertEqual(result.month, 4)
+        self.assertEqual(result.day, 30)
         self.assertEqual(result.hour, 14)
         self.assertEqual(result.minute, 30)
 
@@ -69,40 +73,37 @@ class TestEventHandler(TestCase):
         self.assertIsInstance(result, datetime)
         self.assertEqual(result.tzinfo, ZoneInfo("UTC"))
 
-    @patch('services.EventHandler.save_upload_file')
-    @patch('services.EventHandler.generate_secure_filename')
-    def test_handle_event_image(self, mock_generate_filename, mock_save_file):
-        mock_image = Mock(spec=UploadFile)
-        mock_generate_filename.return_value = "test_image.jpg"
-        upload_dir = "test/uploads"
+    @patch('services.EventHandler.upload_to_cloudinary')
+    async def test_handle_event_upload_success(self, mock_upload):
+        mock_file = Mock(spec=UploadFile)
+        mock_upload.return_value = {"secure_url": "https://example.com/image.jpg"}
         
-        result = _handle_event_image(mock_image, self.user_id, upload_dir)
+        result = await handle_event_upload(mock_file, "events")
         
-        mock_generate_filename.assert_called_once_with(self.user_id, ".jpg")
-        mock_save_file.assert_called_once_with(mock_image, upload_dir, "test_image.jpg")
-        self.assertEqual(result, "test_image.jpg")
+        mock_upload.assert_called_once_with(mock_file.file, folder_name="events")
+        self.assertEqual(result["secure_url"], "https://example.com/image.jpg")
 
-    def test_handle_event_image_no_image(self):
-        result = _handle_event_image(None, self.user_id, "test/uploads")
-        self.assertIsNone(result)
+    @patch('services.EventHandler.upload_to_cloudinary')
+    async def test_handle_event_upload_failure(self, mock_upload):
+        mock_file = Mock(spec=UploadFile)
+        mock_upload.side_effect = Exception("Upload failed")
+        
+        with pytest.raises(Exception) as exc_info:
+            await handle_event_upload(mock_file, "events")
+        
+        assert str(exc_info.value) == "Upload failed"
 
     @patch('services.EventHandler.create_base_post')
-    @patch('services.EventHandler._handle_event_image')
-    def test_create_event_post(self, mock_handle_image, mock_create_base_post):
+    def test_create_event_post_success(self, mock_create_base_post):
         mock_post = Mock(id=1)
-        mock_event = Mock()
-        mock_image = Mock(spec=UploadFile)
         mock_create_base_post.return_value = mock_post
-        mock_handle_image.return_value = "test_image.jpg"
-        
-        self.mock_db.refresh = Mock()
         
         post, event = create_event_post(
             self.mock_db,
             self.user_id,
             self.content,
             self.event_data,
-            mock_image
+            "https://example.com/image.jpg"
         )
         
         mock_create_base_post.assert_called_once_with(
@@ -114,9 +115,39 @@ class TestEventHandler(TestCase):
         self.mock_db.add.assert_called_once()
         self.mock_db.commit.assert_called_once()
         self.assertEqual(post, mock_post)
+        self.assertEqual(event.image_url, "https://example.com/image.jpg")
 
-    def test_update_event_post(self):
-        mock_post = Mock(id=1)
+    def test_update_post_content(self):
+        mock_post = Mock()
+        new_content = "Updated content"
+        
+        _update_post_content(mock_post, new_content)
+        
+        self.assertEqual(mock_post.content, new_content)
+
+    def test_update_post_content_none(self):
+        mock_post = Mock(content="Original content")
+        
+        _update_post_content(mock_post, None)
+        
+        self.assertEqual(mock_post.content, "Original content")
+
+    def test_update_event_fields(self):
+        mock_event = Mock()
+        update_data = {
+            "event_title": "Updated Title",
+            "event_description": "Updated Description",
+            "location": "Updated Location"
+        }
+        
+        _update_event_fields(mock_event, update_data)
+        
+        self.assertEqual(mock_event.title, "Updated Title")
+        self.assertEqual(mock_event.description, "Updated Description")
+        self.assertEqual(mock_event.location, "Updated Location")
+
+    def test_update_event_post_full_update(self):
+        mock_post = Mock()
         mock_event = Mock()
         update_data = {
             "content": "Updated content",
@@ -124,35 +155,45 @@ class TestEventHandler(TestCase):
             "event_description": "Updated Description",
             "event_date": self.event_date,
             "event_time": self.event_time,
-            "location": "Updated Location"
+            "location": "Updated Location",
+            "user_timezone": self.user_timezone
         }
         
-        post, event = update_event_post(self.mock_db, mock_post, mock_event, update_data)
+        updated_post, updated_event = update_event_post(self.mock_db, mock_post, mock_event, update_data)
         
         self.assertEqual(mock_post.content, "Updated content")
         self.assertEqual(mock_event.title, "Updated Title")
         self.assertEqual(mock_event.description, "Updated Description")
         self.assertEqual(mock_event.location, "Updated Location")
+        self.assertEqual(updated_post, mock_post)
+        self.assertEqual(updated_event, mock_event)
         self.mock_db.commit.assert_called_once()
+        self.mock_db.refresh.assert_called()
 
     def test_format_event_response(self):
         mock_post = Mock(
             id=1,
+            user_id=self.user_id,
             content=self.content
         )
+        event_datetime = datetime.now(ZoneInfo("UTC"))
         mock_event = Mock(
+            id=1,
             title="Test Event",
             description="Test Description",
-            event_datetime=datetime.now(ZoneInfo("UTC")),
+            event_datetime=event_datetime,
             location="Test Location",
             image_url="test_image.jpg"
         )
         
         result = format_event_response(mock_post, mock_event)
         
-        self.assertEqual(result["id"], 1)
-        self.assertEqual(result["content"], self.content)
-        self.assertEqual(result["title"], "Test Event")
-        self.assertEqual(result["description"], "Test Description")
-        self.assertEqual(result["location"], "Test Location")
-        self.assertEqual(result["image_url"], "test_image.jpg")
+        self.assertEqual(result["id"], mock_event.id)
+        self.assertEqual(result["post_id"], mock_post.id)
+        self.assertEqual(result["user_id"], mock_post.user_id)
+        self.assertEqual(result["content"], mock_post.content)
+        self.assertEqual(result["title"], mock_event.title)
+        self.assertEqual(result["description"], mock_event.description)
+        self.assertEqual(result["event_datetime"], event_datetime)
+        self.assertEqual(result["location"], mock_event.location)
+        self.assertEqual(result["image_url"], mock_event.image_url)
