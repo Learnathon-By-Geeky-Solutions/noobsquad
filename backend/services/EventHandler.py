@@ -30,18 +30,23 @@ def parse_event_datetime(
     local_datetime = _parse_datetime_string(event_date, event_time)
     return _convert_to_utc(local_datetime, user_timezone)
 
+def _handle_event_image(image: Optional[UploadFile], user_id: int, upload_dir: str) -> Optional[str]:
+    """Handle event image upload and return the filename."""
+    if not image:
+        return None
+    
+    filename = generate_secure_filename(user_id, ".jpg")
+    save_upload_file(image, upload_dir, filename)
+    return filename
+
 async def handle_event_upload(
-    media_file: UploadFile,
+    media_file: Optional[UploadFile],
     folder_name: str
 ) -> Dict[str, str]:
     """Handle media file upload to cloudinary and return upload details."""
-    upload_result = upload_to_cloudinary(
-        media_file.file,
-        folder_name=folder_name
-    )
-    return {
-        "secure_url": upload_result["secure_url"]
-    }
+    if not media_file:
+        return {"secure_url": None}
+    return await upload_to_cloudinary(media_file, folder_name)
 
 def create_event_post(
     db: Session,
@@ -52,7 +57,6 @@ def create_event_post(
 ) -> Tuple[Post, Event]:
     """Create a new event post with associated event details."""
     post = create_base_post(db, user_id, content, "event")
-    image_filename = image_url
     
     event_datetime = parse_event_datetime(
         event_data["event_date"],
@@ -67,7 +71,7 @@ def create_event_post(
         description=event_data["event_description"],
         event_datetime=event_datetime,
         location=event_data.get("location"),
-        image_url=image_filename
+        image_url=image_url
     )
     
     db.add(event)
