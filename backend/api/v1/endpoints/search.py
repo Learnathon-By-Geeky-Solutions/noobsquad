@@ -1,65 +1,38 @@
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from database.session import SessionLocal
-from typing import List
-from pydantic import BaseModel
-from models.post import Post
-from models.university import University
+from typing import List, Dict, Any
 from core.dependencies import get_db
-import logging
 from models.user import User
 from api.v1.endpoints.auth import get_current_user
+from services.SearchHandler import SearchHandler
 
 router = APIRouter()
 
-# Pydantic model for the post response
-class PostBase(BaseModel):
-    id: int
-    user_id: int
-    content: str
-    post_type: str
-    created_at: str
-    like_count: int
-
-    class Config:
-        from_attributes = True  # Allows mapping SQLAlchemy models to Pydantic
-
-@router.get("/search", response_model=dict[str, List[PostBase]])
+@router.get("/search")
 def search_posts_by_keyword(
     keyword: str = Query(..., min_length=1, title="Search Keyword"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """
-    Search for posts by a specific keyword in content or username.
-    Returns only posts for now, as per the requirement.
-    """
-    try:
-        # Search posts by content or username
-        posts = db.query(Post).filter(
-            (Post.content.ilike(f"%{keyword}%") & (Post.event == None)) |  # Posts with matching content, not tied to events
-            (Post.user.has(User.username.ilike(f"%{keyword}%")))  # Posts by users with matching username
-        ).all()
+    """Search for posts by keyword in content or username."""
+    posts = SearchHandler.search_posts(db, keyword)
+    return {"posts": posts}
 
-        # If no posts are found
-        if not posts:
-            return {"posts": []}  # Return empty list instead of raising 404, for simplicity
+@router.get("/search/users")
+def search_users_by_keyword(
+    keyword: str = Query(..., min_length=1, title="Search Keyword"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Search for users by username or email."""
+    users = SearchHandler.search_users(db, keyword)
+    return {"users": users}
 
-        # Prepare the response
-        return {
-            "posts": [
-                {
-                    "id": post.id,
-                    "user_id": post.user_id,
-                    "content": post.content,
-                    "post_type": post.post_type,
-                    "created_at": post.created_at.isoformat(),  # Convert datetime to string
-                    "like_count": post.like_count
-                }
-                for post in posts
-            ]
-        }
-
-    except Exception as e:
-        logging.error(f"Error searching for keyword '{keyword}': {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+@router.get("/search/all")
+def search_all_by_keyword(
+    keyword: str = Query(..., min_length=1, title="Search Keyword"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Search across all searchable entities (posts and users)."""
+    return SearchHandler.search_all(db, keyword)

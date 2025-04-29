@@ -44,20 +44,41 @@ const ConnectedUsers = () => {
   const { openChat } = useContext(ChatContext);
 
   useEffect(() => {
-    fetchConnectedUsers()
-      .then(setFriends)
-      .catch(() => setError("Failed to load friends. Please try again later."))
-      .finally(() => setLoading(false));
+    const fetchConnections = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/connections/connections`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (!Array.isArray(response.data)) {
+          throw new Error("Unexpected API response format");
+        }
+
+        setFriends(response.data);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching connections:", err);
+        setError("Failed to load connections. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchConnections();
   }, []);
 
-  // Function to handle opening a chat with proper error handling
   const handleOpenChat = (friend) => {
-    console.log("Attempting to open chat with friend:", friend);
-    if (!friend || !friend.id) {
+    if (!friend || !friend.friend_id) {
       console.error("Invalid friend object:", friend);
       return;
     }
-    openChat(friend);
+    openChat({
+      id: friend.friend_id,
+      username: friend.username,
+      profile_picture: friend.profile_picture
+    });
   };
 
   const renderContent = () => {
@@ -73,7 +94,7 @@ const ConnectedUsers = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 mt-6">
         {friends.map((friend) => (
           <div
-            key={friend.id}
+            key={friend.connection_id}
             className="bg-white shadow-md rounded-xl p-6 flex flex-col items-center text-center hover:shadow-lg transition"
           >
             <img

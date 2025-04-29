@@ -28,6 +28,8 @@ from models.university import University
 from dotenv import load_dotenv
 import os
 from utils.cloudinary import upload_to_cloudinary
+from utils.post_utils import validate_post_ownership, prepare_post_response, handle_media_upload, create_base_post
+from services.EventHandler import create_event_post, format_event_response
 
 # Load environment variables
 load_dotenv()
@@ -85,30 +87,7 @@ def get_posts(
     # ✅ Apply pagination
     posts = query.order_by(Post.created_at.desc()).offset(offset).limit(limit).all()
 
-    post_list = []
-
-    for post in posts:
-        # ✅ Get like count & user like status
-        user_liked = get_user_like_status(post.id, current_user.id, db)
-
-        post_data = {
-            "id": post.id,
-            "post_type": post.post_type,
-            "content": post.content,
-            "created_at": post.created_at,
-            "user": {
-                "id": post.user.id,
-                "username": post.user.username,
-                "profile_picture": {post.user.profile_picture}
-            },
-            "total_likes": post.like_count,
-            "user_liked": user_liked
-        }
-
-        # ✅ Fetch additional data based on post_type
-        post_data.update(get_post_additional_data(post, db))
-
-        post_list.append(post_data)
+    post_list = [prepare_post_response(post, current_user, db) for post in posts]
 
     return {"posts": post_list, "count": len(post_list)}
 
@@ -125,25 +104,7 @@ def get_single_post(
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
 
-    user_liked = get_user_like_status(post.id, current_user.id, db)
-
-    post_data = {
-        "id": post.id,
-        "post_type": post.post_type,
-        "content": post.content,
-        "created_at": post.created_at,
-        "user": {
-            "id": post.user.id,
-            "username": post.user.username,
-            "profile_picture": {post.user.profile_picture}
-        },
-        "total_likes": post.like_count,
-        "user_liked": user_liked
-    }
-
-    post_data.update(get_post_additional_data(post, db))
-
-    return post_data
+    return prepare_post_response(post, current_user, db)
 
 
 @router.post("/create_media_post/", response_model=MediaPostResponse)
@@ -153,23 +114,27 @@ async def create_media_post(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    """Create a new media post."""
+    # Validate file extension
     ext = validate_file_extension(media_file.filename, ALLOWED_MEDIA)
-    upload_result = upload_to_cloudinary(
-        media_file.file,  # Correct: sending the file object
-        folder_name="noobsquad/media_uploads"
-    )
-
-    secure_url = upload_result["secure_url"]
-    resource_type = upload_result["resource_type"]
-
-    post = create_post_entry(db, current_user.id, content, "media")
-    media_entry = PostMedia(post_id=post.id, media_url=secure_url, media_type=ext)  # <-- Corrected
-
     
+    # Upload media to cloudinary
+    upload_result = await handle_media_upload(media_file, "noobsquad/media_uploads")
+    
+    # Create post
+    post = create_base_post(db, current_user.id, content, "media")
+    
+    # Create media entry
+    media_entry = PostMedia(
+        post_id=post.id,
+        media_url=upload_result["secure_url"],
+        media_type=ext
+    )
     db.add(media_entry)
     db.commit()
     db.refresh(media_entry)
-
+    
+    # Send notifications
     send_post_notifications(db, current_user, post)
     return media_entry
 
@@ -181,16 +146,27 @@ async def create_document_post(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    """Create a new document post."""
+    # Validate file extension
     ext = validate_file_extension(document_file.filename, ALLOWED_DOCS)
+    
+    # Generate filename and save file
     filename = generate_secure_filename(current_user.id, ext)
     save_upload_file(document_file, DOCUMENT_DIR, filename)
-
-    post = create_post_entry(db, current_user.id, content, "document")
-    doc_entry = PostDocument(post_id=post.id, document_url=filename, document_type=ext)
+    
+    # Create post and document entry
+    post = create_base_post(db, current_user.id, content, "document")
+    doc_entry = PostDocument(
+        post_id=post.id,
+        document_url=filename,
+        document_type=ext
+    )
+    
     db.add(doc_entry)
     db.commit()
     db.refresh(doc_entry)
-
+    
+    # Send notifications
     send_post_notifications(db, current_user, post)
     return doc_entry
 
@@ -201,30 +177,9 @@ async def create_text_post(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    if moderate_text(content):
-        raise HTTPException(status_code=400, detail="Inappropriate content detected, Please revise your post.")
-
-    post = create_post_entry(db, current_user.id, content, "text")
-    hashtags = extract_hashtags(post.content)
-    
-    # Fetch all university names
-    universities = db.query(University.name).all()
-    university_names = {name.lower() for (name,) in universities}
-
-    for tag in hashtags:
-        if tag.lower() in university_names:
-            existing_hashtag = db.query(Hashtag).filter_by(name=tag.lower()).first()
-            if existing_hashtag:
-                existing_hashtag.usage_count += 1
-            else:
-                existing_hashtag = Hashtag(name=tag.lower(), usage_count=1)
-                db.add(existing_hashtag)
-
-            post.hashtags.append(existing_hashtag)
+    """Create a new text post."""
+    post = create_base_post(db, current_user.id, content, "text")
     send_post_notifications(db, current_user, post)
-
-    post.comment_count = 0
-    post.user_liked = False
     return post
 
 
@@ -235,44 +190,32 @@ async def create_event_post(
     event_description: str = Form(...),
     event_date: str = Form(...),
     event_time: str = Form(...),
-    user_timezone: str = Form("Asia/Dhaka"),
+    user_timezone: str = Form("UTC"),
     location: Optional[str] = Form(None),
     event_image: Optional[UploadFile] = File(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    try:
-        dt_local = datetime.strptime(f"{event_date} {event_time}", "%Y-%m-%d %H:%M")
-        dt_utc = dt_local.replace(tzinfo=ZoneInfo(user_timezone)).astimezone(ZoneInfo("UTC"))
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid date/time: {str(e)}")
-
-    image_url = None
-    if event_image:
-        ext = validate_file_extension(event_image.filename, {".jpg", ".jpeg", ".png", ".gif", ".webp"})
-        upload_result = upload_to_cloudinary(
-            event_image.file,  # Correct: sending the file object
-            folder_name="noobsquad/event_media_uploads"
-        )
-
-        image_url = upload_result["secure_url"]
-
-    post = create_post_entry(db, current_user.id, content, "event")
-    event = Event(
-        post_id=post.id,
+    """Create a new event post."""
+    event_data = {
+        "event_title": event_title,
+        "event_description": event_description,
+        "event_date": event_date,
+        "event_time": event_time,
+        "user_timezone": user_timezone,
+        "location": location
+    }
+    
+    post, event = create_event_post(
+        db=db,
         user_id=current_user.id,
-        title=event_title,
-        description=event_description,
-        event_datetime=dt_utc,
-        location=location,
-        image_url=image_url
+        content=content,
+        event_data=event_data,
+        event_image=event_image
     )
-    db.add(event)
-    db.commit()
-    db.refresh(event)
+    
     send_post_notifications(db, current_user, post)
-
-    return event
+    return format_event_response(post, event)
 
 @router.get("/posts/")
 def get_posts(user_id: Optional[int] = None, db: Session = Depends(get_db)):
@@ -406,29 +349,29 @@ async def update_event_post(
     user_timezone: Optional[str] = Form(None),
     location: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db)
 ):
-    post, event = get_post_and_event(post_id, current_user.id, db)
+    """Update an existing event post."""
+    # Validate post ownership
+    post = validate_post_ownership(post_id, current_user.id, db)
     
-    event_datetime_utc = try_convert_datetime(event_date, event_time, user_timezone, fallback=event.event_datetime)
+    # Get associated event
+    event = db.query(Event).filter(Event.post_id == post.id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event details not found")
     
-    post_updated = update_post_and_event(
-        db=db,
-        post=post,
-        event=event,
-        post_data={"content": content},
-        event_data={
-            "title": event_title,
-            "description": event_description,
-            "event_datetime": event_datetime_utc,
-            "location": location
-        }
-    )
+    update_data = {
+        "content": content,
+        "event_title": event_title,
+        "event_description": event_description,
+        "event_date": event_date,
+        "event_time": event_time,
+        "user_timezone": user_timezone,
+        "location": location
+    }
     
-    if post_updated:
-        return format_updated_event_response(post, event)
-
-    return {"message": "No changes detected"}
+    post, event = update_event_post(db, post, event, update_data)
+    return format_event_response(post, event)
 
 
 @router.delete("/delete_post/{post_id}")
@@ -444,33 +387,30 @@ async def delete_post(
 
 @router.get("/events/", response_model=Union[List[EventResponse], EventResponse])
 async def get_events(
-    request: Request,  # We need this to access the base URL of the server
+    request: Request,
     event_id: Optional[int] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    if event_id is not None:
-        event = db.query(Event).filter(Event.id == event_id).first()
-        if not event:
+    """Get all events or a specific event."""
+    if event_id:
+        post = db.query(Post).filter(Post.id == event_id).first()
+        if not post:
             raise HTTPException(status_code=404, detail="Event not found")
-
-        # # Build the full image URL if it exists
-        # if event.image_url:
-        #     # Replace any backslashes with forward slashes
-        #     # full_image_url = f"{str(request.base_url).rstrip('/')}{event.image_url.replace('\\', '/')}"
-        #     event.image_url = full_image_url
-
-        return event
-    else:
-        events = db.query(Event).all()
-        if not events:
-            raise HTTPException(status_code=404, detail="No events found")
-
-        # Add full image URL to each event in the list
-        # for event in events:
-        #     if event.image_url:
-        #         # Replace any backslashes with forward slashes
-        #         full_image_url = f"{str(request.base_url).rstrip('/')}{event.image_url.replace('\\', '/')}"
-        #         event.image_url = full_image_url
-
-        return events
+            
+        event = db.query(Event).filter(Event.post_id == post.id).first()
+        if not event:
+            raise HTTPException(status_code=404, detail="Event details not found")
+            
+        return format_event_response(post, event)
+    
+    # Get all events
+    events_query = (
+        db.query(Post, Event)
+        .join(Event)
+        .filter(Post.post_type == "event")
+        .order_by(Event.event_datetime.desc())
+    )
+    
+    events = events_query.all()
+    return [format_event_response(post, event) for post, event in events]
