@@ -35,8 +35,8 @@ def _create_user_record(db: Session, username: str, email: str, hashed_password:
     db.refresh(new_user)
     return new_user
 
-def _send_verification_email(email: str, otp: str) -> None:
-    send_email(
+async def _send_verification_email(email: str, otp: str) -> None:
+    await send_email(
         email,
         "Verify Your Email",
         f"Your OTP is {otp}. It is valid for 10 minutes."

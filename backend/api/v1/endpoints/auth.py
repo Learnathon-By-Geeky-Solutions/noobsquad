@@ -44,12 +44,13 @@ logger = logging.getLogger(__name__)
 @router.post("/signup/")
 async def signup(user: UserCreate, db: Session = Depends(get_db)):
     """Create a new user account."""
-    return await AuthHandler.create_user(
+    response = await AuthHandler.create_user(
         db=db,
         username=user.username,
         email=user.email,
         password=user.password
     )
+    return response
 
 # ✅ Login Route
 @router.post("/token", response_model=Token)
