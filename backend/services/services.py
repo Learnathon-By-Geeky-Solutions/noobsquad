@@ -1,7 +1,7 @@
 #all helper functions related to post, will be here
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, Any
 from datetime import datetime
 from models.user import User
 from models.post import Post, Event
@@ -11,18 +11,39 @@ from crud.notification import create_notification
 
 STATUS_404_ERROR = "Post not found"
 
-# Event part
+def _parse_datetime(date_str: str, time_str: str) -> datetime:
+    return datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
 
-def should_convert(date, time, tz):
+def _convert_to_utc(event_date: str, event_time: str, user_timezone: str) -> datetime:
+    local_datetime = _parse_datetime(event_date, event_time)
+    local_tz = ZoneInfo(user_timezone)
+    return local_datetime.replace(tzinfo=local_tz).astimezone(ZoneInfo("UTC"))
+
+def should_convert(date: Optional[str], time: Optional[str], tz: Optional[str]) -> bool:
     return all([date, time, tz])
 
-def try_convert_datetime(date, time, tz, fallback):
-    return convert_to_utc(date, time, tz) if should_convert(date, time, tz) else fallback
+def try_convert_datetime(date: Optional[str], time: Optional[str], tz: Optional[str], fallback: datetime) -> datetime:
+    return _convert_to_utc(date, time, tz) if should_convert(date, time, tz) else fallback
+
+def _update_field(model_instance: Any, field: str, value: Any) -> bool:
+    if value is not None and getattr(model_instance, field) != value:
+        setattr(model_instance, field, value)
+        return True
+    return False
+
+def update_fields(fields: dict, model_instance: Any, db: Session) -> bool:
+    updated = False
+    for field, value in fields.items():
+        updated |= _update_field(model_instance, field, value)
+    if updated:
+        db.commit()
+        db.refresh(model_instance)
+    return updated
 
 def update_post_and_event(
     db: Session,
-    post,
-    event,
+    post: Post,
+    event: Event,
     post_data: dict,
     event_data: dict
 ) -> bool:
@@ -31,8 +52,7 @@ def update_post_and_event(
     updated |= update_fields(event_data, event, db)
     return updated
 
-
-def format_updated_event_response(post, event):
+def format_updated_event_response(post: Post, event: Event) -> dict:
     return {
         "message": "Event post updated successfully",
         "updated_post": {
@@ -45,9 +65,7 @@ def format_updated_event_response(post, event):
         }
     }
 
-
-# Helper function to get post and associated event
-def get_post_and_event(post_id: int, user_id: int, db: Session):
+def get_post_and_event(post_id: int, user_id: int, db: Session) -> tuple[Post, Event]:
     post = db.query(Post).filter(Post.id == post_id, Post.user_id == user_id).first()
     if not post:
         raise HTTPException(status_code=404, detail="Post not found or not authorized")
@@ -57,26 +75,5 @@ def get_post_and_event(post_id: int, user_id: int, db: Session):
         raise HTTPException(status_code=404, detail="Event details not found")
     
     return post, event
-
-def parse_datetime(date_str, time_str):
-    return datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
-
-def convert_to_utc(event_date, event_time, user_timezone):
-    local_datetime = parse_datetime(event_date, event_time)
-    local_tz = ZoneInfo(user_timezone)
-    return local_datetime.replace(tzinfo=local_tz).astimezone(ZoneInfo("UTC"))
-
-
-# Helper function to update post and event fields
-def update_fields(fields, model_instance, db: Session) -> bool:
-    updated = False
-    for field, value in fields.items():
-        if value is not None and getattr(model_instance, field) != value:
-            setattr(model_instance, field, value)
-            updated = True
-    if updated:
-        db.commit()
-        db.refresh(model_instance)
-    return updated
 
 

@@ -7,20 +7,39 @@ from models.post import Post, Event
 from utils.post_utils import create_base_post
 from services.FileHandler import save_upload_file, generate_secure_filename
 
+def _parse_datetime_string(date_str: str, time_str: str) -> datetime:
+    try:
+        return datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid datetime format: {str(e)}")
+
+def _convert_to_utc(local_datetime: datetime, user_timezone: str) -> datetime:
+    try:
+        local_tz = ZoneInfo(user_timezone)
+        return local_datetime.replace(tzinfo=local_tz).astimezone(ZoneInfo("UTC"))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error processing datetime: {str(e)}")
+
 def parse_event_datetime(
     event_date: str,
     event_time: str,
     user_timezone: str = "UTC"
 ) -> datetime:
     """Parse and convert event datetime to UTC."""
-    try:
-        local_datetime = datetime.strptime(f"{event_date} {event_time}", "%Y-%m-%d %H:%M")
-        local_tz = ZoneInfo(user_timezone)
-        return local_datetime.replace(tzinfo=local_tz).astimezone(ZoneInfo("UTC"))
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid datetime format: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error processing datetime: {str(e)}")
+    local_datetime = _parse_datetime_string(event_date, event_time)
+    return _convert_to_utc(local_datetime, user_timezone)
+
+def _handle_event_image(
+    event_image: Optional[UploadFile],
+    user_id: int,
+    upload_dir: str
+) -> Optional[str]:
+    if not event_image:
+        return None
+    
+    image_filename = generate_secure_filename(user_id, ".jpg")
+    save_upload_file(event_image, upload_dir, image_filename)
+    return image_filename
 
 def create_event_post(
     db: Session,
@@ -31,23 +50,15 @@ def create_event_post(
     upload_dir: str = "uploads/event_images"
 ) -> Tuple[Post, Event]:
     """Create a new event post with associated event details."""
-    # Create base post
     post = create_base_post(db, user_id, content, "event")
+    image_filename = _handle_event_image(event_image, user_id, upload_dir)
     
-    # Handle event image if provided
-    image_filename = None
-    if event_image:
-        image_filename = generate_secure_filename(user_id, ".jpg")  # Assuming jpg for simplicity
-        save_upload_file(event_image, upload_dir, image_filename)
-    
-    # Parse event datetime
     event_datetime = parse_event_datetime(
         event_data["event_date"],
         event_data["event_time"],
         event_data.get("user_timezone", "UTC")
     )
     
-    # Create event
     event = Event(
         post_id=post.id,
         title=event_data["event_title"],
@@ -63,18 +74,11 @@ def create_event_post(
     
     return post, event
 
-def update_event_post(
-    db: Session,
-    post: Post,
-    event: Event,
-    update_data: Dict[str, Any]
-) -> Tuple[Post, Event]:
-    """Update an existing event post and its details."""
-    # Update post content if provided
-    if "content" in update_data and update_data["content"] is not None:
-        post.content = update_data["content"]
-    
-    # Update event fields if provided
+def _update_post_content(post: Post, content: Optional[str]) -> None:
+    if content is not None:
+        post.content = content
+
+def _update_event_fields(event: Event, update_data: Dict[str, Any]) -> None:
     event_fields = {
         "title": "event_title",
         "description": "event_description",
@@ -84,8 +88,17 @@ def update_event_post(
     for model_field, data_field in event_fields.items():
         if data_field in update_data and update_data[data_field] is not None:
             setattr(event, model_field, update_data[data_field])
+
+def update_event_post(
+    db: Session,
+    post: Post,
+    event: Event,
+    update_data: Dict[str, Any]
+) -> Tuple[Post, Event]:
+    """Update an existing event post and its details."""
+    _update_post_content(post, update_data.get("content"))
+    _update_event_fields(event, update_data)
     
-    # Update event datetime if both date and time are provided
     if all(key in update_data for key in ["event_date", "event_time"]):
         event_datetime = parse_event_datetime(
             update_data["event_date"],

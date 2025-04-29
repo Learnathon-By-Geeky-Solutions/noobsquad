@@ -8,6 +8,46 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+def _validate_user_exists(db: Session, user_id: int) -> None:
+    if not db.query(User).filter(User.id == user_id).first():
+        raise HTTPException(status_code=404, detail="User not found")
+
+def _get_existing_connection(db: Session, user_id: int, friend_id: int) -> Optional[Connection]:
+    return db.query(Connection).filter(
+        or_(
+            (Connection.user_id == user_id) & (Connection.friend_id == friend_id),
+            (Connection.user_id == friend_id) & (Connection.friend_id == user_id)
+        )
+    ).first()
+
+def _validate_connection_status(connection: Optional[Connection]) -> None:
+    if not connection:
+        return
+    
+    if connection.status == ConnectionStatus.ACCEPTED:
+        raise HTTPException(status_code=400, detail="Already connected")
+    if connection.status == ConnectionStatus.PENDING:
+        raise HTTPException(status_code=400, detail="Request already pending")
+
+def _create_connection(db: Session, user_id: int, friend_id: int) -> Connection:
+    new_request = Connection(
+        user_id=user_id,
+        friend_id=friend_id,
+        status=ConnectionStatus.PENDING
+    )
+    db.add(new_request)
+    db.commit()
+    db.refresh(new_request)
+    return new_request
+
+def _format_user_response(user: User) -> Dict[str, Any]:
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "profile_picture": user.profile_picture
+    }
+
 class ConnectionHandler:
     @staticmethod
     def send_connection_request(
@@ -17,36 +57,10 @@ class ConnectionHandler:
     ) -> Connection:
         """Send a connection request to another user."""
         try:
-            # Check if users exist
-            if not db.query(User).filter(User.id == friend_id).first():
-                raise HTTPException(status_code=404, detail="User not found")
-            
-            # Check if connection already exists
-            existing = db.query(Connection).filter(
-                or_(
-                    (Connection.user_id == user_id) & (Connection.friend_id == friend_id),
-                    (Connection.user_id == friend_id) & (Connection.friend_id == user_id)
-                )
-            ).first()
-            
-            if existing:
-                if existing.status == ConnectionStatus.ACCEPTED:
-                    raise HTTPException(status_code=400, detail="Already connected")
-                elif existing.status == ConnectionStatus.PENDING:
-                    raise HTTPException(status_code=400, detail="Request already pending")
-            
-            # Create new connection request
-            new_request = Connection(
-                user_id=user_id,
-                friend_id=friend_id,
-                status=ConnectionStatus.PENDING
-            )
-            db.add(new_request)
-            db.commit()
-            db.refresh(new_request)
-            
-            return new_request
-            
+            _validate_user_exists(db, friend_id)
+            existing = _get_existing_connection(db, user_id, friend_id)
+            _validate_connection_status(existing)
+            return _create_connection(db, user_id, friend_id)
         except HTTPException:
             raise
         except Exception as e:
@@ -65,10 +79,8 @@ class ConnectionHandler:
             
             if not connection:
                 raise HTTPException(status_code=404, detail="Connection request not found")
-                
             if connection.friend_id != user_id:
                 raise HTTPException(status_code=403, detail="Not authorized to accept this request")
-                
             if connection.status != ConnectionStatus.PENDING:
                 raise HTTPException(status_code=400, detail="Request is not pending")
             
@@ -77,7 +89,6 @@ class ConnectionHandler:
             db.refresh(connection)
             
             return {"message": "Connection accepted!"}
-            
         except HTTPException:
             raise
         except Exception as e:
@@ -96,10 +107,8 @@ class ConnectionHandler:
             
             if not connection:
                 raise HTTPException(status_code=404, detail="Connection request not found")
-                
             if connection.friend_id != user_id:
                 raise HTTPException(status_code=403, detail="Not authorized to reject this request")
-                
             if connection.status != ConnectionStatus.PENDING:
                 raise HTTPException(status_code=400, detail="Request is not pending")
             
@@ -107,7 +116,6 @@ class ConnectionHandler:
             db.commit()
             
             return {"message": "Connection request rejected"}
-            
         except HTTPException:
             raise
         except Exception as e:
@@ -129,22 +137,14 @@ class ConnectionHandler:
                 Connection.status == ConnectionStatus.ACCEPTED
             ).all()
             
-            result = []
-            for conn in connections:
-                friend_id = conn.friend_id if conn.user_id == user_id else conn.user_id
-                friend = db.query(User).filter(User.id == friend_id).first()
-                
-                if friend:
-                    result.append({
-                        "connection_id": conn.id,
-                        "friend_id": friend.id,
-                        "username": friend.username,
-                        "email": friend.email,
-                        "profile_picture": friend.profile_picture
-                    })
-            
-            return result
-            
+            return [
+                {
+                    "connection_id": conn.id,
+                    "friend_id": conn.friend_id if conn.user_id == user_id else conn.user_id,
+                    **(_format_user_response(db.query(User).filter(User.id == conn.friend_id if conn.user_id == user_id else conn.user_id).first()))
+                }
+                for conn in connections
+            ]
         except Exception as e:
             logger.error(f"Error getting user connections: {str(e)}")
             raise HTTPException(status_code=500, detail="Internal server error")
@@ -156,7 +156,6 @@ class ConnectionHandler:
     ) -> List[Dict[str, Any]]:
         """Get users available for connection (excluding existing connections)."""
         try:
-            # Get all users except current user and existing connections
             subquery = db.query(Connection).filter(
                 or_(
                     Connection.user_id == current_user_id,
@@ -173,16 +172,7 @@ class ConnectionHandler:
                 )
             ).all()
             
-            return [
-                {
-                    "id": user.id,
-                    "username": user.username,
-                    "email": user.email,
-                    "profile_picture": user.profile_picture
-                }
-                for user in available_users
-            ]
-            
+            return [_format_user_response(user) for user in available_users]
         except Exception as e:
             logger.error(f"Error getting available users: {str(e)}")
             raise HTTPException(status_code=500, detail="Internal server error")
@@ -199,20 +189,14 @@ class ConnectionHandler:
                 Connection.status == ConnectionStatus.PENDING
             ).all()
             
-            result = []
-            for request in pending:
-                sender = db.query(User).filter(User.id == request.user_id).first()
-                if sender:
-                    result.append({
-                        "request_id": request.id,
-                        "sender_id": sender.id,
-                        "username": sender.username,
-                        "email": sender.email,
-                        "profile_picture": sender.profile_picture
-                    })
-            
-            return result
-            
+            return [
+                {
+                    "request_id": request.id,
+                    "sender_id": request.user_id,
+                    **(_format_user_response(db.query(User).filter(User.id == request.user_id).first()))
+                }
+                for request in pending
+            ]
         except Exception as e:
             logger.error(f"Error getting pending requests: {str(e)}")
             raise HTTPException(status_code=500, detail="Internal server error")
@@ -228,7 +212,6 @@ class ConnectionHandler:
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
             return user
-            
         except HTTPException:
             raise
         except Exception as e:
