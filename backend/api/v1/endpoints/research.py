@@ -29,17 +29,17 @@ async def upload_paper(
     db: Session = Depends(get_db),
     current_user: ResearchPaper = Depends(get_current_user)
 ):
-    filename = save_uploaded_research_paper(file, current_user.id)
+    file_path = await save_uploaded_research_paper(file, current_user.id)
     paper = ResearchPaper(
         title=title,
         author=author,
         research_field=research_field,
-        file_path=filename,
+        file_path=file_path,
         original_filename=file.filename,
         uploader_id=current_user.id
     )
     save_new_paper(db, paper)
-    return {"message": "Paper uploaded successfully", "paper_id": paper.id, "file_name": filename}
+    return {"message": "Paper uploaded successfully", "paper_id": paper.id, "file_name": file.filename}
 
 @router.get("/recommended/", response_model=List[ResearchPaperOut])
 def get_recommended_papers(db: Session = Depends(get_db), current_user: ResearchPaper = Depends(get_current_user)):
@@ -61,10 +61,10 @@ def search_papers(keyword: str = Query(..., min_length=1), db: Session = Depends
 @router.get("/papers/download/{paper_id}/")
 def download_paper(paper_id: int, db: Session = Depends(get_db), current_user: ResearchPaper = Depends(get_current_user)):
     paper = get_paper_by_id(db, paper_id)
-    return get_file_response(f"uploads/research_papers/{paper.file_path}", paper.original_filename)
+    return RedirectResponse(url=paper.file_path)
 
 @router.post("/post-research/")
-def post_research(title: str = Form(...), research_field: str = Form(...), details: str = Form(...), db: Session = Depends(get_db), current_user: ResearchPaper = Depends(get_current_user)):
+async def post_research(title: str = Form(...), research_field: str = Form(...), details: str = Form(...), db: Session = Depends(get_db), current_user: ResearchPaper = Depends(get_current_user)):
     research = ResearchCollaboration(title=title, research_field=research_field, details=details, creator_id=current_user.id)
     save_new_research(db, research)
     return {"message": "Research work posted successfully", "research_id": research.id}

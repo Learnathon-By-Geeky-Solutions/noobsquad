@@ -6,7 +6,9 @@ from services.FileHandler import validate_file_extension, generate_secure_filena
 from werkzeug.utils import secure_filename
 from pathlib import Path
 from dotenv import load_dotenv
+from utils.supabase import upload_file_to_supabase
 import uuid
+from fastapi.responses import StreamingResponse
 
 load_dotenv()
 UPLOAD_DIR = Path("uploads/research_papers")
@@ -14,15 +16,11 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 API_URL = os.getenv("VITE_API_URL")
 ALLOWED_DOCS = [".pdf", ".doc", ".docx"]
 
-def save_uploaded_research_paper(file, user_id: int) -> str:
+async def save_uploaded_research_paper(file, user_id: int) -> str:
     ext = validate_file_extension(file.filename, ALLOWED_DOCS)
     filename = secure_filename(generate_secure_filename(user_id, ext))
-    save_upload_file(file, UPLOAD_DIR, filename)
-    return filename
-
-def validate_file_existence(filepath: str):
-    if not os.path.exists(filepath):
-        raise HTTPException(status_code=404, detail="File not found on the server")
+    file_path = await upload_file_to_supabase(file, filename, section="research_papers")
+    return file_path
 
 def get_file_response(filepath: str, filename: str):
     validate_file_existence(filepath)
