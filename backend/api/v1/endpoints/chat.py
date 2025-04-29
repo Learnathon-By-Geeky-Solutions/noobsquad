@@ -361,13 +361,8 @@ async def upload_file(
         if file_extension not in ALLOWED_EXTENSIONS:
             raise HTTPException(status_code=400, detail="Unsupported file type")
 
-        upload_result = upload_to_cloudinary(
-            file.file,
-            folder_name="noobsquad/chat_uploads"
-        )
-
-        secure_url = upload_result["secure_url"]
-        return JSONResponse(content={"file_url": secure_url})
+        file_url = await upload_to_cloudinary(file)
+        return {"file_url": file_url}
         
     except HTTPException:
         raise
