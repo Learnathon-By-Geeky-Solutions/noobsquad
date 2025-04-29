@@ -13,12 +13,13 @@ from models.chat import Message
 from models.user import User
 from core.dependencies import get_db
 from api.v1.endpoints.auth import get_current_user
-from utils.cloudinary import upload_to_cloudinary
 import json
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
 from schemas.chat import MessageOut, ConversationOut, MessageType as SchemaMessageType
 from pathlib import Path
+from utils.supabase import upload_file_to_supabase
+from services.FileHandler import generate_secure_filename
 
 router = APIRouter()
 clients: Dict[int, WebSocket] = {}
@@ -284,15 +285,12 @@ async def upload_file(
         if file_extension not in ALLOWED_EXTENSIONS:
             raise HTTPException(status_code=400, detail="Unsupported file type")
 
-        # Upload to Cloudinary
-        upload_result = upload_to_cloudinary(
-            file.file,
-            folder_name="noobsquad/chat_uploads"
-        )
-
-        secure_url = upload_result["secure_url"]
+        filename = generate_secure_filename(current_user.id, file_extension)
         
-        return JSONResponse(content={"file_url": secure_url})
+        # Upload to Cloudinary
+        chat_url = await upload_file_to_supabase(file, filename, section="chat")
+
+        return JSONResponse(content={"file_url": chat_url})
         
     except HTTPException:
         raise

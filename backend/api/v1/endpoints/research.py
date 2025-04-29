@@ -20,6 +20,9 @@ from datetime import datetime, timezone
 from services.FileHandler import validate_file_extension, generate_secure_filename, save_upload_file
 from schemas.researchpaper import ResearchPaperOut
 from dotenv import load_dotenv
+from utils.supabase import upload_file_to_supabase
+from fastapi.responses import RedirectResponse
+
 
 # Load environment variables
 load_dotenv()
@@ -53,10 +56,7 @@ async def upload_paper(
 
         # ✅ Generate and sanitize secure filename
         filename = generate_secure_filename(current_user.id, ext)  # e.g., user123_abcd1234.pdf
-        safe_filename = secure_filename(filename)
-
-        # ✅ Save file to disk
-        save_upload_file(file, UPLOAD_DIR, safe_filename)
+        safe_filename = await upload_file_to_supabase(file, filename, section="research_papers")
 
         # ✅ Save metadata to DB
         new_paper = ResearchPaper(
@@ -166,26 +166,13 @@ def download_paper(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """
-    Download a specific research paper by ID.
-    """
-    try:
-        paper = db.query(ResearchPaper).filter(ResearchPaper.id == paper_id).first()
-        
-        if not paper:
-            raise HTTPException(status_code=404, detail="Paper not found")
-
-        file_path = f"uploads/research_papers/{paper.file_path}"  # Ensure this stores the absolute or relative file path
-        
-        if not os.path.exists(file_path):
-            raise HTTPException(status_code=404, detail="File not found on the server")
-
-        return FileResponse(path=file_path, filename=paper.original_filename, media_type="application/pdf")
-
-    except Exception as e:
-        logging.error(f"Error downloading paper {paper_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail= give_error)
-
+    paper = db.query(ResearchPaper).filter(ResearchPaper.id == paper_id).first()
+    
+    if not paper:
+        raise HTTPException(status_code=404, detail="Paper not found")
+    
+    return RedirectResponse(url=paper.file_path)
+    
 
 @router.post("/post-research/")
 def post_research(

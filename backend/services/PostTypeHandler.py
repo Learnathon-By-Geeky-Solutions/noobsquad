@@ -33,7 +33,7 @@ def get_media_post_data(post: Post, db: Session):
 def get_document_post_data(post: Post, db: Session):
     document = db.query(PostDocument).filter(PostDocument.post_id == post.id).first()
     return {
-        "document_url": f"{API_URL}/uploads/document/{document.document_url}" if document else None
+        "document_url": document.document_url if document else None
     }
 
 def get_event_post_data(post: Post, db: Session):
