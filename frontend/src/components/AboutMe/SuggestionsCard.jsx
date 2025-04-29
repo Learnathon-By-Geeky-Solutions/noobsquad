@@ -38,10 +38,16 @@ const ProfileSuggestedFriends = () => {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.post(`${import.meta.env.VITE_API_URL}/connections/connect/`, { friend_id: userId }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setConnectionStatus(prev => ({ ...prev, [userId]: "Pending" }));
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/connections/connect/`,
+        { friend_id: Number(userId) },
+        { 
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          } 
+        }
+      );
     } catch (error) {
       console.error("Error sending connection request:", error);
       setConnectionStatus(prev => ({ ...prev, [userId]: "Connect" }));
@@ -83,22 +89,26 @@ const ProfileSuggestedFriends = () => {
                     </div>
 
                     <button
-                    onClick={() => sendConnectionRequest(user.id)}
-                    disabled={connectionStatus[user.id] === "Pending"}
-                    className={`w-full mt-4 flex justify-center items-center gap-2 text-white font-semibold py-2 px-4 rounded-md transition duration-200 ${
-                        connectionStatus[user.id] === "Pending" ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
-                    }`}
-                    >
-                    {connectionStatus[user.id] === "Pending" ? (
-                        <>
-                        <Loader2 className="w-4 h-4 animate-spin" /> Pending
-                        </>
-                    ) : (
-                        <>
-                        <UserPlus className="w-4 h-4" /> Pair
-                        </>
-                    )}
-                    </button>
+                                      onClick={() => sendConnectionRequest(user.user_id)}
+                                      disabled={connectionStatus[user.user_id] === "Pending"}
+                                      className={`w-full flex justify-center items-center gap-2 text-white font-medium py-2.5 px-4 rounded-lg transition shadow-sm ${
+                                        connectionStatus[user.user_id] === "Pending" 
+                                          ? "bg-gray-400 cursor-not-allowed" 
+                                          : "bg-blue-600 hover:bg-blue-700"
+                                      }`}
+                                    >
+                                      {connectionStatus[user.user_id] === "Pending" ? (
+                                        <>
+                                          <Loader2 className="w-5 h-5 animate-spin" />
+                                          Pending
+                                        </>
+                                      ) : (
+                                        <>
+                                          <UserPlus className="w-5 h-5" />
+                                          Pair
+                                        </>
+                                      )}
+                                    </button>
                 </div>
                 ))
             )}

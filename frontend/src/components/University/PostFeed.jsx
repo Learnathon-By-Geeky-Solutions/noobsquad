@@ -12,13 +12,15 @@ const UniversityPostFeed = ({ postIds }) => {
         const token = localStorage.getItem("token");
   
         const results = await Promise.all(
+          
           postIds.map(async (id) => {
             const res = await fetch(`${import.meta.env.VITE_API_URL}/posts/${id}`, {
               headers: {
                 Authorization: `Bearer ${token}`,
               },
-              
+            
             });
+            console.log("id",id)
             console.log("res error:",res.json)
             if (!res.ok) {
               throw new Error(`Failed to fetch post ${id}`);

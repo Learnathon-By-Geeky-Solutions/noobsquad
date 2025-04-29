@@ -6,6 +6,9 @@ from models.post import Post, PostMedia, PostDocument, Event
 from utils.cloudinary import upload_to_cloudinary
 from services.PostHandler import get_user_like_status
 from services.PostTypeHandler import get_post_additional_data
+from services.PostHandler import extract_hashtags
+from models.university import University
+from models.hashtag import Hashtag
 
 def validate_post_ownership(post_id: int, user_id: int, db: Session) -> Post:
     """Validate post ownership and return the post if valid."""
@@ -62,6 +65,20 @@ def create_base_post(
         content=content,
         post_type=post_type
     )
+    hashtags = extract_hashtags(post.content)
+    universities = db.query(University.name).all()
+    university_names = {name.lower() for (name,) in universities}
+
+    for tag in hashtags:
+        if tag.lower() in university_names:
+            existing_hashtag = db.query(Hashtag).filter_by(name=tag.lower()).first()
+            if existing_hashtag:
+                existing_hashtag.usage_count += 1
+            else:
+                existing_hashtag = Hashtag(name=tag.lower(), usage_count=1)
+                db.add(existing_hashtag)
+
+            post.hashtags.append(existing_hashtag)
     db.add(post)
     db.commit()
     db.refresh(post)

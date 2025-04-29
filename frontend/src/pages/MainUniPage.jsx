@@ -10,6 +10,7 @@ export default function UniversityExplorePage() {
     api.get("universities/posts/by-hashtag")
       .then(res => setPostIds(res.data))
       .catch(err => console.error("Error fetching hashtag posts:", err));
+    console.log("getted res", postIds)
   }, []);
 
   // Handle department click

@@ -79,7 +79,9 @@ class ConnectionService:
                 "user_id": user.id,
                 "username": user.username,
                 "email": user.email,
-                "profile_picture": user.profile_picture
+                "profile_picture": user.profile_picture,
+                "university_name": user.university_name,
+                "department": user.department
             }
             for user in available_users
         ]
