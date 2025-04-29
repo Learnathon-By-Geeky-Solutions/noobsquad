@@ -30,6 +30,14 @@ async def upload_paper(
     db: Session = Depends(get_db),
     current_user: ResearchPaper = Depends(get_current_user)
 ):
+    # Validate required fields
+    if not title.strip():
+        raise HTTPException(status_code=422, detail="Title cannot be empty")
+    if not author.strip():
+        raise HTTPException(status_code=422, detail="Author cannot be empty")
+    if not research_field.strip():
+        raise HTTPException(status_code=422, detail="Research field cannot be empty")
+
     file_path = await save_uploaded_research_paper(file, current_user.id)
     paper = ResearchPaper(
         title=title,
@@ -61,17 +69,38 @@ def search_papers(keyword: str = Query(..., min_length=1), db: Session = Depends
 
 @router.get("/papers/download/{paper_id}/")
 def download_paper(paper_id: int, db: Session = Depends(get_db), current_user: ResearchPaper = Depends(get_current_user)):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+        
     paper = get_paper_by_id(db, paper_id)
+    
+    # Check file size limit (100MB)
+    import os
+    try:
+        file_size = os.path.getsize(paper.file_path)
+        if file_size > 100 * 1024 * 1024:  # 100MB in bytes
+            raise HTTPException(status_code=400, detail="File too large to download. Maximum size is 100MB.")
+    except OSError:
+        raise HTTPException(status_code=404, detail="File not found")
+        
     return RedirectResponse(url=paper.file_path)
 
 @router.post("/post-research/")
 async def post_research(title: str = Form(...), research_field: str = Form(...), details: str = Form(...), db: Session = Depends(get_db), current_user: ResearchPaper = Depends(get_current_user)):
+    # Validate research field format (only allow alphanumeric, spaces, and commas)
+    import re
+    if not re.match(r'^[a-zA-Z0-9\s,]+$', research_field):
+        raise HTTPException(status_code=422, detail="Invalid research field. Only letters, numbers, spaces and commas are allowed.")
+        
     research = ResearchCollaboration(title=title, research_field=research_field, details=details, creator_id=current_user.id)
     save_new_research(db, research)
     return {"message": "Research work posted successfully", "research_id": research.id}
 
 @router.post("/request-collaboration/{research_id}/")
 def request_collaboration(research_id: int, message: str = Form(...), db: Session = Depends(get_db), current_user: ResearchPaper = Depends(get_current_user)):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+        
     research = get_research_by_id(db, research_id)
     if research.creator_id == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot request collaboration on your own research.")
