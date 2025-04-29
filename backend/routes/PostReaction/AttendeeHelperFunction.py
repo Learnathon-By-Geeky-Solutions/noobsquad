@@ -42,15 +42,6 @@ def update_or_create_rsvp(db: Session, event_id: int, user_id: int, status: str)
     db.commit()
     return rsvp
 
-def delete_rsvp(db: Session, event_id: int, user_id: int):
-    """Remove a user's RSVP from an event."""
-    rsvp = get_user_rsvp(db, event_id, user_id)
-    if not rsvp:
-        raise HTTPException(status_code=404, detail="You haven't RSVP'd for this event.")
-    
-    db.delete(rsvp)
-    db.commit()
-
 def count_rsvp_status(db: Session, event_id: int, status: str) -> int:
     """Count users for a given RSVP status (going/interested)."""
     return db.query(func.count()).filter(
