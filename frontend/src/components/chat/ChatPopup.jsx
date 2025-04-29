@@ -72,13 +72,45 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
     }
   }, [handleScroll]);
 
+  const formatMessageTime = (timestamp) => {
+    if (!timestamp) return '';
+    
+    try {
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) return '';
+      
+      const now = new Date();
+      const isToday = date.toDateString() === now.toDateString();
+      
+      if (isToday) {
+        return date.toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        });
+      } else {
+        return date.toLocaleDateString([], {
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        });
+      }
+    } catch (error) {
+      console.error('Error formatting timestamp:', error);
+      return '';
+    }
+  };
+
   const updateMessages = useCallback((newMessage) => {
     setMessages(prev => [...prev, {
       ...newMessage,
       id: newMessage.id || Date.now(),
       timestamp: newMessage.timestamp || new Date().toISOString(),
+      sender_id: newMessage.sender_id || currentUserId
     }]);
-  }, []);
+  }, [currentUserId]);
 
   const updateReadStatus = useCallback((data) => {
     setMessages(prev => prev.map(message => ({
@@ -209,12 +241,13 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
       message_type: isLink ? "link" : "text",
     };
 
-    // Add message to local state immediately for instant feedback
+    // Add message to local state immediately with proper timestamp
     const optimisticMessage = {
       ...message,
       id: `temp-${Date.now()}`,
       sender_id: currentUserId,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      is_read: false
     };
     setMessages(prev => [...prev, optimisticMessage]);
 
@@ -324,10 +357,12 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
                   msg.sender_id === currentUserId ? "text-blue-200" : "text-gray-500"
                 }`}
               >
-                {new Date(msg.timestamp).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {formatMessageTime(msg.timestamp)}
+                {msg.sender_id === currentUserId && (
+                  <span className="ml-1">
+                    {msg.is_read ? "✓✓" : "✓"}
+                  </span>
+                )}
               </div>
             </div>
           </div>

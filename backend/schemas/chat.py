@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 from enum import Enum
+from typing import Optional
 
 class MessageType(str, Enum):
     TEXT = "text"
@@ -12,10 +13,11 @@ class MessageOut(BaseModel):
     id: int
     sender_id: int
     receiver_id: int
-    content: str | None
-    file_url: str | None
-    message_type: MessageType
+    content: Optional[str]
+    file_url: Optional[str]
+    message_type: str
     timestamp: datetime
+    is_read: bool
 
     class Config:
         from_attributes = True
@@ -26,7 +28,7 @@ class ConversationOut(BaseModel):
     avatar: str | None = None
     last_message: str | None
     file_url: str | None
-    message_type: MessageType
+    message_type: str
     timestamp: datetime
     is_sender: bool
     unread_count: int
