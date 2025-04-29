@@ -623,14 +623,11 @@ def test_accept_collaboration_already_collaborator(mock_http_exception, override
     res_filter_mock.first.return_value = mock_research_collaboration
     res_query_mock.filter.return_value = res_filter_mock
     
-    # Third query - check for existing collaborator
-    collab_query_mock = MagicMock()
-    collab_filter_mock = MagicMock()
-    collab_filter_mock.first.return_value = [1, 2]  # Existing collaborator
-    collab_query_mock.filter.return_value = collab_filter_mock
+    # Set up the collaborators list to include the requester
+    mock_research_collaboration.collaborators = [mock_collaboration_request.requester]
     
     # Set up side effects for mock_session.query
-    mock_session.query.side_effect = [req_query_mock, res_query_mock, collab_query_mock]
+    mock_session.query.side_effect = [req_query_mock, res_query_mock]
     
     # This should raise a 400 HTTPException
     response = client.post("/research/accept-collaboration/1/")
