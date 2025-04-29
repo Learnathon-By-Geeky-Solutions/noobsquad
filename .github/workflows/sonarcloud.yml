@@ -54,7 +54,8 @@ jobs:
           echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" >> backend/.env
           echo "CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}" >> backend/.env
           echo "CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}" >> backend/.env
-          
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" >> backend/.env
+          echo "SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}" >> backend/.env
         shell: bash
 
       - name: Run tests with coverage
