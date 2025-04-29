@@ -20,9 +20,11 @@ def validate_post_ownership(post_id: int, user_id: int, db: Session) -> Post:
 def prepare_post_response(post: Post, current_user: User, db: Session) -> Dict[str, Any]:
     """Prepare standardized post response with user and interaction data."""
     user_liked = get_user_like_status(post.id, current_user.id, db)
+    comment_count = db.query(Comment).filter(Comment.post_id == post.id).count()
     
     response = {
         "id": post.id,
+        "user_id": post.user_id,  # Changed from post.user.id to post.user_id
         "post_type": post.post_type,
         "content": post.content,
         "created_at": post.created_at,
@@ -32,7 +34,8 @@ def prepare_post_response(post: Post, current_user: User, db: Session) -> Dict[s
             "profile_picture": post.user.profile_picture
         },
         "total_likes": post.like_count,
-        "user_liked": user_liked
+        "user_liked": user_liked,
+        "comment_count": comment_count
     }
     
     # Add type-specific data
@@ -82,4 +85,4 @@ def create_base_post(
     db.add(post)
     db.commit()
     db.refresh(post)
-    return post 
+    return post

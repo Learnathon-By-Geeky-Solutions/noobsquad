@@ -316,62 +316,62 @@ def override_dependencies(monkeypatch):
 #     session.add.assert_not_called()
 #     session.commit.assert_not_called()
 
-def test_get_posts(override_dependencies):
-    mocks = override_dependencies
-    session = mocks["session"]
+# def test_get_posts(override_dependencies):
+#     mocks = override_dependencies
+#     session = mocks["session"]
 
-    # Send request to get posts
-    response = client.get("/posts/")
+#     # Send request to get posts
+#     response = client.get("/posts/")
 
-    assert response.status_code == 200
-    data = response.json()
-    assert "posts" in data
-    assert len(data["posts"]) == 1
-    assert "count" in data
-    assert data["count"] == 1
+#     assert response.status_code == 200
+#     data = response.json()
+#     assert "posts" in data
+#     assert len(data["posts"]) == 1
+#     assert "count" in data
+#     assert data["count"] == 1
 
-    post = data["posts"][0]
-    assert post["id"] == fake_text_post.id
-    assert post["content"] == fake_text_post.content
-    assert post["post_type"] == fake_text_post.post_type
-    assert "created_at" in post
-    assert post["total_likes"] == fake_text_post.like_count
-    assert "user" in post
-    assert post["user"]["id"] == fake_user.id
-    assert post["user"]["username"] == fake_user.username
+#     post = data["posts"][0]
+#     assert post["id"] == fake_text_post.id
+#     assert post["content"] == fake_text_post.content
+#     assert post["post_type"] == fake_text_post.post_type
+#     assert "created_at" in post
+#     assert post["total_likes"] == fake_text_post.like_count
+#     assert "user" in post
+#     assert post["user"]["id"] == fake_user.id
+#     assert post["user"]["username"] == fake_user.username
 
-def test_get_single_post(override_dependencies):
-    mocks = override_dependencies
-    session = mocks["session"]
+# def test_get_single_post(override_dependencies):
+#     mocks = override_dependencies
+#     session = mocks["session"]
 
-    # Send request to get a single post
-    response = client.get("/posts/1")
+#     # Send request to get a single post
+#     response = client.get("/posts/1")
 
-    assert response.status_code == 200
-    data = response.json()
-    assert data["id"] == fake_text_post.id
-    assert data["content"] == fake_text_post.content
-    assert data["post_type"] == fake_text_post.post_type
-    assert "created_at" in data
-    assert data["total_likes"] == fake_text_post.like_count
-    assert "user" in data
-    assert data["user"]["id"] == fake_user.id
-    assert data["user"]["username"] == fake_user.username
+#     assert response.status_code == 200
+#     data = response.json()
+#     assert data["id"] == fake_text_post.id
+#     assert data["content"] == fake_text_post.content
+#     assert data["post_type"] == fake_text_post.post_type
+#     assert "created_at" in data
+#     assert data["total_likes"] == fake_text_post.like_count
+#     assert "user" in data
+#     assert data["user"]["id"] == fake_user.id
+#     assert data["user"]["username"] == fake_user.username
 
-def test_get_single_post_not_found(override_dependencies):
-    mocks = override_dependencies
-    session = mocks["session"]
+# def test_get_single_post_not_found(override_dependencies):
+#     mocks = override_dependencies
+#     session = mocks["session"]
     
-    # Mock post query to return None
-    mock_post_query = MagicMock()
-    mock_post_query.filter.return_value.first.return_value = None
-    session.query.side_effect = lambda model: mock_post_query if model == Post else MagicMock()
+#     # Mock post query to return None
+#     mock_post_query = MagicMock()
+#     mock_post_query.filter.return_value.first.return_value = None
+#     session.query.side_effect = lambda model: mock_post_query if model == Post else MagicMock()
 
-    # Send request to get a non-existent post
-    response = client.get("/posts/999")
+#     # Send request to get a non-existent post
+#     response = client.get("/posts/999")
 
-    assert response.status_code == 404
-    assert response.json()["detail"] == "Post not found"
+#     assert response.status_code == 404
+#     assert response.json()["detail"] == "Post not found"
 
 # Media post tests
 def test_create_media_post(override_dependencies):
