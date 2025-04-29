@@ -29,7 +29,7 @@ from dotenv import load_dotenv
 import os
 from utils.cloudinary import upload_to_cloudinary
 from utils.post_utils import validate_post_ownership, prepare_post_response, handle_media_upload, create_base_post
-from services.EventHandler import create_event_post as create_event_post_entry, format_event_response, handle_event_upload
+from services.EventHandler import create_event_post as create_event_post_entry, format_event_response, handle_event_upload, update_event_post as update_event_post_entry
 from utils.supabase import upload_file_to_supabase
 
 # Load environment variables
@@ -375,7 +375,7 @@ async def update_event_post(
         "location": location
     }
     
-    post, event = update_event_post(db, post, event, update_data)
+    post, event = update_event_post_entry(db, post, event, update_data)
     return format_event_response(post, event)
 
 
