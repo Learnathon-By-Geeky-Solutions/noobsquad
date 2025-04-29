@@ -401,14 +401,26 @@ return (
           />
         )}
         {post.post_type === "document" && post.document_url && (
-          <a
-            href={post.document_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-500 underline"
-          >
-            View Document
-          </a>
+          <div className="mt-4 rounded-xl border border-gray-300 shadow-sm overflow-hidden">
+          <div className="bg-gray-100 px-4 py-2 border-b border-gray-300 flex items-center justify-between">
+            <h2 className="text-sm font-medium text-gray-700">Document Preview</h2>
+            <a
+              href={post.document_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 text-sm font-semibold hover:underline"
+            >
+              Open in new tab
+            </a>
+          </div>
+          <iframe
+            src={post.document_url}
+            width="100%"
+            height="500px"
+            title="Document Viewer"
+            className="w-full border-none"
+          ></iframe>
+        </div>
         )}
         {post.post_type === "event" && event && (
           <div>

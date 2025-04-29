@@ -10,6 +10,13 @@ from api.v1.endpoints.auth import get_current_user
 from schemas.researchpaper import ResearchPaperOut
 from services.research_service import *
 from services.file_service import *
+from dotenv import load_dotenv
+from utils.supabase import upload_file_to_supabase
+from fastapi.responses import RedirectResponse
+
+
+# Load environment variables
+load_dotenv()
 
 router = APIRouter()
 

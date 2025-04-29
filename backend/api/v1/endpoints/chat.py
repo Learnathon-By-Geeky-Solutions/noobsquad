@@ -7,6 +7,13 @@ from api.v1.endpoints.auth import get_current_user
 from services.chat_service import fetch_conversations, fetch_chat_history
 from services.websocket_service import connect_socket, disconnect_socket, handle_chat_message
 from services.upload_service import validate_and_upload
+import json
+from datetime import datetime, timezone
+from typing import Dict, List, Optional
+from schemas.chat import MessageOut, ConversationOut, MessageType as SchemaMessageType
+from pathlib import Path
+from utils.supabase import upload_file_to_supabase
+from services.FileHandler import generate_secure_filename
 
 router = APIRouter()
 

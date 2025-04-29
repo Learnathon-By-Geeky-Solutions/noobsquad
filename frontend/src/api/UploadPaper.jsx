@@ -61,7 +61,7 @@ const UploadPaper = () => {
       setFile(null);
 
       // Redirect to "My Research Papers"
-      navigate("/dashboard/research/my_post_research_papers");
+      navigate("/dashboard/research/search");
 
       console.log("Uploaded File Path:", response.data.file_path); // Debugging
     } catch (error) {

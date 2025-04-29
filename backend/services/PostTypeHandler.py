@@ -23,7 +23,7 @@ def _get_media_post_data(post: Post, db: Session) -> Dict[str, Any]:
 def _get_document_post_data(post: Post, db: Session) -> Dict[str, Any]:
     document = db.query(PostDocument).filter(PostDocument.post_id == post.id).first()
     return {
-        "document_url": f"{API_URL}/uploads/document/{document.document_url}" if document else None
+        "document_url": document.document_url if document else None
     }
 
 def _get_event_post_data(post: Post, db: Session) -> Dict[str, Any]:

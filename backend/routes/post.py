@@ -30,6 +30,7 @@ import os
 from utils.cloudinary import upload_to_cloudinary
 from utils.post_utils import validate_post_ownership, prepare_post_response, handle_media_upload, create_base_post
 from services.EventHandler import create_event_post, format_event_response
+from utils.supabase import upload_file_to_supabase
 
 # Load environment variables
 load_dotenv()
@@ -54,7 +55,7 @@ os.makedirs(EVENT_UPLOAD_DIR, exist_ok=True)
 
 
 ALLOWED_MEDIA = {".jpg", ".jpeg", ".jfif", ".png", ".gif", ".webp", ".mp4", ".mov"}
-ALLOWED_DOCS = {".pdf", ".docx", ".txt"}
+ALLOWED_DOCS = {".pdf", ".docx", ".txt", ".pptx"}
 
 
 
@@ -152,16 +153,13 @@ async def create_document_post(
     
     # Generate filename and save file
     filename = generate_secure_filename(current_user.id, ext)
-    save_upload_file(document_file, DOCUMENT_DIR, filename)
+
+    # Upload to Supabase
+    document_url = await upload_file_to_supabase(document_file, filename, section="upload_documents")
     
-    # Create post and document entry
-    post = create_base_post(db, current_user.id, content, "document")
-    doc_entry = PostDocument(
-        post_id=post.id,
-        document_url=filename,
-        document_type=ext
-    )
-    
+    # Create post and document entries
+    post = create_post_entry(db, current_user.id, content, "document")
+    doc_entry = PostDocument(post_id=post.id, document_url=document_url, document_type=ext)
     db.add(doc_entry)
     db.commit()
     db.refresh(doc_entry)
@@ -312,15 +310,17 @@ async def update_document_post(
     if document_file and document_file.filename:
         ext = validate_file_extension(document_file.filename, ALLOWED_DOCS)
         filename = generate_secure_filename(current_user.id, ext)
-        save_upload_file(document_file, DOCUMENT_DIR, filename)
+        
+        # Upload to Supabase
+        document_url = await upload_file_to_supabase(document_file, filename, section="upload_documents")
 
         doc_entry = db.query(PostDocument).filter(PostDocument.post_id == post.id).first()
         if doc_entry:
-            remove_old_file_if_exists(os.path.join(DOCUMENT_DIR, doc_entry.document_url))
-            doc_entry.document_url = filename
+            # No need to remove old file as Supabase handles versioning
+            doc_entry.document_url = document_url
             doc_entry.document_type = ext
         else:
-            doc_entry = PostDocument(post_id=post.id, document_url=filename, document_type=ext)
+            doc_entry = PostDocument(post_id=post.id, document_url=document_url, document_type=ext)
             db.add(doc_entry)
 
         db.commit()
