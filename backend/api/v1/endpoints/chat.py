@@ -39,4 +39,13 @@ async def get_chat_history(friend_id: int, db: Session = Depends(get_db), curren
 
 @router.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
-    return {"file_url": await validate_and_upload(file)}
+    try:
+        # Generate a secure filename
+        ext = Path(file.filename).suffix.lower()
+        filename = generate_secure_filename(file.filename, ext)
+        
+        # Upload to Supabase
+        file_url = await upload_file_to_supabase(file, filename, section="chat")
+        return {"file_url": file_url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

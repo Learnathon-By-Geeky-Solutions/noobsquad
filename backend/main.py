@@ -25,14 +25,6 @@ async def redirect_to_cloudinary(path: str):
     else:
         raise HTTPException(status_code=404, detail="Profile picture not found")
 
-@app.get("/uploads/chat/{path:path}")
-async def redirect_chat_image(path: str):
-    if path.startswith('https://res.cloudinary.com/'):
-        # If it's already a Cloudinary URL, redirect to it directly
-        return RedirectResponse(url=path)
-    else:
-        raise HTTPException(status_code=404, detail="Chat image not found")
-
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,

@@ -49,18 +49,25 @@ async def upload_file_to_supabase(file_obj, filename: str, section: str):
         }
         content_type = ext_to_content_type.get(ext, "application/octet-stream")
 
+        # Upload the file with file options instead of headers
         upload_response = supabase.storage.from_(BUCKET_NAME).upload(
             destination_path,
             file_content,
-            {
-                "content-type": content_type  # Force correct content type
+            file_options={
+                "contentType": content_type,
+                "cacheControl": "max-age=3600"
             }
         )
 
-        # Get the public URL for the uploaded file
+        # Get the public URL
         file_url = supabase.storage.from_(BUCKET_NAME).get_public_url(destination_path)
+        
+        # Reset file pointer for potential reuse
+        if hasattr(file_obj, "seek"):
+            file_obj.seek(0)
+            
         return file_url
 
     except Exception as e:
         print(f"Error uploading file to Supabase: {e}")
-        raise HTTPException(status_code=500, detail="Failed to upload document to Supabase.")
+        raise HTTPException(status_code=500, detail=f"Failed to upload file to Supabase: {str(e)}")

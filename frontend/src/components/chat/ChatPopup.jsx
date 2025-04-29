@@ -204,13 +204,24 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
       });
 
       const { file_url } = res.data;
-      const isImage = file_url.match(/\.(jpg|jpeg|png|gif)$/i);
+      const isImage = file.type.startsWith("image/");
       const message = {
         receiver_id: user.id,
         content: input.trim() || (isImage ? "Image" : file.name),
         file_url,
         message_type: isImage ? "image" : "file",
       };
+
+      // Add optimistic message with local preview
+      const optimisticMessage = {
+        ...message,
+        id: `temp-${Date.now()}`,
+        sender_id: currentUserId,
+        timestamp: new Date().toISOString(),
+        is_read: false,
+        local_preview: isImage ? filePreview : null // Keep local preview URL for immediate display
+      };
+      setMessages(prev => [...prev, optimisticMessage]);
 
       if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify(message));
@@ -222,6 +233,8 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
       }
     } catch (err) {
       console.error("File upload failed:", err);
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(msg => msg.id !== `temp-${Date.now()}`));
     }
   };
 
@@ -334,23 +347,34 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
                 </a>
               )}
               {msg.message_type === "image" && (
-                <a href={msg.file_url} target="_blank" rel="noopener noreferrer">
+                <div className="relative group">
                   <img
-                    src={msg.file_url}
+                    src={msg.local_preview || msg.file_url}
                     alt={msg.content || "Shared image"}
-                    className="max-w-full h-auto rounded-lg mt-1 cursor-pointer"
-                    onError={handleImageError}
+                    className="max-w-[250px] w-full h-auto rounded-lg cursor-pointer transition-transform transform hover:scale-105"
+                    onError={(e) => {
+                      console.error("Image load error:", e);
+                      handleImageError(e);
+                    }}
+                    onClick={() => window.open(msg.file_url, '_blank')}
                   />
-                </a>
+                </div>
               )}
-              {msg.message_type === "file" && (
-                <a
-                  href={msg.file_url}
-                  download
-                  className="underline break-all"
-                >
-                  {msg.content}
-                </a>
+              {msg.message_type === "file" && !msg.file_url?.match(/\.(jpg|jpeg|png|gif|webp)$/i) && (
+                <div className="flex items-center space-x-2">
+                  <svg className="w-6 h-6 text-gray-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <a
+                    href={msg.file_url}
+                    download
+                    className="text-white underline hover:text-blue-100"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {msg.content}
+                  </a>
+                </div>
               )}
               <div
                 className={`text-xs mt-1 ${
