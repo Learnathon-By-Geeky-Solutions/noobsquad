@@ -201,10 +201,11 @@ const SuggestedUsers = () => {
                   alt="Profile"
                   className="w-24 h-24 rounded-full object-cover border-4 border-blue-100 mb-4"
                 />
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                <h3 className="text-xl font-semibold text-gray-800 mb-1">
                   <UsernameLink username={user.username} />
                 </h3>
-                <p className="text-gray-600 mb-6">{user.bio || "No bio available"}</p>
+                <p className="text-sm text-gray-500">{user.university_name || "University Name"}</p>
+                        <p className="text-sm text-gray-500">{user.department || "Department Name"}</p>
                 <button
                   onClick={() => sendConnectionRequest(user.user_id)}
                   disabled={connectionStatus[user.user_id] === "Pending"}
@@ -222,7 +223,7 @@ const SuggestedUsers = () => {
                   ) : (
                     <>
                       <UserPlus className="w-5 h-5" />
-                      Connect
+                      Pair
                     </>
                   )}
                 </button>
