@@ -13,6 +13,7 @@ from services.file_service import *
 from dotenv import load_dotenv
 from utils.supabase import upload_file_to_supabase
 from fastapi.responses import RedirectResponse
+from services.research_service import search_papers as search_papers_service
 
 
 # Load environment variables
@@ -53,7 +54,7 @@ def get_recommended_papers(db: Session = Depends(get_db), current_user: Research
 
 @router.get("/papers/search/")
 def search_papers(keyword: str = Query(..., min_length=1), db: Session = Depends(get_db), current_user: ResearchPaper = Depends(get_current_user)):
-    papers = search_papers(db, keyword)
+    papers = search_papers_service(db, keyword)
     if not papers:
         raise HTTPException(status_code=404, detail="No papers found")
     return papers

@@ -21,7 +21,7 @@ const Posts = ({ token }) => {
         console.log("Fetched user ID:", userId);
 
 
-        const url = userId ? `/posts?user_id=${userId}` : "/posts";
+        const url = userId ? `/posts/?user_id=${userId}` : "/posts";
         console.log("url:", url)
         const response = await api.get(url);
         setPosts(response.data.posts);

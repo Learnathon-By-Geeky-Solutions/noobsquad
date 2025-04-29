@@ -16,6 +16,7 @@ from pathlib import Path
 from utils.supabase import upload_file_to_supabase
 from services.FileHandler import generate_secure_filename
 from schemas.chat import MessageOut, ConversationOut
+from fastapi.websockets import WebSocketDisconnect
 
 router = APIRouter()
 
@@ -26,8 +27,11 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
         while True:
             data = await websocket.receive_json()
             await handle_chat_message(db, user_id, data)
-    except:
+    except WebSocketDisconnect:
         await disconnect_socket(user_id)
+    except Exception as e:
+        await disconnect_socket(user_id)
+        raise e
 
 @router.get("/chat/conversations", response_model=List[ConversationOut])
 async def get_conversations(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
