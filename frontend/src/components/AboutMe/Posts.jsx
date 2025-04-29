@@ -32,13 +32,12 @@ const Posts = ({ token }) => {
         setLoading(false);
       }
     };
-
     fetchUserAndPosts();
   }, [username, token]);
 
   if (loading) return <p className="text-gray-400">Loading posts...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
-  if (!posts.length) return <p className="text-gray-500">No posts available</p>;
+ if (!posts.length) return <p className="text-gray-500">No posts available</p>;
 
   return (
     <div>

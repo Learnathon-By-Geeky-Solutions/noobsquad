@@ -8,7 +8,7 @@ export default function UniversitySidebar({ onDeptClick }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get("/universities")
+    api.get("/universities/")
       .then(res => {
         console.log("Fetched universities:", res.data);
         setUniversities(res.data);
