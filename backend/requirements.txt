@@ -181,3 +181,4 @@ zope.event==5.0
 zope.interface==7.2
 zstandard==0.23.0
 better-profanity==0.7.0
+supabase==2.15.0
