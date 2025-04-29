@@ -17,13 +17,6 @@ app.mount("/uploads/document", StaticFiles(directory="uploads/document"), name="
 app.mount("/uploads/event_images", StaticFiles(directory="uploads/event_images"), name="event_images") 
 app.mount("/uploads/research_papers", StaticFiles(directory="uploads/research_papers"), name="research_papers")
 
-@app.get("/uploads/profile_pictures/{path:path}")
-async def redirect_to_cloudinary(path: str):
-    if path.startswith('https://res.cloudinary.com/'):
-        # If it's already a Cloudinary URL, redirect to it directly
-        return RedirectResponse(url=path)
-    else:
-        raise HTTPException(status_code=404, detail="Profile picture not found")
 
 # Add CORS middleware
 app.add_middleware(
