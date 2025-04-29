@@ -1,356 +1,344 @@
-# import sys
-# from pathlib import Path
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+from unittest.mock import MagicMock, patch
+import sys
+from pathlib import Path
+import jwt
+from datetime import datetime, timedelta
+import os
+from dotenv import load_dotenv
+from fastapi import HTTPException
 
-# # Add the backend directory to sys.path
-# sys.path.append(str(Path(__file__).resolve().parents[1]))  # Adds the root project folder to path
+# Load env variables for token creation
+load_dotenv()
+SECRET_KEY = os.getenv("SECRET_KEY", "testsecretkey")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
-# import pytest
-# from fastapi.testclient import TestClient
-# from sqlalchemy.orm import Session
-# from models.user import User
-# from models.connection import Connection
-# from core.security import hash_password
-# from api.v1.endpoints.connections import router
-# from core.dependencies import get_db
-# from main import app
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-# # Initialize FastAPI test client
-# client = TestClient(app)
+from main import app
+from models.user import User
+from models.connection import Connection, ConnectionStatus
+from api.v1.endpoints import connections
+from api.v1.endpoints.auth import oauth2_scheme, get_current_user
 
-# # Dependency override to use testing DB session
-# @pytest.fixture
-# def test_db_session():
-#     from database.session import SessionLocal
-#     db = SessionLocal()
-#     yield db
-#     db.close()
+# Ensure routes are registered correctly for testing
+app.include_router(connections.router, prefix="/connections", tags=["Connections"])
 
-# # Fixture to create a test user
-# @pytest.fixture
-# def test_user(test_db_session):
-#     user = test_db_session.query(User).filter(User.username == "testuser").first()
-#     if not user:
-#         user = User(
-#             username="testuser",
-#             email="test@example.com",
-#             hashed_password=hash_password("testpass"),
-#             profile_completed=True
-#         )
-#         test_db_session.add(user)
-#         test_db_session.commit()
-#         test_db_session.refresh(user)
-#     return user
+# Create test client
+client = TestClient(app)
 
-# # Fixture to create another user for connections
-# @pytest.fixture
-# def friend_user(test_db_session):
-#     user = test_db_session.query(User).filter(User.username == "frienduser").first()
-#     if not user:
-#         user = User(
-#             username="frienduser",
-#             email="friend@example.com",
-#             hashed_password=hash_password("friendpass"),
-#             profile_completed=True
-#         )
-#         test_db_session.add(user)
-#         test_db_session.commit()
-#         test_db_session.refresh(user)
-#     return user
+# Mock users
+fake_user1 = User(
+    id=1,
+    username="user1",
+    email="user1@example.com",
+    profile_picture="user1.jpg",
+    is_verified=True,
+    profile_completed=True
+)
 
-# # Function to get a valid JWT token
-# def get_jwt_token(test_user):
-#     response = client.post(
-#         "/auth/token",
-#         data={
-#             "username": test_user.username,
-#             "password": "testpass"
-#         }
-#     )
-#     return response.json().get("access_token")
+fake_user2 = User(
+    id=2,
+    username="user2",
+    email="user2@example.com",
+    profile_picture="user2.jpg",
+    is_verified=True,
+    profile_completed=True
+)
 
+fake_user3 = User(
+    id=3,
+    username="user3",
+    email="user3@example.com",
+    profile_picture="user3.jpg",
+    is_verified=True,
+    profile_completed=True
+)
 
+# Mock connections
+fake_pending_connection = Connection(
+    id=1,
+    user_id=1,
+    friend_id=2,
+    status=ConnectionStatus.PENDING
+)
 
-# # Test the `/connections/accept/{request_id}` endpoint
-# def test_accept_connection(test_user, friend_user, test_db_session):
-#     # Create a connection request between users (make sure it's pending)
-#     connection = Connection(user_id=test_user.id, friend_id=friend_user.id, status="pending")
-#     test_db_session.add(connection)
-#     test_db_session.commit()
-#     test_db_session.refresh(connection)
-    
-#     # Get a valid JWT token
-#     token = get_jwt_token(test_user)
-    
-#     response = client.post(
-#         f"/connections/accept/{connection.id}",
-#         headers={"Authorization": f"Bearer {token}"}
-#     )
-#     assert response.status_code == 200
-#     assert "Connection accepted!" in response.json()["message"]
+fake_accepted_connection = Connection(
+    id=2,
+    user_id=1,
+    friend_id=3,
+    status=ConnectionStatus.ACCEPTED
+)
 
-# # Test the `/connections/reject/{request_id}` endpoint
-# def test_reject_connection(test_user, friend_user, test_db_session):
-#     # Create a connection request between users (make sure it's pending)
-#     connection = Connection(user_id=test_user.id, friend_id=friend_user.id, status="pending")
-#     test_db_session.add(connection)
-#     test_db_session.commit()
-#     test_db_session.refresh(connection)
-    
-#     # Get a valid JWT token
-#     token = get_jwt_token(test_user)
-    
-#     response = client.post(
-#         f"/connections/reject/{connection.id}",
-#         headers={"Authorization": f"Bearer {token}"}
-#     )
-#     assert response.status_code == 200
-#     assert "Connection rejected!" in response.json()["message"]
+# Create a mock token for authentication
+def create_test_token():
+    expire = datetime.utcnow() + timedelta(minutes=15)
+    payload = {
+        "sub": fake_user1.username,
+        "exp": expire
+    }
+    token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return token
 
-# # Test the `/connections/connections` endpoint to fetch user connections
-# def test_list_connections(test_user, friend_user, test_db_session):
-#     # Create a connection between the users
-#     connection = Connection(user_id=test_user.id, friend_id=friend_user.id, status="accepted")
-#     test_db_session.add(connection)
-#     test_db_session.commit()
-    
-#     # Get a valid JWT token
-#     token = get_jwt_token(test_user)
-    
-#     response = client.get(
-#         "/connections/connections",
-#         headers={"Authorization": f"Bearer {token}"}
-#     )
-#     assert response.status_code == 200
-#     connections = response.json()
-#     assert len(connections) > 0  # Ensure there is at least one connection
+# Override the oauth2_scheme dependency
+def get_test_token():
+    return create_test_token()
 
-# # Test the `/connections/users` endpoint to fetch users excluding current connections
-# def test_get_users(test_user, friend_user, test_db_session):
-#     # Create a connection
-#     connection = Connection(user_id=test_user.id, friend_id=friend_user.id, status="accepted")
-#     test_db_session.add(connection)
-#     test_db_session.commit()
-    
-#     # Get a valid JWT token
-#     token = get_jwt_token(test_user)
-    
-#     response = client.get(
-#         "/connections/users",
-#         headers={"Authorization": f"Bearer {token}"}
-#     )
-#     assert response.status_code == 200
-#     users = response.json()
-#     assert len(users) > 0  # Ensure there are users returned
+# Override the get_current_user dependency
+def get_test_user():
+    return fake_user1
 
+@pytest.fixture
+def override_dependencies(monkeypatch):
+    # Create mocks
+    mock_session = MagicMock(spec=Session)
+    mock_connection_handler = MagicMock()
+    
+    # Mock connection handler methods
+    mock_connection_handler.send_connection_request.return_value = fake_pending_connection
+    mock_connection_handler.accept_connection_request.return_value = {"message": "Connection accepted!"}
+    mock_connection_handler.reject_connection_request.return_value = {"message": "Connection request rejected"}
+    mock_connection_handler.get_user_connections.return_value = [
+        {
+            "connection_id": fake_accepted_connection.id,
+            "friend_id": fake_user3.id,
+            "username": fake_user3.username,
+            "email": fake_user3.email,
+            "profile_picture": fake_user3.profile_picture
+        }
+    ]
+    mock_connection_handler.get_pending_requests.return_value = [
+        {
+            "request_id": fake_pending_connection.id,
+            "sender_id": fake_user1.id,
+            "username": fake_user1.username,
+            "email": fake_user1.email,
+            "profile_picture": fake_user1.profile_picture
+        }
+    ]
+    mock_connection_handler.get_available_users.return_value = [
+        {
+            "user_id": fake_user2.id,
+            "username": fake_user2.username,
+            "email": fake_user2.email,
+            "profile_picture": fake_user2.profile_picture
+        }
+    ]
+    mock_connection_handler.get_user_by_id.return_value = {
+        "user_id": fake_user2.id,
+        "username": fake_user2.username,
+        "email": fake_user2.email,
+        "profile_picture": fake_user2.profile_picture
+    }
+    
+    # Replace ConnectionHandler with mock
+    monkeypatch.setattr(connections, "ConnectionHandler", mock_connection_handler)
+    
+    # Mock get_current_user to bypass authentication
+    app.dependency_overrides[get_current_user] = get_test_user
+    app.dependency_overrides[oauth2_scheme] = get_test_token
+    app.dependency_overrides[connections.get_db] = lambda: mock_session
+    
+    # Setup test token header for authentication
+    global test_token
+    test_token = create_test_token()
+    
+    mocks = {
+        "session": mock_session,
+        "connection_handler": mock_connection_handler,
+        "token": test_token
+    }
+    
+    yield mocks
+    
+    app.dependency_overrides.clear()
 
+def test_send_connection(override_dependencies):
+    mocks = override_dependencies
+    connection_handler = mocks["connection_handler"]
+    
+    # Test data
+    request_data = {"friend_id": 2}
+    
+    # Send connection request
+    response = client.post(
+        "/connections/connect/", 
+        json=request_data,
+        headers={"Authorization": f"Bearer {mocks['token']}"}
+    )
+    
+    # Assertions
+    assert response.status_code == 200
+    connection = response.json()
+    assert connection["id"] == fake_pending_connection.id
+    assert connection["user_id"] == fake_user1.id
+    assert connection["friend_id"] == fake_user2.id
+    assert connection["status"] == ConnectionStatus.PENDING
+    
+    # Verify ConnectionHandler method called
+    connection_handler.send_connection_request.assert_called_once_with(
+        db=mocks["session"],
+        user_id=fake_user1.id,
+        friend_id=request_data["friend_id"]
+    )
 
-# # Test the `/connections/user/{user_id}` endpoint to fetch a specific user
-# def test_get_user(test_user, friend_user, test_db_session):
-#     # Get a valid JWT token
-#     token = get_jwt_token(test_user)
+def test_accept_connection(override_dependencies):
+    mocks = override_dependencies
+    connection_handler = mocks["connection_handler"]
     
-#     response = client.get(
-#         f"/connections/user/{friend_user.id}",
-#         headers={"Authorization": f"Bearer {token}"}
-#     )
-#     assert response.status_code == 200
-#     user = response.json()
-#     assert user["username"] == "frienduser"
+    # Accept connection request
+    response = client.post(
+        f"/connections/accept/{fake_pending_connection.id}",
+        headers={"Authorization": f"Bearer {mocks['token']}"}
+    )
+    
+    # Assertions
+    assert response.status_code == 200
+    result = response.json()
+    assert result["message"] == "Connection accepted!"
+    
+    # Verify ConnectionHandler method called
+    connection_handler.accept_connection_request.assert_called_once_with(
+        db=mocks["session"],
+        request_id=fake_pending_connection.id,
+        user_id=fake_user1.id
+    )
 
-# # Test the `/connect/` endpoint to send a connection request
-# def test_send_connection(test_user, friend_user, test_db_session):
-#     # Clean up any existing connections between the users
-#     test_db_session.query(Connection).filter(
-#         ((Connection.user_id == test_user.id) & (Connection.friend_id == friend_user.id)) |
-#         ((Connection.user_id == friend_user.id) & (Connection.friend_id == test_user.id))
-#     ).delete()
-#     test_db_session.commit()
+def test_reject_connection(override_dependencies):
+    mocks = override_dependencies
+    connection_handler = mocks["connection_handler"]
     
-#     # Get a valid JWT token
-#     token = get_jwt_token(test_user)
+    # Reject connection request
+    response = client.post(
+        f"/connections/reject/{fake_pending_connection.id}",
+        headers={"Authorization": f"Bearer {mocks['token']}"}
+    )
     
-#     response = client.post(
-#         "/connections/connect/",
-#         headers={"Authorization": f"Bearer {token}"},
-#         json={"friend_id": friend_user.id}
-#     )
-#     assert response.status_code == 200
-#     assert response.json()["user_id"] == test_user.id
-#     assert response.json()["friend_id"] == friend_user.id
-#     assert response.json()["status"] == "pending"
+    # Assertions
+    assert response.status_code == 200
+    result = response.json()
+    assert result["message"] == "Connection request rejected"
+    
+    # Verify ConnectionHandler method called
+    connection_handler.reject_connection_request.assert_called_once_with(
+        db=mocks["session"],
+        request_id=fake_pending_connection.id,
+        user_id=fake_user1.id
+    )
 
-# # Test sending duplicate connection request
-# def test_send_duplicate_connection(test_user, friend_user, test_db_session):
-#     # Create an existing connection
-#     connection = Connection(user_id=test_user.id, friend_id=friend_user.id, status="pending")
-#     test_db_session.add(connection)
-#     test_db_session.commit()
+def test_list_connections(override_dependencies):
+    mocks = override_dependencies
+    connection_handler = mocks["connection_handler"]
     
-#     # Get a valid JWT token
-#     token = get_jwt_token(test_user)
+    # Get user connections
+    response = client.get(
+        "/connections/connections",
+        headers={"Authorization": f"Bearer {mocks['token']}"}
+    )
     
-#     response = client.post(
-#         "/connections/connect/",
-#         headers={"Authorization": f"Bearer {token}"},
-#         json={"friend_id": friend_user.id}
-#     )
-#     assert response.status_code == 400  # Bad request for duplicate connection
+    # Assertions
+    assert response.status_code == 200
+    connections = response.json()
+    assert len(connections) == 1
+    assert connections[0]["connection_id"] == fake_accepted_connection.id
+    assert connections[0]["friend_id"] == fake_user3.id
+    assert connections[0]["username"] == fake_user3.username
+    
+    # Verify ConnectionHandler method called
+    connection_handler.get_user_connections.assert_called_once_with(
+        db=mocks["session"],
+        user_id=fake_user1.id
+    )
 
-# # Test the `/connections/pending-requests` endpoint
-# def test_get_pending_requests(test_user, friend_user, test_db_session):
-#     # Create a pending connection request
-#     connection = Connection(user_id=friend_user.id, friend_id=test_user.id, status="pending")
-#     test_db_session.add(connection)
-#     test_db_session.commit()
+def test_get_users(override_dependencies):
+    mocks = override_dependencies
+    connection_handler = mocks["connection_handler"]
     
-#     # Get a valid JWT token
-#     token = get_jwt_token(test_user)
+    # Get available users
+    response = client.get(
+        "/connections/users",
+        headers={"Authorization": f"Bearer {mocks['token']}"}
+    )
     
-#     response = client.get(
-#         "/connections/pending-requests",
-#         headers={"Authorization": f"Bearer {token}"}
-#     )
-#     assert response.status_code == 200
-#     pending_requests = response.json()
-#     assert len(pending_requests) > 0
-#     assert pending_requests[0]["user_id"] == friend_user.id
-#     assert pending_requests[0]["friend_id"] == test_user.id
-#     assert pending_requests[0]["status"] == "pending"
+    # Assertions
+    assert response.status_code == 200
+    users = response.json()
+    assert len(users) == 1
+    assert users[0]["user_id"] == fake_user2.id
+    assert users[0]["username"] == fake_user2.username
+    
+    # Verify ConnectionHandler method called
+    connection_handler.get_available_users.assert_called_once_with(
+        db=mocks["session"],
+        current_user_id=fake_user1.id
+    )
 
-# # Test getting pending requests when there are none
-# def test_get_pending_requests_empty(test_user, test_db_session):
-#     # Clean up any existing connections for the test user
-#     test_db_session.query(Connection).filter(
-#         (Connection.user_id == test_user.id) | (Connection.friend_id == test_user.id)
-#     ).delete()
-#     test_db_session.commit()
+def test_get_pending_requests(override_dependencies):
+    mocks = override_dependencies
+    connection_handler = mocks["connection_handler"]
     
-#     # Get a valid JWT token
-#     token = get_jwt_token(test_user)
+    # Get pending requests
+    response = client.get(
+        "/connections/pending",
+        headers={"Authorization": f"Bearer {mocks['token']}"}
+    )
     
-#     response = client.get(
-#         "/connections/pending-requests",
-#         headers={"Authorization": f"Bearer {token}"}
-#     )
-#     assert response.status_code == 200
-#     pending_requests = response.json()
-#     assert len(pending_requests) == 0
+    # Assertions
+    assert response.status_code == 200
+    requests = response.json()
+    assert len(requests) == 1
+    assert requests[0]["request_id"] == fake_pending_connection.id
+    assert requests[0]["sender_id"] == fake_user1.id
+    assert requests[0]["username"] == fake_user1.username
+    
+    # Verify ConnectionHandler method called
+    connection_handler.get_pending_requests.assert_called_once_with(
+        db=mocks["session"],
+        user_id=fake_user1.id
+    )
 
-# # ADDITIONAL EDGE CASE TESTS FOR HTTP EXCEPTIONS
+def test_get_user(override_dependencies):
+    mocks = override_dependencies
+    connection_handler = mocks["connection_handler"]
+    
+    # Get specific user
+    response = client.get(
+        f"/connections/user/{fake_user2.id}",
+        headers={"Authorization": f"Bearer {mocks['token']}"}
+    )
+    
+    # Assertions
+    assert response.status_code == 200
+    user = response.json()
+    assert user["user_id"] == fake_user2.id
+    assert user["username"] == fake_user2.username
+    assert user["email"] == fake_user2.email
+    
+    # Verify ConnectionHandler method called
+    connection_handler.get_user_by_id.assert_called_once_with(
+        db=mocks["session"],
+        user_id=fake_user2.id
+    )
 
-# # Test connecting to non-existent user
-# def test_connect_nonexistent_user(test_user, test_db_session):
-#     token = get_jwt_token(test_user)
+def test_connection_error_handling(override_dependencies):
+    mocks = override_dependencies
+    connection_handler = mocks["connection_handler"]
     
-#     # Use a non-existent user ID
-#     non_existent_id = 99999
+    # Mock ConnectionHandler to raise an HTTPException instead of a generic Exception
+    connection_handler.send_connection_request.side_effect = HTTPException(
+        status_code=400, 
+        detail="Test error"
+    )
     
-#     response = client.post(
-#         "/connections/connect/",
-#         headers={"Authorization": f"Bearer {token}"},
-#         json={"friend_id": non_existent_id}
-#     )
-#     assert response.status_code == 404
-#     assert "Friend ID does not exist" in response.json()["detail"]
-
-# # Test unauthorized access (no token)
-# def test_unauthorized_access(test_user, friend_user):
-#     # Attempt to connect without authentication
-#     response = client.post(
-#         "/connections/connect/",
-#         json={"friend_id": friend_user.id}
-#     )
-#     assert response.status_code == 401
-
-# # Test accepting non-existent connection
-# def test_accept_nonexistent_connection(test_user):
-#     token = get_jwt_token(test_user)
+    # Send connection request that will cause an error
+    response = client.post(
+        "/connections/connect/", 
+        json={"friend_id": 999},
+        headers={"Authorization": f"Bearer {mocks['token']}"}
+    )
     
-#     # Use a non-existent connection ID
-#     non_existent_id = 99999
-    
-#     response = client.post(
-#         f"/connections/accept/{non_existent_id}",
-#         headers={"Authorization": f"Bearer {token}"}
-#     )
-#     assert response.status_code == 403 or response.status_code == 404
-
-# # Test accepting already accepted connection
-# def test_accept_already_accepted_connection(test_user, friend_user, test_db_session):
-#     # Create an already accepted connection
-#     connection = Connection(user_id=test_user.id, friend_id=friend_user.id, status="accepted")
-#     test_db_session.add(connection)
-#     test_db_session.commit()
-#     test_db_session.refresh(connection)
-    
-#     token = get_jwt_token(test_user)
-    
-#     response = client.post(
-#         f"/connections/accept/{connection.id}",
-#         headers={"Authorization": f"Bearer {token}"}
-#     )
-#     assert response.status_code == 404
-#     assert "No pending request found" in response.json()["detail"]
-
-# # Test rejecting non-existent connection
-# def test_reject_nonexistent_connection(test_user):
-#     token = get_jwt_token(test_user)
-    
-#     # Use a non-existent connection ID
-#     non_existent_id = 99999
-    
-#     response = client.post(
-#         f"/connections/reject/{non_existent_id}",
-#         headers={"Authorization": f"Bearer {token}"}
-#     )
-#     assert response.status_code == 404
-#     assert "No pending request found" in response.json()["detail"]
-
-# # Test unauthorized connection acceptance (not your connection)
-# def test_unauthorized_accept_connection(test_user, friend_user, test_db_session):
-#     # Create another user with a unique email
-#     existing_third_user = test_db_session.query(User).filter(User.username == "thirduser").first()
-#     if existing_third_user:
-#         third_user = existing_third_user
-#     else:
-#         third_user = User(
-#             username="thirduser",
-#             email=f"third_{test_user.id}_{friend_user.id}@example.com",  # Ensure unique email
-#             hashed_password=hash_password("thirdpass"),
-#             profile_completed=True
-#         )
-#         test_db_session.add(third_user)
-#         test_db_session.commit()
-#         test_db_session.refresh(third_user)
-    
-#     # Create a connection between friend_user and third_user
-#     connection = Connection(user_id=friend_user.id, friend_id=third_user.id, status="pending")
-#     test_db_session.add(connection)
-#     test_db_session.commit()
-#     test_db_session.refresh(connection)
-    
-#     token = get_jwt_token(test_user)
-    
-#     # Test user tries to accept a connection they're not part of
-#     response = client.post(
-#         f"/connections/accept/{connection.id}",
-#         headers={"Authorization": f"Bearer {token}"}
-#     )
-#     assert response.status_code == 403
-#     assert "Not authorized to accept this connection" in response.json()["detail"]
-
-# # Test getting user that doesn't exist
-# def test_get_nonexistent_user(test_user):
-#     token = get_jwt_token(test_user)
-    
-#     # Use a non-existent user ID
-#     non_existent_id = 99999
-    
-#     response = client.get(
-#         f"/connections/user/{non_existent_id}",
-#         headers={"Authorization": f"Bearer {token}"}
-#     )
-#     assert response.status_code == 500
-#     assert "Internal Server Error" in response.json()["detail"]
-
-
+    # Assertions
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Test error"
