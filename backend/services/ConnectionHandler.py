@@ -100,4 +100,50 @@ class ConnectionHandler:
                 "profile_picture": db.query(User).filter(User.id == request.user_id).first().profile_picture
             }
             for request in pending
-        ] 
+        ]
+
+    @staticmethod
+    def get_available_users(db: Session, current_user_id: int) -> List[Dict]:
+        """Get users available for connection (users who are not already connected or have pending requests)."""
+        # Get all users except the current user
+        all_users = db.query(User).filter(User.id != current_user_id).all()
+        
+        # Get existing connections and pending requests
+        existing_connections = db.query(Connection).filter(
+            (Connection.user_id == current_user_id) | (Connection.friend_id == current_user_id)
+        ).all()
+        
+        # Create a set of user IDs that are already connected or have pending requests
+        excluded_user_ids = set()
+        for conn in existing_connections:
+            if conn.user_id == current_user_id:
+                excluded_user_ids.add(conn.friend_id)
+            else:
+                excluded_user_ids.add(conn.user_id)
+        
+        # Filter out users who are already connected or have pending requests
+        available_users = [user for user in all_users if user.id not in excluded_user_ids]
+        
+        return [
+            {
+                "user_id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "profile_picture": user.profile_picture
+            }
+            for user in available_users
+        ]
+
+    @staticmethod
+    def get_user_by_id(db: Session, user_id: int) -> Dict:
+        """Get a specific user by ID."""
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        return {
+            "user_id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "profile_picture": user.profile_picture
+        } 
