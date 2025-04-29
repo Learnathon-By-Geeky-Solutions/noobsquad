@@ -4,6 +4,8 @@ from fastapi import HTTPException, UploadFile
 from models.user import User
 from models.post import Post, PostMedia, PostDocument, Event
 from utils.cloudinary import upload_to_cloudinary
+from services.PostHandler import get_user_like_status
+from services.PostTypeHandler import get_post_additional_data
 
 def validate_post_ownership(post_id: int, user_id: int, db: Session) -> Post:
     """Validate post ownership and return the post if valid."""
@@ -14,8 +16,6 @@ def validate_post_ownership(post_id: int, user_id: int, db: Session) -> Post:
 
 def prepare_post_response(post: Post, current_user: User, db: Session) -> Dict[str, Any]:
     """Prepare standardized post response with user and interaction data."""
-    from services.PostHandler import get_user_like_status, get_post_additional_data
-    
     user_liked = get_user_like_status(post.id, current_user.id, db)
     
     response = {

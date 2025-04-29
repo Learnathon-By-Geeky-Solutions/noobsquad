@@ -180,6 +180,11 @@ async def create_text_post(
     """Create a new text post."""
     post = create_base_post(db, current_user.id, content, "text")
     send_post_notifications(db, current_user, post)
+    
+    # Add required fields for response
+    post.comment_count = 0  # New post has no comments
+    post.user_liked = False  # User hasn't liked their own post yet
+    
     return post
 
 

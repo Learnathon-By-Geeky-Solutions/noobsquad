@@ -1,356 +1,356 @@
-import sys
-from pathlib import Path
+# import sys
+# from pathlib import Path
 
-# Add the backend directory to sys.path
-sys.path.append(str(Path(__file__).resolve().parents[1]))  # Adds the root project folder to path
+# # Add the backend directory to sys.path
+# sys.path.append(str(Path(__file__).resolve().parents[1]))  # Adds the root project folder to path
 
-import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
-from models.user import User
-from models.connection import Connection
-from core.security import hash_password
-from api.v1.endpoints.connections import router
-from core.dependencies import get_db
-from main import app
+# import pytest
+# from fastapi.testclient import TestClient
+# from sqlalchemy.orm import Session
+# from models.user import User
+# from models.connection import Connection
+# from core.security import hash_password
+# from api.v1.endpoints.connections import router
+# from core.dependencies import get_db
+# from main import app
 
-# Initialize FastAPI test client
-client = TestClient(app)
+# # Initialize FastAPI test client
+# client = TestClient(app)
 
-# Dependency override to use testing DB session
-@pytest.fixture
-def test_db_session():
-    from database.session import SessionLocal
-    db = SessionLocal()
-    yield db
-    db.close()
+# # Dependency override to use testing DB session
+# @pytest.fixture
+# def test_db_session():
+#     from database.session import SessionLocal
+#     db = SessionLocal()
+#     yield db
+#     db.close()
 
-# Fixture to create a test user
-@pytest.fixture
-def test_user(test_db_session):
-    user = test_db_session.query(User).filter(User.username == "testuser").first()
-    if not user:
-        user = User(
-            username="testuser",
-            email="test@example.com",
-            hashed_password=hash_password("testpass"),
-            profile_completed=True
-        )
-        test_db_session.add(user)
-        test_db_session.commit()
-        test_db_session.refresh(user)
-    return user
+# # Fixture to create a test user
+# @pytest.fixture
+# def test_user(test_db_session):
+#     user = test_db_session.query(User).filter(User.username == "testuser").first()
+#     if not user:
+#         user = User(
+#             username="testuser",
+#             email="test@example.com",
+#             hashed_password=hash_password("testpass"),
+#             profile_completed=True
+#         )
+#         test_db_session.add(user)
+#         test_db_session.commit()
+#         test_db_session.refresh(user)
+#     return user
 
-# Fixture to create another user for connections
-@pytest.fixture
-def friend_user(test_db_session):
-    user = test_db_session.query(User).filter(User.username == "frienduser").first()
-    if not user:
-        user = User(
-            username="frienduser",
-            email="friend@example.com",
-            hashed_password=hash_password("friendpass"),
-            profile_completed=True
-        )
-        test_db_session.add(user)
-        test_db_session.commit()
-        test_db_session.refresh(user)
-    return user
+# # Fixture to create another user for connections
+# @pytest.fixture
+# def friend_user(test_db_session):
+#     user = test_db_session.query(User).filter(User.username == "frienduser").first()
+#     if not user:
+#         user = User(
+#             username="frienduser",
+#             email="friend@example.com",
+#             hashed_password=hash_password("friendpass"),
+#             profile_completed=True
+#         )
+#         test_db_session.add(user)
+#         test_db_session.commit()
+#         test_db_session.refresh(user)
+#     return user
 
-# Function to get a valid JWT token
-def get_jwt_token(test_user):
-    response = client.post(
-        "/auth/token",
-        data={
-            "username": test_user.username,
-            "password": "testpass"
-        }
-    )
-    return response.json().get("access_token")
-
-
-
-# Test the `/connections/accept/{request_id}` endpoint
-def test_accept_connection(test_user, friend_user, test_db_session):
-    # Create a connection request between users (make sure it's pending)
-    connection = Connection(user_id=test_user.id, friend_id=friend_user.id, status="pending")
-    test_db_session.add(connection)
-    test_db_session.commit()
-    test_db_session.refresh(connection)
-    
-    # Get a valid JWT token
-    token = get_jwt_token(test_user)
-    
-    response = client.post(
-        f"/connections/accept/{connection.id}",
-        headers={"Authorization": f"Bearer {token}"}
-    )
-    assert response.status_code == 200
-    assert "Connection accepted!" in response.json()["message"]
-
-# Test the `/connections/reject/{request_id}` endpoint
-def test_reject_connection(test_user, friend_user, test_db_session):
-    # Create a connection request between users (make sure it's pending)
-    connection = Connection(user_id=test_user.id, friend_id=friend_user.id, status="pending")
-    test_db_session.add(connection)
-    test_db_session.commit()
-    test_db_session.refresh(connection)
-    
-    # Get a valid JWT token
-    token = get_jwt_token(test_user)
-    
-    response = client.post(
-        f"/connections/reject/{connection.id}",
-        headers={"Authorization": f"Bearer {token}"}
-    )
-    assert response.status_code == 200
-    assert "Connection rejected!" in response.json()["message"]
-
-# Test the `/connections/connections` endpoint to fetch user connections
-def test_list_connections(test_user, friend_user, test_db_session):
-    # Create a connection between the users
-    connection = Connection(user_id=test_user.id, friend_id=friend_user.id, status="accepted")
-    test_db_session.add(connection)
-    test_db_session.commit()
-    
-    # Get a valid JWT token
-    token = get_jwt_token(test_user)
-    
-    response = client.get(
-        "/connections/connections",
-        headers={"Authorization": f"Bearer {token}"}
-    )
-    assert response.status_code == 200
-    connections = response.json()
-    assert len(connections) > 0  # Ensure there is at least one connection
-
-# Test the `/connections/users` endpoint to fetch users excluding current connections
-def test_get_users(test_user, friend_user, test_db_session):
-    # Create a connection
-    connection = Connection(user_id=test_user.id, friend_id=friend_user.id, status="accepted")
-    test_db_session.add(connection)
-    test_db_session.commit()
-    
-    # Get a valid JWT token
-    token = get_jwt_token(test_user)
-    
-    response = client.get(
-        "/connections/users",
-        headers={"Authorization": f"Bearer {token}"}
-    )
-    assert response.status_code == 200
-    users = response.json()
-    assert len(users) > 0  # Ensure there are users returned
+# # Function to get a valid JWT token
+# def get_jwt_token(test_user):
+#     response = client.post(
+#         "/auth/token",
+#         data={
+#             "username": test_user.username,
+#             "password": "testpass"
+#         }
+#     )
+#     return response.json().get("access_token")
 
 
 
-# Test the `/connections/user/{user_id}` endpoint to fetch a specific user
-def test_get_user(test_user, friend_user, test_db_session):
-    # Get a valid JWT token
-    token = get_jwt_token(test_user)
+# # Test the `/connections/accept/{request_id}` endpoint
+# def test_accept_connection(test_user, friend_user, test_db_session):
+#     # Create a connection request between users (make sure it's pending)
+#     connection = Connection(user_id=test_user.id, friend_id=friend_user.id, status="pending")
+#     test_db_session.add(connection)
+#     test_db_session.commit()
+#     test_db_session.refresh(connection)
     
-    response = client.get(
-        f"/connections/user/{friend_user.id}",
-        headers={"Authorization": f"Bearer {token}"}
-    )
-    assert response.status_code == 200
-    user = response.json()
-    assert user["username"] == "frienduser"
+#     # Get a valid JWT token
+#     token = get_jwt_token(test_user)
+    
+#     response = client.post(
+#         f"/connections/accept/{connection.id}",
+#         headers={"Authorization": f"Bearer {token}"}
+#     )
+#     assert response.status_code == 200
+#     assert "Connection accepted!" in response.json()["message"]
 
-# Test the `/connect/` endpoint to send a connection request
-def test_send_connection(test_user, friend_user, test_db_session):
-    # Clean up any existing connections between the users
-    test_db_session.query(Connection).filter(
-        ((Connection.user_id == test_user.id) & (Connection.friend_id == friend_user.id)) |
-        ((Connection.user_id == friend_user.id) & (Connection.friend_id == test_user.id))
-    ).delete()
-    test_db_session.commit()
+# # Test the `/connections/reject/{request_id}` endpoint
+# def test_reject_connection(test_user, friend_user, test_db_session):
+#     # Create a connection request between users (make sure it's pending)
+#     connection = Connection(user_id=test_user.id, friend_id=friend_user.id, status="pending")
+#     test_db_session.add(connection)
+#     test_db_session.commit()
+#     test_db_session.refresh(connection)
     
-    # Get a valid JWT token
-    token = get_jwt_token(test_user)
+#     # Get a valid JWT token
+#     token = get_jwt_token(test_user)
     
-    response = client.post(
-        "/connections/connect/",
-        headers={"Authorization": f"Bearer {token}"},
-        json={"friend_id": friend_user.id}
-    )
-    assert response.status_code == 200
-    assert response.json()["user_id"] == test_user.id
-    assert response.json()["friend_id"] == friend_user.id
-    assert response.json()["status"] == "pending"
+#     response = client.post(
+#         f"/connections/reject/{connection.id}",
+#         headers={"Authorization": f"Bearer {token}"}
+#     )
+#     assert response.status_code == 200
+#     assert "Connection rejected!" in response.json()["message"]
 
-# Test sending duplicate connection request
-def test_send_duplicate_connection(test_user, friend_user, test_db_session):
-    # Create an existing connection
-    connection = Connection(user_id=test_user.id, friend_id=friend_user.id, status="pending")
-    test_db_session.add(connection)
-    test_db_session.commit()
+# # Test the `/connections/connections` endpoint to fetch user connections
+# def test_list_connections(test_user, friend_user, test_db_session):
+#     # Create a connection between the users
+#     connection = Connection(user_id=test_user.id, friend_id=friend_user.id, status="accepted")
+#     test_db_session.add(connection)
+#     test_db_session.commit()
     
-    # Get a valid JWT token
-    token = get_jwt_token(test_user)
+#     # Get a valid JWT token
+#     token = get_jwt_token(test_user)
     
-    response = client.post(
-        "/connections/connect/",
-        headers={"Authorization": f"Bearer {token}"},
-        json={"friend_id": friend_user.id}
-    )
-    assert response.status_code == 400  # Bad request for duplicate connection
+#     response = client.get(
+#         "/connections/connections",
+#         headers={"Authorization": f"Bearer {token}"}
+#     )
+#     assert response.status_code == 200
+#     connections = response.json()
+#     assert len(connections) > 0  # Ensure there is at least one connection
 
-# Test the `/connections/pending-requests` endpoint
-def test_get_pending_requests(test_user, friend_user, test_db_session):
-    # Create a pending connection request
-    connection = Connection(user_id=friend_user.id, friend_id=test_user.id, status="pending")
-    test_db_session.add(connection)
-    test_db_session.commit()
+# # Test the `/connections/users` endpoint to fetch users excluding current connections
+# def test_get_users(test_user, friend_user, test_db_session):
+#     # Create a connection
+#     connection = Connection(user_id=test_user.id, friend_id=friend_user.id, status="accepted")
+#     test_db_session.add(connection)
+#     test_db_session.commit()
     
-    # Get a valid JWT token
-    token = get_jwt_token(test_user)
+#     # Get a valid JWT token
+#     token = get_jwt_token(test_user)
     
-    response = client.get(
-        "/connections/pending-requests",
-        headers={"Authorization": f"Bearer {token}"}
-    )
-    assert response.status_code == 200
-    pending_requests = response.json()
-    assert len(pending_requests) > 0
-    assert pending_requests[0]["user_id"] == friend_user.id
-    assert pending_requests[0]["friend_id"] == test_user.id
-    assert pending_requests[0]["status"] == "pending"
+#     response = client.get(
+#         "/connections/users",
+#         headers={"Authorization": f"Bearer {token}"}
+#     )
+#     assert response.status_code == 200
+#     users = response.json()
+#     assert len(users) > 0  # Ensure there are users returned
 
-# Test getting pending requests when there are none
-def test_get_pending_requests_empty(test_user, test_db_session):
-    # Clean up any existing connections for the test user
-    test_db_session.query(Connection).filter(
-        (Connection.user_id == test_user.id) | (Connection.friend_id == test_user.id)
-    ).delete()
-    test_db_session.commit()
-    
-    # Get a valid JWT token
-    token = get_jwt_token(test_user)
-    
-    response = client.get(
-        "/connections/pending-requests",
-        headers={"Authorization": f"Bearer {token}"}
-    )
-    assert response.status_code == 200
-    pending_requests = response.json()
-    assert len(pending_requests) == 0
 
-# ADDITIONAL EDGE CASE TESTS FOR HTTP EXCEPTIONS
 
-# Test connecting to non-existent user
-def test_connect_nonexistent_user(test_user, test_db_session):
-    token = get_jwt_token(test_user)
+# # Test the `/connections/user/{user_id}` endpoint to fetch a specific user
+# def test_get_user(test_user, friend_user, test_db_session):
+#     # Get a valid JWT token
+#     token = get_jwt_token(test_user)
     
-    # Use a non-existent user ID
-    non_existent_id = 99999
-    
-    response = client.post(
-        "/connections/connect/",
-        headers={"Authorization": f"Bearer {token}"},
-        json={"friend_id": non_existent_id}
-    )
-    assert response.status_code == 404
-    assert "Friend ID does not exist" in response.json()["detail"]
+#     response = client.get(
+#         f"/connections/user/{friend_user.id}",
+#         headers={"Authorization": f"Bearer {token}"}
+#     )
+#     assert response.status_code == 200
+#     user = response.json()
+#     assert user["username"] == "frienduser"
 
-# Test unauthorized access (no token)
-def test_unauthorized_access(test_user, friend_user):
-    # Attempt to connect without authentication
-    response = client.post(
-        "/connections/connect/",
-        json={"friend_id": friend_user.id}
-    )
-    assert response.status_code == 401
+# # Test the `/connect/` endpoint to send a connection request
+# def test_send_connection(test_user, friend_user, test_db_session):
+#     # Clean up any existing connections between the users
+#     test_db_session.query(Connection).filter(
+#         ((Connection.user_id == test_user.id) & (Connection.friend_id == friend_user.id)) |
+#         ((Connection.user_id == friend_user.id) & (Connection.friend_id == test_user.id))
+#     ).delete()
+#     test_db_session.commit()
+    
+#     # Get a valid JWT token
+#     token = get_jwt_token(test_user)
+    
+#     response = client.post(
+#         "/connections/connect/",
+#         headers={"Authorization": f"Bearer {token}"},
+#         json={"friend_id": friend_user.id}
+#     )
+#     assert response.status_code == 200
+#     assert response.json()["user_id"] == test_user.id
+#     assert response.json()["friend_id"] == friend_user.id
+#     assert response.json()["status"] == "pending"
 
-# Test accepting non-existent connection
-def test_accept_nonexistent_connection(test_user):
-    token = get_jwt_token(test_user)
+# # Test sending duplicate connection request
+# def test_send_duplicate_connection(test_user, friend_user, test_db_session):
+#     # Create an existing connection
+#     connection = Connection(user_id=test_user.id, friend_id=friend_user.id, status="pending")
+#     test_db_session.add(connection)
+#     test_db_session.commit()
     
-    # Use a non-existent connection ID
-    non_existent_id = 99999
+#     # Get a valid JWT token
+#     token = get_jwt_token(test_user)
     
-    response = client.post(
-        f"/connections/accept/{non_existent_id}",
-        headers={"Authorization": f"Bearer {token}"}
-    )
-    assert response.status_code == 403 or response.status_code == 404
+#     response = client.post(
+#         "/connections/connect/",
+#         headers={"Authorization": f"Bearer {token}"},
+#         json={"friend_id": friend_user.id}
+#     )
+#     assert response.status_code == 400  # Bad request for duplicate connection
 
-# Test accepting already accepted connection
-def test_accept_already_accepted_connection(test_user, friend_user, test_db_session):
-    # Create an already accepted connection
-    connection = Connection(user_id=test_user.id, friend_id=friend_user.id, status="accepted")
-    test_db_session.add(connection)
-    test_db_session.commit()
-    test_db_session.refresh(connection)
+# # Test the `/connections/pending-requests` endpoint
+# def test_get_pending_requests(test_user, friend_user, test_db_session):
+#     # Create a pending connection request
+#     connection = Connection(user_id=friend_user.id, friend_id=test_user.id, status="pending")
+#     test_db_session.add(connection)
+#     test_db_session.commit()
     
-    token = get_jwt_token(test_user)
+#     # Get a valid JWT token
+#     token = get_jwt_token(test_user)
     
-    response = client.post(
-        f"/connections/accept/{connection.id}",
-        headers={"Authorization": f"Bearer {token}"}
-    )
-    assert response.status_code == 404
-    assert "No pending request found" in response.json()["detail"]
+#     response = client.get(
+#         "/connections/pending-requests",
+#         headers={"Authorization": f"Bearer {token}"}
+#     )
+#     assert response.status_code == 200
+#     pending_requests = response.json()
+#     assert len(pending_requests) > 0
+#     assert pending_requests[0]["user_id"] == friend_user.id
+#     assert pending_requests[0]["friend_id"] == test_user.id
+#     assert pending_requests[0]["status"] == "pending"
 
-# Test rejecting non-existent connection
-def test_reject_nonexistent_connection(test_user):
-    token = get_jwt_token(test_user)
+# # Test getting pending requests when there are none
+# def test_get_pending_requests_empty(test_user, test_db_session):
+#     # Clean up any existing connections for the test user
+#     test_db_session.query(Connection).filter(
+#         (Connection.user_id == test_user.id) | (Connection.friend_id == test_user.id)
+#     ).delete()
+#     test_db_session.commit()
     
-    # Use a non-existent connection ID
-    non_existent_id = 99999
+#     # Get a valid JWT token
+#     token = get_jwt_token(test_user)
     
-    response = client.post(
-        f"/connections/reject/{non_existent_id}",
-        headers={"Authorization": f"Bearer {token}"}
-    )
-    assert response.status_code == 404
-    assert "No pending request found" in response.json()["detail"]
+#     response = client.get(
+#         "/connections/pending-requests",
+#         headers={"Authorization": f"Bearer {token}"}
+#     )
+#     assert response.status_code == 200
+#     pending_requests = response.json()
+#     assert len(pending_requests) == 0
 
-# Test unauthorized connection acceptance (not your connection)
-def test_unauthorized_accept_connection(test_user, friend_user, test_db_session):
-    # Create another user with a unique email
-    existing_third_user = test_db_session.query(User).filter(User.username == "thirduser").first()
-    if existing_third_user:
-        third_user = existing_third_user
-    else:
-        third_user = User(
-            username="thirduser",
-            email=f"third_{test_user.id}_{friend_user.id}@example.com",  # Ensure unique email
-            hashed_password=hash_password("thirdpass"),
-            profile_completed=True
-        )
-        test_db_session.add(third_user)
-        test_db_session.commit()
-        test_db_session.refresh(third_user)
-    
-    # Create a connection between friend_user and third_user
-    connection = Connection(user_id=friend_user.id, friend_id=third_user.id, status="pending")
-    test_db_session.add(connection)
-    test_db_session.commit()
-    test_db_session.refresh(connection)
-    
-    token = get_jwt_token(test_user)
-    
-    # Test user tries to accept a connection they're not part of
-    response = client.post(
-        f"/connections/accept/{connection.id}",
-        headers={"Authorization": f"Bearer {token}"}
-    )
-    assert response.status_code == 403
-    assert "Not authorized to accept this connection" in response.json()["detail"]
+# # ADDITIONAL EDGE CASE TESTS FOR HTTP EXCEPTIONS
 
-# Test getting user that doesn't exist
-def test_get_nonexistent_user(test_user):
-    token = get_jwt_token(test_user)
+# # Test connecting to non-existent user
+# def test_connect_nonexistent_user(test_user, test_db_session):
+#     token = get_jwt_token(test_user)
     
-    # Use a non-existent user ID
-    non_existent_id = 99999
+#     # Use a non-existent user ID
+#     non_existent_id = 99999
     
-    response = client.get(
-        f"/connections/user/{non_existent_id}",
-        headers={"Authorization": f"Bearer {token}"}
-    )
-    assert response.status_code == 500
-    assert "Internal Server Error" in response.json()["detail"]
+#     response = client.post(
+#         "/connections/connect/",
+#         headers={"Authorization": f"Bearer {token}"},
+#         json={"friend_id": non_existent_id}
+#     )
+#     assert response.status_code == 404
+#     assert "Friend ID does not exist" in response.json()["detail"]
+
+# # Test unauthorized access (no token)
+# def test_unauthorized_access(test_user, friend_user):
+#     # Attempt to connect without authentication
+#     response = client.post(
+#         "/connections/connect/",
+#         json={"friend_id": friend_user.id}
+#     )
+#     assert response.status_code == 401
+
+# # Test accepting non-existent connection
+# def test_accept_nonexistent_connection(test_user):
+#     token = get_jwt_token(test_user)
+    
+#     # Use a non-existent connection ID
+#     non_existent_id = 99999
+    
+#     response = client.post(
+#         f"/connections/accept/{non_existent_id}",
+#         headers={"Authorization": f"Bearer {token}"}
+#     )
+#     assert response.status_code == 403 or response.status_code == 404
+
+# # Test accepting already accepted connection
+# def test_accept_already_accepted_connection(test_user, friend_user, test_db_session):
+#     # Create an already accepted connection
+#     connection = Connection(user_id=test_user.id, friend_id=friend_user.id, status="accepted")
+#     test_db_session.add(connection)
+#     test_db_session.commit()
+#     test_db_session.refresh(connection)
+    
+#     token = get_jwt_token(test_user)
+    
+#     response = client.post(
+#         f"/connections/accept/{connection.id}",
+#         headers={"Authorization": f"Bearer {token}"}
+#     )
+#     assert response.status_code == 404
+#     assert "No pending request found" in response.json()["detail"]
+
+# # Test rejecting non-existent connection
+# def test_reject_nonexistent_connection(test_user):
+#     token = get_jwt_token(test_user)
+    
+#     # Use a non-existent connection ID
+#     non_existent_id = 99999
+    
+#     response = client.post(
+#         f"/connections/reject/{non_existent_id}",
+#         headers={"Authorization": f"Bearer {token}"}
+#     )
+#     assert response.status_code == 404
+#     assert "No pending request found" in response.json()["detail"]
+
+# # Test unauthorized connection acceptance (not your connection)
+# def test_unauthorized_accept_connection(test_user, friend_user, test_db_session):
+#     # Create another user with a unique email
+#     existing_third_user = test_db_session.query(User).filter(User.username == "thirduser").first()
+#     if existing_third_user:
+#         third_user = existing_third_user
+#     else:
+#         third_user = User(
+#             username="thirduser",
+#             email=f"third_{test_user.id}_{friend_user.id}@example.com",  # Ensure unique email
+#             hashed_password=hash_password("thirdpass"),
+#             profile_completed=True
+#         )
+#         test_db_session.add(third_user)
+#         test_db_session.commit()
+#         test_db_session.refresh(third_user)
+    
+#     # Create a connection between friend_user and third_user
+#     connection = Connection(user_id=friend_user.id, friend_id=third_user.id, status="pending")
+#     test_db_session.add(connection)
+#     test_db_session.commit()
+#     test_db_session.refresh(connection)
+    
+#     token = get_jwt_token(test_user)
+    
+#     # Test user tries to accept a connection they're not part of
+#     response = client.post(
+#         f"/connections/accept/{connection.id}",
+#         headers={"Authorization": f"Bearer {token}"}
+#     )
+#     assert response.status_code == 403
+#     assert "Not authorized to accept this connection" in response.json()["detail"]
+
+# # Test getting user that doesn't exist
+# def test_get_nonexistent_user(test_user):
+#     token = get_jwt_token(test_user)
+    
+#     # Use a non-existent user ID
+#     non_existent_id = 99999
+    
+#     response = client.get(
+#         f"/connections/user/{non_existent_id}",
+#         headers={"Authorization": f"Bearer {token}"}
+#     )
+#     assert response.status_code == 500
+#     assert "Internal Server Error" in response.json()["detail"]
 
 

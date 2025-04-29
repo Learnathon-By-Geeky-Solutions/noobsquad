@@ -11,16 +11,16 @@ STATUS_404_ERROR = "Post not found"
 def create_notification(
     db: Session,
     user_id: int,
-    content: str,
-    notification_type: str,
-    reference_id: Optional[int] = None
+    actor_id: int,
+    type: str,
+    post_id: Optional[int] = None
 ) -> Notification:
     """Create a new notification."""
     notification = Notification(
         user_id=user_id,
-        content=content,
-        notification_type=notification_type,
-        reference_id=reference_id,
+        actor_id=actor_id,
+        type=type,
+        post_id=post_id,
         is_read=False
     )
     db.add(notification)
@@ -40,18 +40,15 @@ def send_post_notifications(
     
     for connection in connections:
         # Determine the recipient
-        recipient_id = connection.user_id2 if connection.user_id1 == author.id else connection.user_id1
-        
-        # Create notification content
-        content = f"{author.username} has created a new {post.post_type} post"
+        recipient_id = connection["friend_id"] if connection["user_id"] == author.id else connection["user_id"]
         
         # Create and store notification
         notification = create_notification(
             db=db,
             user_id=recipient_id,
-            content=content,
-            notification_type=notification_type,
-            reference_id=post.id
+            actor_id=author.id,
+            type=notification_type,
+            post_id=post.id
         )
         notifications.append(notification)
     
