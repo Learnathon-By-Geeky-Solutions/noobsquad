@@ -205,11 +205,15 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
 
       const { file_url } = res.data;
       const isImage = file.type.startsWith("image/");
+      const fileInfo = `${file.name} • ${formatFileSize(file.size)}`;
+      
       const message = {
         receiver_id: user.id,
-        content: input.trim() || (isImage ? "Image" : file.name),
+        content: fileInfo,
         file_url,
         message_type: isImage ? "image" : "file",
+        file_size: file.size,
+        file_type: file.type
       };
 
       // Add optimistic message with local preview
@@ -219,7 +223,7 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
         sender_id: currentUserId,
         timestamp: new Date().toISOString(),
         is_read: false,
-        local_preview: isImage ? filePreview : null // Keep local preview URL for immediate display
+        local_preview: isImage ? filePreview : null
       };
       setMessages(prev => [...prev, optimisticMessage]);
 
@@ -291,6 +295,24 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
     }
   }, []);
 
+  // Add this helper function at the top with other functions
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+  };
+
+  // Add this function to extract file info from URL
+  const getFileInfo = (url, content) => {
+    const filename = content || url.split('/').pop();
+    // Default size if not available
+    const size = '~ KB';
+    const ext = filename.split('.').pop().toUpperCase();
+    return { filename, size, ext };
+  };
+
   return (
     <div className="fixed bottom-0 right-4 w-80 bg-white rounded-t-xl shadow-2xl z-50 overflow-hidden">
       {/* Header */}
@@ -361,20 +383,34 @@ const ChatPopup = ({ user, socket, onClose, refreshConversations }) => {
                 </div>
               )}
               {msg.message_type === "file" && !msg.file_url?.match(/\.(jpg|jpeg|png|gif|webp)$/i) && (
-                <div className="flex items-center space-x-2">
-                  <svg className="w-6 h-6 text-gray-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <a
-                    href={msg.file_url}
-                    download
-                    className="text-white underline hover:text-blue-100"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {msg.content}
-                  </a>
-                </div>
+                <a
+                  href={msg.file_url}
+                  download
+                  className="block no-underline hover:bg-opacity-80"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <div className="flex items-start space-x-3">
+                    {/* File Type Icon */}
+                    <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-red-500 rounded-lg">
+                      <div className="text-white text-xs font-bold">
+                        {getFileInfo(msg.file_url, msg.content).ext}
+                      </div>
+                    </div>
+                    
+                    {/* File Info */}
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-white font-medium truncate max-w-[160px]">
+                        {getFileInfo(msg.file_url, msg.content).filename}
+                      </span>
+                      <div className="flex items-center space-x-2 text-xs text-gray-200 mt-1">
+                        <span>{getFileInfo(msg.file_url, msg.content).size}</span>
+                        <span>•</span>
+                        <span>{msg.content.endsWith('.pdf') ? 'PDF' : 'Document'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </a>
               )}
               <div
                 className={`text-xs mt-1 ${
