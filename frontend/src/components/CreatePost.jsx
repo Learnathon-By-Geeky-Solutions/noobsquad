@@ -133,8 +133,13 @@ const CreatePost = ({ userProfile }) => {
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
+          onInput={(e) => {
+            e.target.style.height = "auto";
+            e.target.style.height = e.target.scrollHeight + "px";
+          }}
           placeholder="Post your thoughts, notes, or nerdy rants!"
-          className="border border-gray-300 p-4 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none min-h-[100px] text-gray-700"
+          className="border border-gray-300 p-4 rounded-lg w-full focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none min-h-[100px] text-gray-700 overflow-hidden"
+          rows={1}
         ></textarea>
       </div>
 
