@@ -29,7 +29,7 @@ from dotenv import load_dotenv
 import os
 from utils.cloudinary import upload_to_cloudinary
 from utils.post_utils import validate_post_ownership, prepare_post_response, handle_media_upload, create_base_post
-from services.EventHandler import create_event_post, format_event_response
+from services.EventHandler import create_event_post as create_event_post_entry, format_event_response, handle_event_upload
 from utils.supabase import upload_file_to_supabase
 
 # Load environment variables
@@ -208,13 +208,13 @@ async def create_event_post(
         "user_timezone": user_timezone,
         "location": location
     }
-    
-    post, event = create_event_post(
+    upload_result = await handle_event_upload(event_image, "noobsquad/event_media_uploads")
+    post, event = create_event_post_entry(
         db=db,
         user_id=current_user.id,
         content=content,
         event_data=event_data,
-        event_image=event_image
+        image_url=upload_result["secure_url"]
     )
     
     send_post_notifications(db, current_user, post)

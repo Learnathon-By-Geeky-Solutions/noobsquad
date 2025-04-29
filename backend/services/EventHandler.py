@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 from models.post import Post, Event
 from utils.post_utils import create_base_post
 from services.FileHandler import save_upload_file, generate_secure_filename
+from utils.cloudinary import upload_to_cloudinary
 
 def _parse_datetime_string(date_str: str, time_str: str) -> datetime:
     try:
@@ -29,29 +30,29 @@ def parse_event_datetime(
     local_datetime = _parse_datetime_string(event_date, event_time)
     return _convert_to_utc(local_datetime, user_timezone)
 
-def _handle_event_image(
-    event_image: Optional[UploadFile],
-    user_id: int,
-    upload_dir: str
-) -> Optional[str]:
-    if not event_image:
-        return None
-    
-    image_filename = generate_secure_filename(user_id, ".jpg")
-    save_upload_file(event_image, upload_dir, image_filename)
-    return image_filename
+async def handle_event_upload(
+    media_file: UploadFile,
+    folder_name: str
+) -> Dict[str, str]:
+    """Handle media file upload to cloudinary and return upload details."""
+    upload_result = upload_to_cloudinary(
+        media_file.file,
+        folder_name=folder_name
+    )
+    return {
+        "secure_url": upload_result["secure_url"]
+    }
 
 def create_event_post(
     db: Session,
     user_id: int,
     content: Optional[str],
     event_data: Dict[str, Any],
-    event_image: Optional[UploadFile] = None,
-    upload_dir: str = "uploads/event_images"
+    image_url: Optional[str] = None
 ) -> Tuple[Post, Event]:
     """Create a new event post with associated event details."""
     post = create_base_post(db, user_id, content, "event")
-    image_filename = _handle_event_image(event_image, user_id, upload_dir)
+    image_filename = image_url
     
     event_datetime = parse_event_datetime(
         event_data["event_date"],
@@ -61,6 +62,7 @@ def create_event_post(
     
     event = Event(
         post_id=post.id,
+        user_id=user_id,
         title=event_data["event_title"],
         description=event_data["event_description"],
         event_datetime=event_datetime,
@@ -116,11 +118,13 @@ def update_event_post(
 def format_event_response(post: Post, event: Event) -> Dict[str, Any]:
     """Format event post response."""
     return {
-        "id": post.id,
+        "id": event.id,
+        "post_id": post.id,
+        "user_id": post.user_id,
         "content": post.content,
         "title": event.title,
         "description": event.description,
         "event_datetime": event.event_datetime,
         "location": event.location,
         "image_url": event.image_url
-    } 
+    }
