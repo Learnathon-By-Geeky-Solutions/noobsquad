@@ -15,9 +15,6 @@ def get_comment_by_id(db: Session, comment_id: int) -> Comment:
         raise HTTPException(status_code=404, detail="Comment not found.")
     return comment
 
-def authorize_comment_deletion(comment: Comment, post: Post, user_id: int):
-    if comment.user_id != user_id and post.user_id != user_id:
-        raise HTTPException(status_code=403, detail="Not authorized to delete this comment.")
 
 def get_post_by_id(db: Session, post_id: int) -> Post:
     post = db.query(Post).filter(Post.id == post_id).first()

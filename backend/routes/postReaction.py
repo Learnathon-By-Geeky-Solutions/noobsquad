@@ -23,7 +23,7 @@ from database.session import SessionLocal
 from schemas.postReaction import LikeCreate, LikeResponse, CommentCreate, ShareResponse, CommentNestedResponse, ShareCreate
 from schemas.eventAttendees import EventAttendeeCreate, EventAttendeeResponse
 from api.v1.endpoints.auth import get_current_user
-from .PostReaction.CommentHelperFunc import get_comment_by_id, authorize_comment_deletion, get_post_by_id
+from .PostReaction.CommentHelperFunc import get_comment_by_id, get_post_by_id
 from schemas.postReaction import ShareResponse, ShareCreate
 from .PostReaction.ShareHandler import (
     create_share,
@@ -144,18 +144,6 @@ def get_comments(post_id: int, db: Session = Depends(get_db), current_user: User
     parent_comments = db.query(Comment).filter(Comment.post_id == post_id, Comment.parent_id == None).all()
     return {"comments": [build_comment_response(comment, db, current_user) for comment in parent_comments]}
 
-
-@router.delete("/comment/{comment_id}")
-def delete_comment(comment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    comment = get_comment_by_id(db, comment_id)
-    post = get_post_by_id(db, comment.post_id)
-
-    authorize_comment_deletion(comment, post, current_user.id)
-
-    db.delete(comment)
-    db.commit()
-
-    return {"message": "Comment deleted successfully"}
 
 # ✅ Share a Post with a Unique Link (Stored)
 @router.post("/{post_id}/share", response_model=ShareResponse)
