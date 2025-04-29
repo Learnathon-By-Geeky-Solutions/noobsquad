@@ -76,9 +76,15 @@ class ConnectionHandler:
             {
                 "connection_id": conn.id,
                 "friend_id": conn.friend_id if conn.user_id == user_id else conn.user_id,
-                "username": db.query(User).filter(User.id == conn.friend_id if conn.user_id == user_id else conn.user_id).first().username,
-                "email": db.query(User).filter(User.id == conn.friend_id if conn.user_id == user_id else conn.user_id).first().email,
-                "profile_picture": db.query(User).filter(User.id == conn.friend_id if conn.user_id == user_id else conn.user_id).first().profile_picture
+                "username": db.query(User).filter(
+                    User.id == (conn.friend_id if conn.user_id == user_id else conn.user_id)
+                ).first().username,
+                "email": db.query(User).filter(
+                    User.id == (conn.friend_id if conn.user_id == user_id else conn.user_id)
+                ).first().email,
+                "profile_picture": db.query(User).filter(
+                    User.id == (conn.friend_id if conn.user_id == user_id else conn.user_id)
+                ).first().profile_picture
             }
             for conn in connections
         ]

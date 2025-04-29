@@ -28,7 +28,7 @@ const SuggestedUsers = () => {
       setUsers(response.data);
       const initialStatus = {};
       response.data.forEach(user => {
-        initialStatus[user.id] = "Connect";
+        initialStatus[user.user_id] = "Connect";
       });
       setConnectionStatus(initialStatus);
     } catch (error) {
@@ -61,8 +61,13 @@ const SuggestedUsers = () => {
       const token = localStorage.getItem("token");
       await axios.post(
         `${import.meta.env.VITE_API_URL}/connections/connect/`,
-        { friend_id: userId },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { friend_id: Number(userId) },
+        { 
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          } 
+        }
       );
     } catch (error) {
       console.error("Error sending connection request:", error);
@@ -113,7 +118,7 @@ const SuggestedUsers = () => {
           <p className="text-gray-500 col-span-full">No more people to connect with 🥺</p>
         ) : (
           users.map((user) => (
-            <div key={user.id} className="bg-white shadow-md rounded-xl p-5">
+            <div key={`user-${user.user_id}`} className="bg-white shadow-md rounded-xl p-5">
               <img
                 src={
                   user.profile_picture
@@ -128,13 +133,13 @@ const SuggestedUsers = () => {
               </h3>
               <p className="text-sm text-gray-500 text-center">{user.bio || "No bio available"}</p>
               <button
-                onClick={() => sendConnectionRequest(user.id)}
-                disabled={connectionStatus[user.id] === "Pending"}
+                onClick={() => sendConnectionRequest(user.user_id)}
+                disabled={connectionStatus[user.user_id] === "Pending"}
                 className={`w-full mt-4 flex justify-center items-center gap-2 text-white font-semibold py-2 px-4 rounded-md transition duration-200 ${
-                  connectionStatus[user.id] === "Pending" ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
+                  connectionStatus[user.user_id] === "Pending" ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
                 }`}
               >
-                {connectionStatus[user.id] === "Pending" ? (
+                {connectionStatus[user.user_id] === "Pending" ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" /> Pending
                   </>
@@ -149,10 +154,6 @@ const SuggestedUsers = () => {
         )}
       </div>
 
-      <div className="mt-5">
-        <ConnectedUsers />
-      </div>
-
       <h2 className="text-2xl font-bold mt-12 mb-4 flex items-center gap-2 text-blue-700">
         <UserRoundPen className="w-6 h-6" /> Incoming Connection Requests
       </h2>
@@ -163,7 +164,7 @@ const SuggestedUsers = () => {
         ) : incomingRequests.length > 0 ? (
           incomingRequests.map((req) => (
             <div
-              key={req.request_id}
+              key={`request-${req.request_id}`}
               className="bg-white rounded-xl shadow-md p-6 flex flex-col items-center text-center hover:shadow-lg transition-shadow"
             >
               <img
@@ -205,6 +206,10 @@ const SuggestedUsers = () => {
         ) : (
           <p className="text-gray-500 col-span-full text-center">No pending requests</p>
         )}
+      </div>
+
+      <div className="mt-12">
+        <ConnectedUsers />
       </div>
     </div>
   );
