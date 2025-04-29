@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import { ChatContext } from "../context/ChatContext";
-import { MessageCircle, UserCheck } from "lucide-react";
+import { MessageCircle, UserCheck, Users, Loader2 } from "lucide-react";
+import UsernameLink from "../components/AboutMe/UsernameLink";
 
 const fetchUserDetails = async (userId) => {
   try {
@@ -81,54 +82,57 @@ const ConnectedUsers = () => {
     });
   };
 
-  const renderContent = () => {
-    if (loading) {
-      return <p className="text-gray-500">Loading your connections...</p>;
-    } else if (error) {
-      return <p className="text-red-500">{error}</p>;
-    } else if (friends.length === 0) {
-      return <p className="text-gray-500">You have no connections yet. Try pairing with someone!</p>;
-    }
-
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 mt-6">
-        {friends.map((friend) => (
-          <div
-            key={friend.connection_id}
-            className="bg-white shadow-md rounded-xl p-6 flex flex-col items-center text-center hover:shadow-lg transition"
-          >
-            <img
-              src={
-                friend.profile_picture
-                  ? `${import.meta.env.VITE_API_URL}/uploads/profile_pictures/${friend.profile_picture}`
-                  : "/default-avatar.png"
-              }
-              alt="Profile"
-              className="w-20 h-20 rounded-full object-cover border-2 border-blue-500 mb-3 mx-auto"
-            />
-            <h3 className="text-lg font-semibold text-gray-800">{friend.username}</h3>
-
-            <button
-              onClick={() => handleOpenChat(friend)}
-              className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-medium flex items-center justify-center gap-2 transition"
-            >
-              <MessageCircle className="w-4 h-4" />
-              Message
-            </button>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
   return (
-    <div className="max-w-6xl mx-auto px-4">
-      <h2 className="text-2xl font-bold mt-12 mb-4 flex items-center gap-2 text-blue-700">
-        <UserCheck className="w-6 h-6" />
-        Your Connections
-      </h2>
+    <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <UserCheck className="w-6 h-6 text-blue-600" />
+        <h2 className="text-2xl font-bold text-gray-800">Your Connections</h2>
+      </div>
 
-      {renderContent()}
+      {loading ? (
+        <div className="flex justify-center items-center h-32">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        </div>
+      ) : error ? (
+        <div className="text-center py-12 bg-red-50 rounded-lg">
+          <p className="text-red-600 text-lg">{error}</p>
+        </div>
+      ) : friends.length === 0 ? (
+        <div className="text-center py-12 bg-gray-50 rounded-lg">
+          <Users className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+          <p className="text-gray-500 text-lg">You have no connections yet. Try pairing with someone!</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {friends.map((friend) => (
+            <div
+              key={friend.connection_id}
+              className="bg-gray-50 rounded-xl p-6 flex flex-col items-center text-center hover:shadow-md transition-shadow border border-gray-100"
+            >
+              <img
+                src={
+                  friend.profile_picture
+                    ? `${import.meta.env.VITE_API_URL}/uploads/profile_pictures/${friend.profile_picture}`
+                    : "/default-avatar.png"
+                }
+                alt="Profile"
+                className="w-24 h-24 rounded-full object-cover border-4 border-blue-100 mb-4"
+              />
+              <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                <UsernameLink username={friend.username} />
+              </h3>
+              <p className="text-gray-600 mb-6">{friend.email || "No email available"}</p>
+              <button
+                onClick={() => handleOpenChat(friend)}
+                className="w-full flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition shadow-sm"
+              >
+                <MessageCircle className="w-5 h-5" />
+                Message
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
