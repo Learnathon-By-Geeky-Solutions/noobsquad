@@ -392,30 +392,19 @@ async def delete_post(
 
 @router.get("/events/", response_model=Union[List[EventResponse], EventResponse])
 async def get_events(
-    request: Request,
+    request: Request,  # We need this to access the base URL of the server
     event_id: Optional[int] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get all events or a specific event."""
-    if event_id:
-        post = db.query(Post).filter(Post.id == event_id).first()
-        if not post:
-            raise HTTPException(status_code=404, detail="Event not found")
-            
-        event = db.query(Event).filter(Event.post_id == post.id).first()
+    if event_id is not None:
+        event = db.query(Event).filter(Event.id == event_id).first()
         if not event:
-            raise HTTPException(status_code=404, detail="Event details not found")
-            
-        return format_event_response(post, event)
-    
-    # Get all events
-    events_query = (
-        db.query(Post, Event)
-        .join(Event)
-        .filter(Post.post_type == "event")
-        .order_by(Event.event_datetime.desc())
-    )
-    
-    events = events_query.all()
-    return [format_event_response(post, event) for post, event in events]
+            raise HTTPException(status_code=404, detail="Event not found")
+        return event
+    else:
+        events = db.query(Event).all()
+        if not events:
+            raise HTTPException(status_code=404, detail="No events found")
+        return events
+        
