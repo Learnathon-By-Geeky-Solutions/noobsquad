@@ -96,3 +96,5 @@ backend/uploads/chat/*
 !.gitkeep  # Allows keeping empty dirs if you add .gitkeep files
 # Ignore Alembic migration scripts 
 alembic/versions/
+
+backend/.flake8
