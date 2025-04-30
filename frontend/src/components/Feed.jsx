@@ -118,24 +118,19 @@ const Feed = () => {
 
 
   
-  const handleUpdatePost = async (response) => {
-    if (!response?.updated_post?.id) {
-      console.error("❌ Invalid updatedPost:", response);
+  const handleUpdatePost = (updatedPost) => {
+    if (!updatedPost?.id) {
+      console.error("❌ Invalid updatedPost:", updatedPost);
       return;
     }
   
-    const updatedPost = response.updated_post; // Extracting the actual post object
-  
-    setPosts((prevPosts) => 
-      prevPosts.map((post) => {
-        if (!post?.id) return post; // Return post if it's null/undefined or has no id
-        return post.id === updatedPost.id ? { ...post, ...updatedPost } : post;
-      })
+    setPosts((prevPosts) =>
+      prevPosts.map((post) =>
+        post.id === updatedPost.id ? { ...post, ...updatedPost } : post
+      )
     );
-  
-    // ✅ Re-fetch posts to get the latest data from the backend
-    await fetchPosts();
   };
+  
 
   // ✅ Function to delete a post
   const handleDeletePost = (postId) => {

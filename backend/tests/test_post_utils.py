@@ -84,6 +84,7 @@ def test_prepare_post_response(mock_additional_data, mock_like_status, mock_db, 
     assert result["user_id"] == mock_post.user_id
     assert result["content"] == mock_post.content
     assert result["user"]["username"] == mock_post.user.username
+    assert result["user"]["university_name"] == mock_post.user.university_name
     assert result["total_likes"] == mock_post.like_count
     assert result["user_liked"] is True
     assert result["comment_count"] == 3

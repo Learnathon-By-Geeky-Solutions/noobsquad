@@ -162,26 +162,25 @@ const Post =  React.forwardRef(({ post, onUpdate, onDelete, id }, ref) => {
           headers: { "Content-Type": "multipart/form-data" },
         });
       }
-  
-      // Update state after successful API call
       onUpdate(res.data);
       setIsEditing(false);
+      // Update state after successful API call
+      
     } catch (error) {
       console.error("❌ Error updating post:", error);
     }
-    window.location.reload();
+    
   };
   
   
   const handleDelete = async () => {
     try {
       await api.delete(`/posts/delete_post/${post.id}/`);
-      onDelete(); // Remove post from state
+      onDelete(post.id); // Remove post from state
     } catch (error) {
       console.error("❌ Error deleting post:", error);
     } finally {
       setShowDeleteModal(false);
-      window.location.reload(); // ✅ Refresh feed
     }
   };
 
@@ -272,6 +271,7 @@ return (
         />
         <div>
           <h3 className="font-semibold"><UsernameLink username={postUser.username} /></h3>
+          <p className="text-xs font-medium text-gray-500">{postUser.university_name}</p>
           <p className="text-xs text-gray-500">{timeAgo}</p>
         </div>
       </div>
@@ -375,24 +375,24 @@ return (
           </div>
         )}
 
-        <div className="flex gap-2 mt-2">
-          <button
-            onClick={handleEdit}
-            className="bg-green-500 text-white px-4 py-2 rounded flex items-center gap-1"
-          >
-            <FaSave /> Save
-          </button>
-          <button
-            onClick={() => setIsEditing(false)}
-            className="bg-gray-500 text-white px-4 py-2 rounded flex items-center gap-1"
-          >
-            <FaTimes /> Cancel
-          </button>
-        </div>
+<div className="flex justify-between mt-4 mx-4">
+  <button
+    onClick={handleEdit}
+    className="flex items-center gap-2 px-8 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md transition duration-200"
+  >
+    Save
+  </button>
+  <button
+    onClick={() => setIsEditing(false)}
+    className="flex items-center gap-2 px-8 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-xl shadow-md transition duration-200"
+  >
+    Cancel
+  </button>
+</div>
       </div>
     ) : (
       <div>
-        <p>{post.content}</p>
+        <p className="whitespace-pre-line">{post.content}</p>
         {post.post_type === "media" && post.media_url && (
           <img
             src={post.media_url}
@@ -518,7 +518,7 @@ return (
 
             {/* Render Replies */}
             {comment.replies && comment.replies.length > 0 && (
-              <div className="ml-4 mt-2">
+              <div className="ml-8 mt-4">
                 {comment.replies.map((reply) => (
                   <div key={reply.id} className="flex items-start space-x-2">
                     <img
