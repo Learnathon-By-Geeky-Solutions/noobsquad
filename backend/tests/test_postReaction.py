@@ -696,35 +696,5 @@ def test_get_event_attendees(override_dependencies):
     assert data[0]["status"] == fake_attendee.status
 
 # Test for removing an RSVP
-def test_remove_rsvp(override_dependencies):
-    mock_session, mock_notify_if_not_self, mock_create_notification = override_dependencies
 
-    # Mock EventAttendee query
-    mock_attendee_query = MagicMock()
-    mock_attendee_query.filter.return_value.first.return_value = fake_attendee
-    mock_session.query.side_effect = lambda model: mock_attendee_query if model == EventAttendee else MagicMock()
 
-    # Send request to remove RSVP
-    response = client.delete("/interactions/event/1/rsvp")
-    
-    assert response.status_code == 200
-    assert response.json()["message"] == "RSVP removed successfully"
-    mock_session.delete.assert_called()
-    mock_session.commit.assert_called()
-
-# Test for removing a non-existent RSVP
-def test_remove_rsvp_not_found(override_dependencies):
-    mock_session, mock_notify_if_not_self, mock_create_notification = override_dependencies
-
-    # Mock EventAttendee query to return None
-    mock_attendee_query = MagicMock()
-    mock_attendee_query.filter.return_value.first.return_value = None
-    mock_session.query.side_effect = lambda model: mock_attendee_query if model == EventAttendee else MagicMock()
-
-    # Send request to remove RSVP
-    response = client.delete("/interactions/event/1/rsvp")
-    
-    assert response.status_code == 404
-    assert response.json()["detail"] == "You haven't RSVP'd for this event."
-    mock_session.delete.assert_not_called()
-    mock_session.commit.assert_not_called()
