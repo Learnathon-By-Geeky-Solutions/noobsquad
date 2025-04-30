@@ -18,15 +18,7 @@ def search_posts_by_keyword(
     posts = SearchHandler.search_posts(db, keyword)
     return {"posts": posts}
 
-@router.get("/search/users")
-def search_users_by_keyword(
-    keyword: str = Query(..., min_length=1, title="Search Keyword"),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Search for users by username or email."""
-    users = SearchHandler.search_users(db, keyword)
-    return {"users": users}
+
 
 @router.get("/search/all")
 def search_all_by_keyword(
