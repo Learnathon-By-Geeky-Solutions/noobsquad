@@ -127,7 +127,7 @@ const SuggestedUsers = () => {
                 <img
                   src={
                     req.profile_picture
-                      ? `${import.meta.env.VITE_API_URL}/uploads/profile_pictures/${req.profile_picture}`
+                      ? `${req.profile_picture}`
                       : "/default-avatar.png"
                   }
                   alt="Profile"
@@ -195,7 +195,7 @@ const SuggestedUsers = () => {
                 <img
                   src={
                     user.profile_picture
-                      ? `${import.meta.env.VITE_API_URL}/uploads/profile_pictures/${user.profile_picture}`
+                      ? `${user.profile_picture}`
                       : "/default-avatar.png"
                   }
                   alt="Profile"

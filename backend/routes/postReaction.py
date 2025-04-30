@@ -34,7 +34,7 @@ from models.post import Like, Comment, Share, Post, Event, EventAttendee
 from schemas.postReaction import LikeCreate, LikeResponse, CommentCreate, ShareResponse, CommentNestedResponse, ShareCreate
 from schemas.eventAttendees import EventAttendeeCreate, EventAttendeeResponse
 from models.post import Post, PostMedia, PostDocument, Event, Like, Comment
-from .PostReaction.AttendeeHelperFunction import get_event_by_id, update_or_create_rsvp, count_rsvp_status
+from .PostReaction.AttendeeHelperFunction import get_event_by_id, update_or_create_rsvp, count_rsvp_status, get_user_rsvp
 
 router = APIRouter()
 
@@ -189,6 +189,12 @@ def rsvp_event(
     """RSVP to an event (Going or Interested)."""
     get_event_by_id(db, event_id)  # Ensure event exists
     return update_or_create_rsvp(db, event_id, current_user.id, attendee_data.status)
+
+@router.get("/event/{event_id}/my_rsvp/")
+def get_user_rsvp_status(event_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Get the current user's RSVP status for an event."""
+    rsvp = get_user_rsvp(db, event_id, current_user.id)
+    return {"status": rsvp.status if rsvp else None}
 
 
 @router.get("/event/{event_id}/attendees", response_model=list[EventAttendeeResponse])
