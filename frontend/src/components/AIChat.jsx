@@ -52,7 +52,7 @@ const ChatBox = ({ initialFile = null }) => {
       setMessages(prev => [...prev, { id: Date.now(), sender: "bot", text: data.response }]);
     } catch (error) {
       console.error("Error:", error);
-      setMessages(prev => [...prev, { id: Date.now(), sender: "bot", text: "❌ File upload failed." }]);
+      setMessages(prev => [...prev, { id: Date.now(), sender: "bot", text: "Sorry! Token limit for uploading file exceeded" }]);
     } finally {
       setFile(null); // clear the file after upload
       setIsAnalyzingPDF(false);
