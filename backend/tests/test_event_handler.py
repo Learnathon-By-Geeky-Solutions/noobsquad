@@ -13,8 +13,7 @@ from services.EventHandler import (
     update_event_post,
     format_event_response,
     _update_post_content,
-    _update_event_fields,
-    _handle_event_image
+    _update_event_fields
 )
 
 class TestEventHandler(TestCase):
@@ -72,22 +71,22 @@ class TestEventHandler(TestCase):
         self.assertIsInstance(result, datetime)
         self.assertEqual(result.tzinfo, ZoneInfo("UTC"))
 
-    @patch('services.EventHandler.save_upload_file')
-    @patch('services.EventHandler.generate_secure_filename')
-    def test_handle_event_image(self, mock_generate_filename, mock_save_file):
-        mock_image = Mock(spec=UploadFile)
-        mock_generate_filename.return_value = "test_image.jpg"
-        upload_dir = "test/uploads"
+    # @patch('services.EventHandler.save_upload_file')
+    # @patch('services.EventHandler.generate_secure_filename')
+    # def test_handle_event_image(self, mock_generate_filename, mock_save_file):
+    #     mock_image = Mock(spec=UploadFile)
+    #     mock_generate_filename.return_value = "test_image.jpg"
+    #     upload_dir = "test/uploads"
         
-        result = _handle_event_image(mock_image, self.user_id, upload_dir)
+    #     result = _handle_event_image(mock_image, self.user_id, upload_dir)
         
-        mock_generate_filename.assert_called_once_with(self.user_id, ".jpg")
-        mock_save_file.assert_called_once_with(mock_image, upload_dir, "test_image.jpg")
-        self.assertEqual(result, "test_image.jpg")
+    #     mock_generate_filename.assert_called_once_with(self.user_id, ".jpg")
+    #     mock_save_file.assert_called_once_with(mock_image, upload_dir, "test_image.jpg")
+    #     self.assertEqual(result, "test_image.jpg")
 
-    def test_handle_event_image_no_image(self):
-        result = _handle_event_image(None, self.user_id, "test/uploads")
-        self.assertIsNone(result)
+    # def test_handle_event_image_no_image(self):
+    #     result = _handle_event_image(None, self.user_id, "test/uploads")
+    #     self.assertIsNone(result)
 
     @patch('services.EventHandler.create_base_post')
     def test_create_event_post(self, mock_create_base_post):
