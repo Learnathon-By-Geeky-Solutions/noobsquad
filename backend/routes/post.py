@@ -214,7 +214,7 @@ async def create_event_post(
         user_id=current_user.id,
         content=content,
         event_data=event_data,
-        image_url=upload_result["secure_url"]
+        image_url=upload_result
     )
     
     send_post_notifications(db, current_user, post)

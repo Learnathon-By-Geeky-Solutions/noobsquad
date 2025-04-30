@@ -112,7 +112,7 @@ const ConnectedUsers = () => {
               <img
                 src={
                   friend.profile_picture
-                    ? `${import.meta.env.VITE_API_URL}/uploads/profile_pictures/${friend.profile_picture}`
+                    ? `${friend.profile_picture}`
                     : "/default-avatar.png"
                 }
                 alt="Profile"
