@@ -57,7 +57,7 @@ def _serialize_user(user: User) -> dict[str, Any]:
     return {
         "id": user.id,
         "username": user.username,
-        "profile_picture": f"{API_URL}/uploads/profile_pictures/{user.profile_picture}"
+        "profile_picture": user.profile_picture
     }
 
 def _build_reply_response(reply: Comment, user: User) -> dict[str, Any]:

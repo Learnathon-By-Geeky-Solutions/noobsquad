@@ -23,7 +23,7 @@ from database.session import SessionLocal
 from schemas.postReaction import LikeCreate, LikeResponse, CommentCreate, ShareResponse, CommentNestedResponse, ShareCreate
 from schemas.eventAttendees import EventAttendeeCreate, EventAttendeeResponse
 from api.v1.endpoints.auth import get_current_user
-from .PostReaction.CommentHelperFunc import get_comment_by_id, authorize_comment_deletion, get_post_by_id
+from .PostReaction.CommentHelperFunc import get_comment_by_id, get_post_by_id
 from schemas.postReaction import ShareResponse, ShareCreate
 from .PostReaction.ShareHandler import (
     create_share,
@@ -34,7 +34,7 @@ from models.post import Like, Comment, Share, Post, Event, EventAttendee
 from schemas.postReaction import LikeCreate, LikeResponse, CommentCreate, ShareResponse, CommentNestedResponse, ShareCreate
 from schemas.eventAttendees import EventAttendeeCreate, EventAttendeeResponse
 from models.post import Post, PostMedia, PostDocument, Event, Like, Comment
-from .PostReaction.AttendeeHelperFunction import get_event_by_id, get_user_rsvp, update_or_create_rsvp, delete_rsvp, count_rsvp_status
+from .PostReaction.AttendeeHelperFunction import get_event_by_id, update_or_create_rsvp, count_rsvp_status
 
 router = APIRouter()
 
@@ -145,18 +145,6 @@ def get_comments(post_id: int, db: Session = Depends(get_db), current_user: User
     return {"comments": [build_comment_response(comment, db, current_user) for comment in parent_comments]}
 
 
-@router.delete("/comment/{comment_id}")
-def delete_comment(comment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    comment = get_comment_by_id(db, comment_id)
-    post = get_post_by_id(db, comment.post_id)
-
-    authorize_comment_deletion(comment, post, current_user.id)
-
-    db.delete(comment)
-    db.commit()
-
-    return {"message": "Comment deleted successfully"}
-
 # ✅ Share a Post with a Unique Link (Stored)
 @router.post("/{post_id}/share", response_model=ShareResponse)
 def share_post(share_data: ShareCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -207,20 +195,6 @@ def rsvp_event(
 def get_event_attendees(event_id: int, db: Session = Depends(get_db)):
     """Retrieve all attendees of an event."""
     return db.query(EventAttendee).filter(EventAttendee.event_id == event_id).all()
-
-
-@router.delete("/event/{event_id}/rsvp")
-def remove_rsvp(event_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Remove the current user's RSVP from an event."""
-    delete_rsvp(db, event_id, current_user.id)
-    return {"message": "RSVP removed successfully"}
-
-
-@router.get("/event/{event_id}/my_rsvp/")
-def get_user_rsvp_status(event_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Get the current user's RSVP status for an event."""
-    rsvp = get_user_rsvp(db, event_id, current_user.id)
-    return {"status": rsvp.status if rsvp else None}
 
 
 @router.get("/posts/events/rsvp/counts/")
