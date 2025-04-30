@@ -31,7 +31,8 @@ def prepare_post_response(post: Post, current_user: User, db: Session) -> Dict[s
         "user": {
             "id": post.user.id,
             "username": post.user.username,
-            "profile_picture": post.user.profile_picture
+            "profile_picture": post.user.profile_picture,
+            "university_name": post.user.university_name
         },
         "total_likes": post.like_count,
         "user_liked": user_liked,

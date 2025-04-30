@@ -31,12 +31,13 @@ const Newsfeed = () => {
         <main className="w-1/2  rounded-lg p-6 mt-10"> {/* Added mt-10 for top margin */}
         <div className="-mt-30 md:-mt-24"><div className="max-w-2xl mx-auto p-4">  
 
-{/* ✅ Create Post Section */}
-<CreatePost />
+          {/* ✅ Create Post Section */}
+          <CreatePost />
 
-{/* ✅ Render Feed (fetches and displays posts) */}
-<Feed />
-</div></div>
+          {/* ✅ Render Feed (fetches and displays posts) */}
+          <Feed />
+        </div>
+        </div>
           
         </main>
 
