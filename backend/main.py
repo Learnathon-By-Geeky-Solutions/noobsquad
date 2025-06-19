@@ -8,6 +8,8 @@ from routes import postReaction
 from fastapi.staticfiles import StaticFiles
 from api.v1.endpoints import search
 from api.v1.endpoints.chatbot import huggingface
+from routes import google_auth
+from starlette.middleware.sessions import SessionMiddleware
 
 app = FastAPI()
 
@@ -26,12 +28,14 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all methods (GET, POST, etc.)
     allow_headers=["*"],  # Allow all headers
 )
+app.add_middleware(SessionMiddleware, secret_key="your_super_secret_key")
 
 # Create tables
 Base.metadata.create_all(bind=engine)
 
 # Include routers
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+app.include_router(google_auth.router, prefix="/auth/google", tags=["Google Authentication"])
 app.include_router(profile.router, prefix="/profile", tags=["User Profile"])
 app.include_router(post.router,prefix="/posts", tags=["Posts"])
 app.include_router(postReaction.router, prefix="/interactions", tags=["Post Interactions"])
