@@ -62,7 +62,6 @@ backend/__pycache__/
 *.py[cod]
 *.pyo
 backend/coverage_html/
-
 # Compiled binaries
 *.so
 *.dll

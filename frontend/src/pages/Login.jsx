@@ -4,6 +4,7 @@ import { login } from "../api/auth";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/Navbar";
+import { GoogleLogin, googleLogout } from '@react-oauth/google';
 
 const Login = () => {
   const [formData, setFormData] = useState({ username: "", password: "" });
@@ -14,11 +15,34 @@ const Login = () => {
   const { login: authLogin } = useAuth();
   const location = useLocation();
 
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      // Option 1: Use backend OAuth flow (recommended)
+      window.location.href = `${import.meta.env.VITE_API_URL}/auth/google/login`;
+
+      // Option 2: If using Google One Tap and want to POST token to backend:
+      // const { credential } = credentialResponse;
+      // const res = await axios.post(`${import.meta.env.VITE_API_URL}/auth/google/onetap`, { token: credential });
+      // Handle login as usual with res.data.access_token
+    } catch (error) {
+      setError("Google login failed");
+    }
+  };
   useEffect(() => {
     if (location.state?.fromVerification) {
       setSuccess("Email verified! Please log in to continue.");
     }
   }, [location.state]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    if (token) {
+      localStorage.setItem("token", token);
+      // Optionally fetch user and redirect
+      window.location.href = "/dashboard/posts";
+    }
+  }, []);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -101,13 +125,14 @@ const Login = () => {
             type="button"
             className="w-full flex items-center justify-center gap-2 border border-gray-300 rounded-full py-2 mb-3 hover:bg-gray-100"
           >
-            <img
-              src="/education-svgrepo-com.svg"
-              alt="University Mail Icon"
-              className="w-6 h-5"
+            
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setError("Google login failed")}
+              useOneTap
             />
-            <span>Continue with University mail</span>
           </button>
+ 
 
           <div className="flex items-center mb-4">
             <hr className="flex-grow border-gray-300" />

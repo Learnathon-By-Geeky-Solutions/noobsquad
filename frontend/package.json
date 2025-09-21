@@ -12,6 +12,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@react-oauth/google": "^0.12.2",
     "@tailwindcss/vite": "^4.0.9",
     "axios": "^1.8.1",
     "date-fns": "^4.1.0",
