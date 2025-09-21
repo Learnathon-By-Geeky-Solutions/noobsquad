@@ -64,5 +64,5 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
         db.refresh(user)# Generate JWT token
     access_token = create_access_token({"sub": user.username})
     # Redirect to frontend with token as query param
-    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    frontend_url = os.getenv("FRONTEND_URL")
     return RedirectResponse(f"{frontend_url}/login?token={access_token}")
