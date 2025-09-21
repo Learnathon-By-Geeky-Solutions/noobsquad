@@ -21,7 +21,7 @@ app.mount("/uploads/research_papers", StaticFiles(directory="uploads/research_pa
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "https://u-connect.netlify.app"],  # Adjust for your frontend
+    allow_origins=["http://localhost:5173", "https://u-connect.netlify.app", "https://noobsquad.vercel.app/"],  # Adjust for your frontend
     allow_credentials=True,
     allow_methods=["*"],  # Allow all methods (GET, POST, etc.)
     allow_headers=["*"],  # Allow all headers
